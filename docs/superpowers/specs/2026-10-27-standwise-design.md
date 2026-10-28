@@ -173,7 +173,7 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início).
 
 ## 7. Decisões tomadas por mim (Claude) — revisar
-- Código **open source** (MIT), com serviço **hospedado pelo Felipe** (multi-tenant). **A v1 é só hospedada**: rodar no próprio servidor não é prometido nem documentado até depois da fase 2. Ainda assim, segredos e URLs vêm de variáveis de ambiente, para não fechar essa porta. *(Inferido da prioridade "o mais rápido possível".)*
+- Código **open source** (MIT), com serviço **hospedado pelo Felipe** (multi-tenant). **A v1 é só hospedada**: rodar no próprio servidor não é prometido nem documentado até depois da fase 2. Ainda assim, segredos e URLs vêm de variáveis de ambiente, para não fechar essa porta. *(Recomendação minha, aguardando confirmação.)*
 - O rascunho do "ontem" é montado pela **API** (que tem as conexões), não localmente pelo agente. Assim fica igual em qualquer agente; o agente pode enriquecer.
 - Configuração no `.github/standwise.yml` do repositório `.github` da organização.
 - Reenvio no mesmo dia substitui a daily anterior.
