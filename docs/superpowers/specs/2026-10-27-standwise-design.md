@@ -54,7 +54,8 @@ Existem ferramentas de standup a partir do GitHub (Taskade, GitMorning, Shogo, S
 2. É redirecionado para a **página de setup** (servida pela API, HTML simples), onde conecta:
    - chat: Slack (OAuth, bot token) e/ou Google Chat (Chat app do Google Workspace);
    - gerenciador: Linear (OAuth) e/ou Jira Cloud (OAuth 2.0 3LO).
-3. Cria `.github/standwise.yml` no repositório `.github` da organização (a página de setup oferece abrir um PR com um template). O painel web, quando existir, é uma alternativa para editar a mesma configuração.
+3. Cria `.github/standwise.yml` no repositório `.github` da organização (ou da conta pessoal). A página de setup **não escreve no repositório**: ela mostra o template e um link `github.com/<owner>/.github/new/main?filename=standwise.yml&value=<template>` que abre o editor do GitHub já preenchido. O painel web, quando existir, edita a mesma configuração abrindo PR (fase 2).
+4. A configuração vem **só do GitHub** na v1. Se o repositório `.github` não existir ou não estiver entre os repositórios liberados para o app, a instalação fica no estado "não configurada", e a página de setup explica como resolver (criar o repo ou liberar o acesso). *(Chamada minha.)*
 
 ### 4.2 Membro
 1. Instala o plugin do Claude Code (skill + CLI `standwise`).
@@ -65,6 +66,7 @@ Existem ferramentas de standup a partir do GitHub (Taskade, GitMorning, Shogo, S
    - o agente pode enriquecer com contexto local (ex.: sessões do próprio agente), apresenta o rascunho, e a pessoa ajusta o "ontem", escreve o "hoje" e os impedimentos (cada impedimento pode referenciar um PR ou card);
    - a skill chama `standwise submit` com o JSON validado (schema Zod compartilhado).
 5. Reenviar no mesmo dia **substitui** a daily anterior (só vale a última).
+6. **Pessoa em vários times** *(chamada minha)*: a daily pertence à pessoa + data, não ao time. Uma única `/daily` aparece no consolidado de todos os times de que a pessoa participa. "Hoje" e "último dia útil" seguem o fuso e os dias úteis do **primeiro time** em que a pessoa aparece no config. O limite de 1 lembrete por dia é por pessoa. Pessoa em várias organizações: uma daily por organização, e a CLI pergunta qual (ou usa `--org`).
 
 ### 4.3 Orquestrador (worker)
 Todos os horários são no fuso do time, apenas em dias úteis configurados.
@@ -79,7 +81,7 @@ Todos os horários são no fuso do time, apenas em dias úteis configurados.
 - **Impedimentos sugeridos** (varredura diária antes do `remind_at` + webhooks do GitHub em tempo real):
   - PR da pessoa aberto, não-draft, sem nenhuma review há mais de `pr_review_hours` (padrão 48);
   - card da pessoa em status "em andamento" há mais de `card_stale_days` (padrão 5);
-  - CI falhando no branch padrão de um PR da pessoa há mais de 24h *(chamada minha; pode sair se gerar ruído)*.
+  - checks falhando no **head do PR aberto da própria pessoa** há mais de 24h (via `check_suite`/`check_run`). Branch padrão quebrado **não** entra, porque não dá para atribuir a uma pessoa de forma justa. *(Chamada minha.)*
   As sugestões aparecem no `standwise draft` e, opcionalmente, como mensagem direta. Se forem ignoradas, não voltam até o sinal mudar (ex.: nova review, mudança de status).
 
 ### 4.4 Configuração (`.github/standwise.yml`)
@@ -105,7 +107,7 @@ teams:
 members:                        # opcional: mapeamento manual de identidades
   alice: { slack: U0123, linear: alice@acme.com }
 ```
-Mudanças no arquivo chegam por webhook `push` e são validadas. Se a configuração for inválida, o app comenta no commit/PR com o erro e mantém a última versão válida.
+Mudanças no arquivo chegam por webhook `push` e são validadas. Se a configuração for inválida, o app cria um **check run** com falha no commit, mostrando os erros, e mantém a última versão válida. O mesmo check roda em PRs que alteram o arquivo.
 
 ## 5. Arquitetura
 
@@ -161,7 +163,9 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 
 ## 6. Restrições
 
-- **Segurança:** tokens OAuth criptografados em repouso (AES-256-GCM, chave em variável de ambiente); verificação de assinatura em todos os webhooks (GitHub, Slack, Google); permissões mínimas no GitHub App: Pull requests (read), Contents (read, para `standwise.yml` e CODEOWNERS), Checks (read), Members (read), Metadata (read), Commit statuses (read), mais permissão de escrita só para comentar erro de configuração (Issues/PR write — *chamada minha; alternativa é só reportar na página de setup*).
+- **Segurança:** tokens OAuth criptografados em repouso (AES-256-GCM, chave em variável de ambiente); verificação de assinatura em todos os webhooks (GitHub, Slack, Google); permissões do GitHub App, **fixadas antes do lançamento** (adicionar uma depois obriga toda organização a aprovar de novo): Metadata (read), Contents (read: `standwise.yml` e CODEOWNERS), Pull requests (read), Checks (**write**: ler checks dos PRs e publicar o check run de validação do config), Commit statuses (read), Members (read: GitHub teams no config). Eventos: `installation`, `installation_repositories`, `push`, `pull_request`, `pull_request_review`, `check_suite`, `check_run`. Nenhuma outra permissão de escrita.
+- **Gerenciadores de projeto** *(chamada minha)*: uma conexão por instalação, feita pelo admin. No Linear, OAuth com `actor=app` (o app age como ele mesmo e vê os times autorizados). No Jira, token 3LO do admin que conectou; limitação documentada: cards que o admin não vê ficam de fora. Tokens por membro ficam para a fase 2.
+- **Google Chat** *(chamada minha)*: no serviço hospedado, um único Chat app no projeto Google Cloud do Standwise, publicado na Google Workspace Marketplace, que o cliente instala. Quem roda no próprio servidor registra o próprio Chat app. A tabela `connections` guarda credenciais por instalação de qualquer forma.
 - **Idempotência:** jobs agendados e envios usam chave única (team + data + tipo), para que um retry nunca duplique mensagens.
 - **Multi-tenant:** todo dado tem o escopo da instalação do GitHub App.
 - **Google Chat:** mensagens diretas e posts em espaços exigem um Chat app configurado num projeto do Google Cloud e instalado no Workspace do cliente. Isso é mais atrito que no Slack e precisa estar documentado no setup.
