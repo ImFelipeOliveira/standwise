@@ -165,7 +165,7 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 
 - **Segurança:** tokens OAuth criptografados em repouso (AES-256-GCM, chave em variável de ambiente); verificação de assinatura em todos os webhooks (GitHub, Slack, Google); permissões do GitHub App, **fixadas antes do lançamento** (adicionar uma depois obriga toda organização a aprovar de novo): Metadata (read), Contents (read: `standwise.yml` e CODEOWNERS), Pull requests (read), Checks (**write**: ler checks dos PRs e publicar o check run de validação do config), Commit statuses (read), Members (read: GitHub teams no config). Eventos: `installation`, `installation_repositories`, `push`, `pull_request`, `pull_request_review`, `check_suite`, `check_run`. Nenhuma outra permissão de escrita.
 - **Gerenciadores de projeto** *(chamada minha)*: uma conexão por instalação, feita pelo admin. No Linear, OAuth com `actor=app` (o app age como ele mesmo e vê os times autorizados). No Jira, token 3LO do admin que conectou; limitação documentada: cards que o admin não vê ficam de fora. Tokens por membro ficam para a fase 2.
-- **Google Chat** *(chamada minha)*: no serviço hospedado, um único Chat app no projeto Google Cloud do Standwise, publicado na Google Workspace Marketplace, que o cliente instala. Quem roda no próprio servidor registra o próprio Chat app. A tabela `connections` guarda credenciais por instalação de qualquer forma.
+- **Google Chat** *(chamada minha)*: no serviço hospedado, um único Chat app no projeto Google Cloud do Standwise, publicado na Google Workspace Marketplace, que o cliente instala. A tabela `connections` guarda credenciais por instalação de qualquer forma.
 - **Idempotência:** jobs agendados e envios usam chave única (team + data + tipo), para que um retry nunca duplique mensagens.
 - **Multi-tenant:** todo dado tem o escopo da instalação do GitHub App.
 - **Google Chat:** mensagens diretas e posts em espaços exigem um Chat app configurado num projeto do Google Cloud e instalado no Workspace do cliente. Isso é mais atrito que no Slack e precisa estar documentado no setup.
@@ -173,7 +173,8 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início).
 
 ## 7. Decisões tomadas por mim (Claude) — revisar
-- Código **open source** (MIT), com serviço **hospedado pelo Felipe** (multi-tenant). **A v1 é só hospedada**: rodar no próprio servidor não é prometido nem documentado até depois da fase 2. Ainda assim, segredos e URLs vêm de variáveis de ambiente, para não fechar essa porta. *(Recomendação minha, aguardando confirmação.)*
+- **Hospedagem (decidido pelo Felipe):** serviço multi-tenant **hospedado apenas pelo Felipe**. Não há opção de rodar no próprio servidor. Segredos e URLs vêm de variáveis de ambiente (boa prática, não promessa de self-host).
+- Código **público no GitHub, licença MIT** *(chamada minha)*.
 - O rascunho do "ontem" é montado pela **API** (que tem as conexões), não localmente pelo agente. Assim fica igual em qualquer agente; o agente pode enriquecer.
 - Configuração no `.github/standwise.yml` do repositório `.github` da organização.
 - Reenvio no mesmo dia substitui a daily anterior.
