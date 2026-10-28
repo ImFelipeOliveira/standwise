@@ -180,10 +180,9 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - Sinal de CI falhando como terceiro tipo de impedimento sugerido.
 
 ## 8. Faseamento
-Prioridade do autor: entrar no Developer Program **o mais rápido possível**.
+Sem prazo: o projeto anda no ritmo do autor. A fase 1a é construída por completo, na ordem das dependências.
 
-- **0 (fatia fina, entra no Developer Program):** GitHub App registrado com as permissões finais; API com webhooks verificados; CLI com `login` (device flow), `draft` (só GitHub) e `submit`; skill `/daily`; consolidado no Slack no horário configurado; config via `standwise.yml`; deploy no Railway; README com e-mail de suporte. Ao terminar: inscrição no programa.
-- **1a (completa o MVP):** Linear, lembretes, encaminhamento de impedimentos, impedimentos sugeridos e check run de validação do config. GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento e sugestões. Deploy no Railway. Inscrição no Developer Program.
+- **1a (MVP):** GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento, sugestões e check run de validação do config. Deploy no Railway, README com e-mail de suporte. Inscrição no Developer Program.
 - **1b:** Google Chat + Jira (completa a v1 prometida).
 - **2:** Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
 
