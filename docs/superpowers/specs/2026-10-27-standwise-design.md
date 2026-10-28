@@ -173,14 +173,17 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início).
 
 ## 7. Decisões tomadas por mim (Claude) — revisar
-- Código **open source**, com serviço **hospedado pelo Felipe** (multi-tenant) e opção de rodar no próprio servidor. Licença: **MIT**.
+- Código **open source** (MIT), com serviço **hospedado pelo Felipe** (multi-tenant). **A v1 é só hospedada**: rodar no próprio servidor não é prometido nem documentado até depois da fase 2. Ainda assim, segredos e URLs vêm de variáveis de ambiente, para não fechar essa porta. *(Inferido da prioridade "o mais rápido possível".)*
 - O rascunho do "ontem" é montado pela **API** (que tem as conexões), não localmente pelo agente. Assim fica igual em qualquer agente; o agente pode enriquecer.
 - Configuração no `.github/standwise.yml` do repositório `.github` da organização.
 - Reenvio no mesmo dia substitui a daily anterior.
 - Sinal de CI falhando como terceiro tipo de impedimento sugerido.
 
 ## 8. Faseamento
-- **1a (MVP):** GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento e sugestões. Deploy no Railway. Inscrição no Developer Program.
+Prioridade do autor: entrar no Developer Program **o mais rápido possível**.
+
+- **0 (fatia fina, entra no Developer Program):** GitHub App registrado com as permissões finais; API com webhooks verificados; CLI com `login` (device flow), `draft` (só GitHub) e `submit`; skill `/daily`; consolidado no Slack no horário configurado; config via `standwise.yml`; deploy no Railway; README com e-mail de suporte. Ao terminar: inscrição no programa.
+- **1a (completa o MVP):** Linear, lembretes, encaminhamento de impedimentos, impedimentos sugeridos e check run de validação do config. GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento e sugestões. Deploy no Railway. Inscrição no Developer Program.
 - **1b:** Google Chat + Jira (completa a v1 prometida).
 - **2:** Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
 
