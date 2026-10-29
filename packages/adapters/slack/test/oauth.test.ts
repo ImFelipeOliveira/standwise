@@ -53,4 +53,19 @@ describe('oauth', () => {
     }).catch((e) => e);
     expect(err.code).toBe('invalid_code');
   });
+
+  test('exchangeSlackCode rejects incomplete response', async () => {
+    server = Bun.serve({
+      port: 0,
+      fetch: () => Response.json({ ok: true, access_token: 'xoxb-1' }),
+    });
+    const err = await exchangeSlackCode({
+      clientId: 'cid',
+      clientSecret: 'sec',
+      code: 'c',
+      redirectUri: 'https://a/cb',
+      slackApiUrl: `http://localhost:${server.port}/api/`,
+    }).catch((e) => e);
+    expect(err.code).toBe('invalid_oauth_response');
+  });
 });

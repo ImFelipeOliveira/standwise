@@ -1,5 +1,5 @@
 import { createWebClient } from './channel';
-import { mapSlackErrors } from './errors';
+import { ChatDeliveryError, mapSlackErrors } from './errors';
 
 export const SLACK_SCOPES = [
   'chat:write',
@@ -40,5 +40,8 @@ export async function exchangeSlackCode(p: {
       redirect_uri: p.redirectUri,
     }),
   );
-  return { teamId: res.team?.id ?? '', botToken: res.access_token ?? '' };
+  if (!res.team?.id || !res.access_token) {
+    throw new ChatDeliveryError('invalid_oauth_response', 'oauth response missing team or token');
+  }
+  return { teamId: res.team.id, botToken: res.access_token };
 }

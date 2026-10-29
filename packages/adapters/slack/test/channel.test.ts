@@ -110,4 +110,11 @@ describe('createSlackChannel', () => {
     expect(err).toBeInstanceOf(ChatDeliveryError);
     expect(err.code).toBe('channel_not_found');
   });
+
+  test('postMessage without ts maps to invalid_response', async () => {
+    const { url } = fake({ 'chat.postMessage': () => ({ ok: true, channel: 'C1' }) });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    const err = await ch.postToChannel('C1', msg).catch((e) => e);
+    expect(err.code).toBe('invalid_response');
+  });
 });

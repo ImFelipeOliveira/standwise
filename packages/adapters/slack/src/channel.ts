@@ -45,7 +45,10 @@ export function createSlackChannel(
       blocks: rendered.blocks as never,
       thread_ts: threadTs,
     });
-    return { channel: res.channel ?? channel, id: res.ts ?? '' };
+    if (!res.ts || !res.channel) {
+      throw new ChatDeliveryError('invalid_response', 'slack response missing ts or channel');
+    }
+    return { channel: res.channel, id: res.ts };
   }
 
   return {
