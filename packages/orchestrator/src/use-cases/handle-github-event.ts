@@ -5,7 +5,7 @@ import { loadInstallationConfig } from './load-installation-config';
 const CONFIG_REPO = '.github';
 const CONFIG_FILE = 'standwise.yml';
 
-type Account = { login?: string; type?: string };
+type Account = { id?: number; login?: string; type?: string };
 
 export type GitHubEventPayload = {
   action?: string;
@@ -32,6 +32,7 @@ async function syncInstallation(
     id: installationId,
     accountLogin: account.login,
     accountType: account.type === 'Organization' ? 'Organization' : 'User',
+    accountId: account.id ?? null,
   });
   await loadInstallationConfig(deps, installationId, account.login);
 }

@@ -70,7 +70,13 @@ function harness(
       app: {} as Deps['github']['app'],
       installationOctokit: async () =>
         ({
-          request: async (route: string, params: { org: string; username: string }) => {
+          request: async (
+            route: string,
+            params: { org: string; username: string; account_id: number },
+          ) => {
+            if (route === 'GET /user/{account_id}' && params.account_id === 1) {
+              return { status: 200, data: { id: 1, login: 'Alice' } };
+            }
             if (route !== 'GET /orgs/{org}/members/{username}') throw new Error(route);
             membershipCalls.push(`${params.org}/${params.username}`);
             if (!members.has(params.username.toLowerCase())) {

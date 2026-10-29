@@ -5,14 +5,24 @@ import { type InstallationRow, installations } from '../schema';
 
 export async function upsertInstallation(
   db: Db,
-  i: { id: number; accountLogin: string; accountType: 'Organization' | 'User' },
+  i: {
+    id: number;
+    accountLogin: string;
+    accountType: 'Organization' | 'User';
+    accountId?: number | null;
+  },
 ): Promise<void> {
   await db
     .insert(installations)
     .values(i)
     .onConflictDoUpdate({
       target: installations.id,
-      set: { accountLogin: i.accountLogin, accountType: i.accountType, updatedAt: sql`now()` },
+      set: {
+        accountLogin: i.accountLogin,
+        accountType: i.accountType,
+        ...(i.accountId !== undefined ? { accountId: i.accountId } : {}),
+        updatedAt: sql`now()`,
+      },
     });
 }
 

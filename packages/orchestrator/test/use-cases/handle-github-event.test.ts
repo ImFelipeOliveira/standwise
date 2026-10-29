@@ -42,8 +42,15 @@ describe('handleGitHubEvent', () => {
     const row = await getInstallation(db, INST);
     expect(row?.accountLogin).toBe('acme');
     expect(row?.accountType).toBe('Organization');
+    expect(row?.accountId).toBe(500);
     expect(row?.status).toBe('configured');
     expect(calls.config).toEqual(['acme']);
+  });
+
+  test('installation_repositories stores the account id', async () => {
+    const { deps } = fakeDeps({ source: { found: true, source: VALID } });
+    await handleGitHubEvent(deps, 'installation_repositories', { ...created, action: 'added' });
+    expect((await getInstallation(db, INST))?.accountId).toBe(500);
   });
 
   test('installation deleted removes it', async () => {

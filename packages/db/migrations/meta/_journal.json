@@ -15,6 +15,13 @@
       "when": 1793233453831,
       "tag": "0001_slim_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793235370742,
+      "tag": "0002_installation_account_id",
+      "breakpoints": true
     }
   ]
 }

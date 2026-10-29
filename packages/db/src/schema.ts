@@ -23,6 +23,7 @@ export const installations = pgTable('installations', {
   id: bigint('id', { mode: 'number' }).primaryKey(),
   accountLogin: text('account_login').notNull(),
   accountType: text('account_type').$type<'Organization' | 'User'>().notNull(),
+  accountId: bigint('account_id', { mode: 'number' }),
   status: text('status')
     .$type<'unconfigured' | 'configured' | 'invalid'>()
     .notNull()
