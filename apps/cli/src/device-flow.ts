@@ -1,3 +1,5 @@
+import { NetworkError } from './api';
+
 export const GITHUB_URL = 'https://github.com';
 const GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 
@@ -12,17 +14,23 @@ export type DeviceCode = {
   userCode: string;
   verificationUri: string;
   interval: number;
+  expiresIn: number;
 };
 
 async function postForm(
   url: string,
   form: Record<string, string>,
 ): Promise<Record<string, unknown>> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(form).toString(),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(form).toString(),
+    });
+  } catch {
+    throw new NetworkError(new URL(url).origin);
+  }
   const payload: unknown = await response.json().catch(() => null);
   if (typeof payload !== 'object' || payload === null) {
     throw new DeviceFlowError(`http_${response.status}`);
@@ -32,14 +40,19 @@ async function postForm(
 
 export async function requestDeviceCode(githubUrl: string, clientId: string): Promise<DeviceCode> {
   const data = await postForm(`${githubUrl}/login/device/code`, { client_id: clientId });
-  if (typeof data.device_code !== 'string' || typeof data.user_code !== 'string') {
+  if (
+    typeof data.device_code !== 'string' ||
+    typeof data.user_code !== 'string' ||
+    typeof data.verification_uri !== 'string'
+  ) {
     throw new DeviceFlowError(typeof data.error === 'string' ? data.error : 'invalid_response');
   }
   return {
     deviceCode: data.device_code,
     userCode: data.user_code,
-    verificationUri: String(data.verification_uri),
+    verificationUri: data.verification_uri,
     interval: typeof data.interval === 'number' ? data.interval : 5,
+    expiresIn: typeof data.expires_in === 'number' ? data.expires_in : 900,
   };
 }
 
@@ -50,7 +63,10 @@ export async function pollAccessToken(
   sleep: (ms: number) => Promise<void>,
 ): Promise<string> {
   let interval = code.interval;
+  let elapsed = 0;
   for (;;) {
+    if (elapsed + interval > code.expiresIn) throw new DeviceFlowError('expired_token');
+    elapsed += interval;
     await sleep(interval * 1000);
     const data = await postForm(`${githubUrl}/login/oauth/access_token`, {
       client_id: clientId,
@@ -67,10 +83,25 @@ export async function pollAccessToken(
   }
 }
 
-export function openBrowser(url: string): void {
-  const command = process.platform === 'darwin' ? 'open' : 'xdg-open';
+export function canOpen(uri: string, githubUrlOverride?: string): boolean {
   try {
-    Bun.spawn([command, url], { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' }).exited.catch(
+    const parsed = new URL(uri);
+    if (parsed.protocol === 'https:' && parsed.hostname === 'github.com') return true;
+    return githubUrlOverride !== undefined && parsed.host === new URL(githubUrlOverride).host;
+  } catch {
+    return false;
+  }
+}
+
+export function openBrowser(url: string): void {
+  const command =
+    process.platform === 'darwin'
+      ? ['open', url]
+      : process.platform === 'win32'
+        ? ['cmd', '/c', 'start', '', url]
+        : ['xdg-open', url];
+  try {
+    Bun.spawn(command, { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' }).exited.catch(
       () => undefined,
     );
   } catch {

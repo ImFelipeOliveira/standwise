@@ -145,15 +145,6 @@ describe('logout and whoami', () => {
     expect(await run(['whoami'], ctx.io)).toBe(0);
     expect(JSON.parse(ctx.out.join(''))).toEqual({ login: 'alice', orgs: ORGS });
   });
-
-  test('logout deletes the file without calling the API', async () => {
-    const api = serve(() => json({}));
-    const ctx = await loggedIn(api.url);
-    expect(await run(['logout'], ctx.io)).toBe(0);
-    expect(await readCredentials(ctx.io.env)).toBeNull();
-    expect(api.seen).toHaveLength(0);
-    expect(await run(['logout'], ctx.io)).toBe(0);
-  });
 });
 
 describe('draft', () => {
@@ -184,8 +175,8 @@ describe('draft', () => {
 
   test('--api-url overrides STANDWISE_API_URL', async () => {
     const api = serve(() => json({ ok: true }));
-    const ctx = await loggedIn('http://wrong.invalid', [ORGS[0] as (typeof ORGS)[number]], '', {
-      STANDWISE_API_URL: 'http://also-wrong.invalid',
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]], '', {
+      STANDWISE_API_URL: 'http://localhost:1',
     });
     expect(await run(['draft', '--api-url', api.url], ctx.io)).toBe(0);
     expect(api.seen).toHaveLength(1);
@@ -258,6 +249,175 @@ describe('submit', () => {
   test('submit without login exits 2', async () => {
     const ctx = await makeIo({}, JSON.stringify(DAILY));
     expect(await run(['submit'], ctx.io)).toBe(2);
+  });
+});
+
+describe('url safety', () => {
+  test('http non-local api urls are rejected for flag, env and stored credentials', async () => {
+    const ctx = await loggedIn('http://evil.example', [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['draft'], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain('http://evil.example');
+    const flag = await makeIo();
+    expect(await run(['login', '--api-url', 'http://evil.example'], flag.io)).toBe(1);
+    const env = await makeIo({ STANDWISE_API_URL: 'ftp://evil.example' });
+    expect(await run(['login'], env.io)).toBe(1);
+  });
+
+  test('non-local STANDWISE_GITHUB_URL is ignored with a warning', async () => {
+    const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
+    const ctx = await makeIo({
+      STANDWISE_API_URL: api.url,
+      STANDWISE_GITHUB_URL: 'https://evil.example',
+    });
+    const seenUrls: string[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: Request | string | URL, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.startsWith('https://')) {
+        seenUrls.push(url);
+        return json({ error: 'access_denied' });
+      }
+      return original(input, init);
+    }) as typeof fetch;
+    try {
+      expect(await run(['login'], ctx.io)).toBe(1);
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(seenUrls).toEqual(['https://github.com/login/device/code']);
+    expect(ctx.err.join('')).toContain('STANDWISE_GITHUB_URL');
+  });
+
+  test('localhost http is accepted', async () => {
+    const api = serve(() => json({ org: 'acme' }));
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(api.url.startsWith('http://localhost')).toBe(true);
+    expect(await run(['draft'], ctx.io)).toBe(0);
+  });
+});
+
+describe('token origin binding', () => {
+  const other127 = (url: string) => url.replace('localhost', '127.0.0.1');
+
+  test('a different effective origin never receives the stored token', async () => {
+    const stored = serve(() => json({}));
+    const other = serve(() => json({}));
+    const env = { STANDWISE_API_URL: other127(other.url) };
+    const ctx = await loggedIn(stored.url, [ORGS[0] as (typeof ORGS)[number]], '', env);
+    expect(await run(['draft'], ctx.io)).toBe(2);
+    expect(await run(['logout'], ctx.io)).toBe(0);
+    expect(ctx.err.join('')).toContain('standwise login --api-url');
+    const submitCtx = await loggedIn(stored.url, ORGS, JSON.stringify(DAILY), env);
+    expect(await run(['submit'], submitCtx.io)).toBe(2);
+    expect(other.seen).toHaveLength(0);
+    expect(stored.seen.every((seen) => seen.method === 'DELETE')).toBe(true);
+  });
+
+  test('--api-url to a different origin is also refused', async () => {
+    const stored = serve(() => json({}));
+    const other = serve(() => json({}));
+    const ctx = await loggedIn(stored.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['draft', '--api-url', other127(other.url)], ctx.io)).toBe(2);
+    expect(other.seen).toHaveLength(0);
+  });
+});
+
+describe('logout revoke', () => {
+  test('logout revokes the session on the API then deletes the file', async () => {
+    const api = serve(() => new Response(null, { status: 204 }));
+    const ctx = await loggedIn(api.url);
+    expect(await run(['logout'], ctx.io)).toBe(0);
+    expect(api.seen[0]).toMatchObject({
+      method: 'DELETE',
+      path: '/v1/sessions/current',
+      auth: 'Bearer sw_tok',
+    });
+    expect(await readCredentials(ctx.io.env)).toBeNull();
+  });
+
+  test('logout still deletes the file when the API is down or answers 401', async () => {
+    const ctx = await loggedIn('http://localhost:1');
+    expect(await run(['logout'], ctx.io)).toBe(0);
+    expect(await readCredentials(ctx.io.env)).toBeNull();
+    const unauthorized = serve(() => json({ error: { code: 'unauthorized', message: 'x' } }, 401));
+    const ctx2 = await loggedIn(unauthorized.url);
+    expect(await run(['logout'], ctx2.io)).toBe(0);
+    expect(await readCredentials(ctx2.io.env)).toBeNull();
+  });
+});
+
+describe('device flow hardening', () => {
+  function deviceServers(code: Record<string, unknown>, poll: () => Response) {
+    const github = serve((req) =>
+      new URL(req.url).pathname === '/login/device/code' ? json(code) : poll(),
+    );
+    const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
+    return { github, api };
+  }
+
+  test('stops polling after expires_in', async () => {
+    const { github, api } = deviceServers(
+      {
+        device_code: 'd',
+        user_code: 'U',
+        verification_uri: 'https://github.com/login/device',
+        interval: 5,
+        expires_in: 12,
+      },
+      () => json({ error: 'authorization_pending' }),
+    );
+    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    expect(await run(['login'], ctx.io)).toBe(1);
+    expect(ctx.sleeps.length).toBeLessThan(5);
+    expect(ctx.err.join('')).toContain('expired');
+  });
+
+  test('rejects a malformed device code response', async () => {
+    const { github, api } = deviceServers(
+      { device_code: 'd', user_code: 'U', verification_uri: 42, interval: 1 },
+      () => json({}),
+    );
+    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    expect(await run(['login'], ctx.io)).toBe(1);
+    expect(await readCredentials(ctx.io.env)).toBeNull();
+  });
+
+  test('github network failure is a friendly error', async () => {
+    const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
+    const ctx = await makeIo({
+      STANDWISE_API_URL: api.url,
+      STANDWISE_GITHUB_URL: 'http://localhost:1',
+    });
+    expect(await run(['login'], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain('http://localhost:1');
+  });
+
+  test('only github.com or the configured test host is opened', async () => {
+    for (const uri of ['file:///etc/passwd', 'https://evil.example/x', 'http://github.com/x']) {
+      const { github, api } = deviceServers(
+        { device_code: 'd', user_code: 'U', verification_uri: uri, interval: 1 },
+        () => json({ error: 'access_denied' }),
+      );
+      const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+      await run(['login'], ctx.io);
+      expect(ctx.opened).toEqual([]);
+      expect(ctx.err.join('')).toContain(uri);
+    }
+  });
+
+  test('control characters are stripped from the printed uri', async () => {
+    const { github, api } = deviceServers(
+      {
+        device_code: 'd',
+        user_code: 'U',
+        verification_uri: 'https://evil.example/\u001b[31mx',
+        interval: 1,
+      },
+      () => json({ error: 'access_denied' }),
+    );
+    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    await run(['login'], ctx.io);
+    expect(ctx.err.join('')).not.toContain('\u001b');
   });
 });
 

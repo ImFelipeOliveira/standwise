@@ -236,6 +236,26 @@ describe('sessions', () => {
   });
 });
 
+describe('end session', () => {
+  test('DELETE /v1/sessions/current revokes the token', async () => {
+    const h = harness();
+    await seed();
+    const token = await login(h);
+    const res = await h.app.request('/v1/sessions/current', {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(204);
+    expect((await get(h, token, '/v1/draft?org=acme')).status).toBe(401);
+  });
+
+  test('DELETE /v1/sessions/current requires a session', async () => {
+    const h = harness();
+    const res = await h.app.request('/v1/sessions/current', { method: 'DELETE' });
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('sessions resilience', () => {
   test('slack failure does not block login', async () => {
     await seed();

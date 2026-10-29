@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { stat } from 'node:fs/promises';
+import { chmod, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import {
   credentialsPath,
   deleteCredentials,
@@ -18,6 +18,20 @@ describe('credentials', () => {
     expect((await stat(path)).mode & 0o777).toBe(0o600);
     expect((await stat(path.replace(/\/credentials\.json$/, ''))).mode & 0o777).toBe(0o700);
     expect(await readCredentials(io.env)).toEqual(creds);
+  });
+
+  test('tightens an existing directory and leaves no temp file on failure', async () => {
+    const { io } = await makeIo();
+    const path = credentialsPath(io.env);
+    const dir = path.replace(/\/credentials\.json$/, '');
+    await mkdir(dir, { recursive: true });
+    await chmod(dir, 0o755);
+    await writeCredentials(io.env, creds);
+    expect((await stat(dir)).mode & 0o777).toBe(0o700);
+    await rm(path);
+    await mkdir(path);
+    await expect(writeCredentials(io.env, creds)).rejects.toThrow();
+    expect((await readdir(dir)).filter((f) => f.endsWith('.tmp'))).toEqual([]);
   });
 
   test('defaults to ~/.config/standwise', () => {

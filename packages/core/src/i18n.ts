@@ -124,6 +124,11 @@ const ptBR = {
   'cli.invalidJson': 'O JSON da daily é inválido.',
   'cli.validationFailed': 'A daily é inválida:',
   'cli.fileReadFailed': 'Não foi possível ler o arquivo {path}.',
+  'cli.insecureUrl': 'URL insegura: {url}. Use https (http só para localhost).',
+  'cli.originMismatch':
+    'As credenciais guardadas pertencem a outra API. Execute: standwise login --api-url {url}',
+  'cli.githubUrlIgnored':
+    'STANDWISE_GITHUB_URL ignorada: só localhost é aceito. Usando https://github.com.',
 } as const;
 
 const en = {
@@ -250,6 +255,11 @@ const en = {
   'cli.invalidJson': 'The daily JSON is invalid.',
   'cli.validationFailed': 'The daily is invalid:',
   'cli.fileReadFailed': 'Could not read the file {path}.',
+  'cli.insecureUrl': 'Insecure URL: {url}. Use https (http only for localhost).',
+  'cli.originMismatch':
+    'The stored credentials belong to a different API. Run: standwise login --api-url {url}',
+  'cli.githubUrlIgnored':
+    'STANDWISE_GITHUB_URL ignored: only localhost is accepted. Using https://github.com.',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {

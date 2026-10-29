@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 
@@ -31,9 +31,15 @@ export async function readCredentials(env: Env): Promise<Credentials | null> {
 export async function writeCredentials(env: Env, credentials: Credentials): Promise<void> {
   const path = credentialsPath(env);
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await chmod(dirname(path), 0o700);
   const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, `${JSON.stringify(credentials)}\n`, { mode: 0o600 });
-  await rename(temp, path);
+  try {
+    await writeFile(temp, `${JSON.stringify(credentials)}\n`, { mode: 0o600 });
+    await rename(temp, path);
+  } catch (error) {
+    await rm(temp, { force: true });
+    throw error;
+  }
 }
 
 export async function deleteCredentials(env: Env): Promise<boolean> {

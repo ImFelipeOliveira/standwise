@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { getIdentities, listMemberInstallations, resolveSession } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { DomainError, startSession } from '../../src';
+import { DomainError, endSession, startSession } from '../../src';
 import { fakeDeps, INST, seedOrg } from './fakes';
 
 useCleanDb();
@@ -46,5 +46,15 @@ describe('startSession', () => {
     const result = await startSession(deps, { githubToken: 'gho_x' });
     expect(result.orgs).toHaveLength(1);
     expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
+  });
+});
+
+describe('endSession', () => {
+  test('revokes the session token', async () => {
+    await seedOrg();
+    const { deps } = fakeDeps();
+    const { token } = await startSession(deps, { githubToken: 'gho_x' });
+    await endSession(deps, token);
+    expect(await resolveSession(db, token, 'cli')).toBeNull();
   });
 });

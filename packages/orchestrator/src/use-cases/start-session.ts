@@ -2,6 +2,7 @@ import {
   createSession,
   getInstallation,
   type MemberRow,
+  revokeSession,
   setMemberInstallations,
   upsertMember,
 } from '@standwise/db';
@@ -55,4 +56,8 @@ export async function startSession(
     login: member.login,
     orgs: known.map((i) => ({ installationId: i.id, login: i.accountLogin })),
   };
+}
+
+export async function endSession(deps: Deps, token: string): Promise<void> {
+  await revokeSession(deps.db, token);
 }

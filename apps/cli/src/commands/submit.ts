@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { DailySubmissionSchema, t } from '@standwise/core';
 import { postDaily } from '../api';
 import { type Ctx, EXIT, ExitError } from '../io';
-import { apiUrlFor, requireCredentials, resolveOrg } from '../session';
+import { requireBoundCredentials, resolveOrg } from '../session';
 
 async function readInput(ctx: Ctx): Promise<string> {
   if (!ctx.flags.file) return ctx.io.readStdin();
@@ -24,7 +24,7 @@ function parseDaily(ctx: Ctx, raw: string): Record<string, unknown> {
 }
 
 export async function submit(ctx: Ctx): Promise<number> {
-  const credentials = await requireCredentials(ctx);
+  const { credentials, apiUrl } = await requireBoundCredentials(ctx);
   const input = parseDaily(ctx, await readInput(ctx));
   if (input.org === undefined) input.org = resolveOrg(ctx, credentials);
   const parsed = DailySubmissionSchema.safeParse(input);
@@ -34,7 +34,7 @@ export async function submit(ctx: Ctx): Promise<number> {
       .join('\n');
     throw new ExitError(EXIT.invalid, `${t(ctx.lang, 'cli.validationFailed')}\n${issues}`);
   }
-  const result = await postDaily(apiUrlFor(ctx, credentials), credentials.token, parsed.data);
+  const result = await postDaily(apiUrl, credentials.token, parsed.data);
   ctx.io.stdout(`${JSON.stringify(result)}\n`);
   return EXIT.ok;
 }

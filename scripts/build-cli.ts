@@ -21,6 +21,7 @@ for (const target of targets) {
       'bun',
       'build',
       '--compile',
+      '--no-compile-autoload-dotenv',
       `--target=${target}`,
       'apps/cli/src/main.ts',
       '--outfile',

@@ -96,7 +96,13 @@ describe('public openapi document', () => {
 
   test('internal routes hidden', async () => {
     const text = await (await load('/openapi.json')).text();
-    for (const path of ['/v1/sessions', '/v1/draft', '/v1/dailies', '/v1/meta']) {
+    for (const path of [
+      '/v1/sessions',
+      '/v1/sessions/current',
+      '/v1/draft',
+      '/v1/dailies',
+      '/v1/meta',
+    ]) {
       expect(text).not.toContain(path);
     }
     expect(text).not.toContain('/webhooks/github');
@@ -128,6 +134,7 @@ describe('internal openapi document', () => {
       '/v1/draft',
       '/v1/meta',
       '/v1/sessions',
+      '/v1/sessions/current',
     ]);
     expect((await new Validator().validate(doc)).valid).toBe(true);
   });
@@ -145,9 +152,11 @@ describe('internal openapi document', () => {
         const statuses = Object.keys(op.responses);
         expect(statuses.some((s) => s.startsWith('2'))).toBe(true);
         if (path !== '/v1/meta') {
-          for (const status of ['401', '422', '429']) expect(statuses).toContain(status);
+          const required = path === '/v1/sessions/current' ? ['401', '429'] : ['401', '422', '429'];
+          for (const status of required) expect(statuses).toContain(status);
         }
         for (const [status, response] of Object.entries(op.responses)) {
+          if (status === '204') continue;
           const json = response.content?.['application/json'];
           expect(json?.example ?? json?.examples, `${path} ${status}`).toBeDefined();
         }

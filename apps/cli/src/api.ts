@@ -63,3 +63,6 @@ export const getDraft = (apiUrl: string, token: string, org: string) =>
 
 export const postDaily = (apiUrl: string, token: string, daily: DailySubmission) =>
   request<unknown>(apiUrl, '/v1/dailies', { method: 'POST', token, body: daily });
+
+export const revokeSession = (apiUrl: string, token: string) =>
+  request<unknown>(apiUrl, '/v1/sessions/current', { method: 'DELETE', token });

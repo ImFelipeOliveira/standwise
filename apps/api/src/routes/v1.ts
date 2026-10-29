@@ -3,6 +3,7 @@ import {
   createMembershipCheck,
   type Deps,
   DomainError,
+  endSession,
   getDraft,
   startSession,
   submitDaily,
@@ -16,7 +17,7 @@ import {
   SESSION_START_LIMIT,
   subjectRateLimit,
 } from '../middleware/rate-limit';
-import { type SessionEnv, sessionAuth } from '../middleware/session-auth';
+import { bearerToken, type SessionEnv, sessionAuth } from '../middleware/session-auth';
 import { sessionScheme } from '../openapi/document';
 import {
   DAILY_EXAMPLE,
@@ -101,6 +102,21 @@ const sessions = createRoute({
       unauthorized: 'GitHub token invalid or expired',
     }),
     422: errorResponse('The body is not valid.', { invalid_request: 'githubToken is required' }),
+    429: RATE_LIMITED,
+  },
+});
+
+const endCurrentSession = createRoute({
+  method: 'delete',
+  path: '/v1/sessions/current',
+  tags: ['Session'],
+  summary: 'End the current CLI session',
+  description:
+    'Revokes the session token used in the request, so it stops working immediately.\n\nRevoga o token de sessão usado na requisição, que deixa de funcionar imediatamente.',
+  security: [{ session: [] }],
+  responses: {
+    204: { description: 'The session was revoked.', headers: rateHeaders },
+    401: UNAUTHORIZED,
     429: RATE_LIMITED,
   },
 });
@@ -198,7 +214,7 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
 
   app.use('/v1/*', ipRateLimit(deps, options.getClientIp, 'api', IP_LIMIT));
   app.use('/v1/sessions', ipRateLimit(deps, options.getClientIp, 'sessions', SESSION_START_LIMIT));
-  for (const path of ['/v1/draft', '/v1/dailies']) {
+  for (const path of ['/v1/sessions/current', '/v1/draft', '/v1/dailies']) {
     app.use(path, sessionAuth(deps, options.getClientIp), subjectRateLimit(deps));
   }
 
@@ -217,6 +233,11 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
       }
     },
   );
+
+  app.openapi(endCurrentSession, async (c) => {
+    await endSession(deps, bearerToken(c.req.header('authorization')));
+    return c.body(null, 204);
+  });
 
   app.openapi(draft, async (c) =>
     c.json(await getDraft(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
