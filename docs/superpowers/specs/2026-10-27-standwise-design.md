@@ -185,7 +185,7 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - **Multi-tenant:** todo dado tem o escopo da instalação do GitHub App.
 - **Google Chat:** mensagens diretas e posts em espaços exigem um Chat app configurado num projeto do Google Cloud e instalado no Workspace do cliente. Isso é mais atrito que no Slack e precisa estar documentado no setup.
 - **Developer Program:** o README e a página do app têm e-mail de suporte.
-- **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início).
+- **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início). **Sem idioma definido, o padrão é inglês** (CLI pelo `LANG`, web pelo `Accept-Language`, consolidado pelo `language` do time). *(Decisão do Felipe, 2026-10-28.)*
 
 ## 7. Decisões tomadas por mim (Claude) — revisar
 - **Hospedagem (decidido pelo Felipe):** serviço multi-tenant **hospedado apenas pelo Felipe**. Não há opção de rodar no próprio servidor. Segredos e URLs vêm de variáveis de ambiente (boa prática, não promessa de self-host).

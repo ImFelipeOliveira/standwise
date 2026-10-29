@@ -20,7 +20,7 @@
 - Toda requisição de webhook tem a assinatura verificada antes de qualquer processamento.
 - Permissões do GitHub App exatamente as da spec §6: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read), conta: Email addresses (read). Eventos: `installation`, `installation_repositories`, `push`, `pull_request`, `pull_request_review`, `check_suite`, `check_run`.
 - Config: arquivo `standwise.yml` na **raiz** do repositório `.github` do dono da instalação, branch padrão.
-- Padrões de config: `language: pt-BR`, `workdays: [mon,tue,wed,thu,fri]`, `signals.pr_review_hours: 48`, `signals.card_stale_days: 5`.
+- Padrões de config: `language: en` (regra do Felipe, 2026-10-28: sem idioma definido, inglês; vale para CLI, web e config), `workdays: [mon,tue,wed,thu,fri]`, `signals.pr_review_hours: 48`, `signals.card_stale_days: 5`.
 - Reenvio da daily no mesmo dia **substitui** a anterior. A daily pertence a pessoa + instalação + data.
 - "Hoje" e "último dia útil" usam o fuso e os dias úteis do **primeiro time** (ordem do config) em que a pessoa aparece.
 - Uma `/daily` aparece no consolidado de **todos** os times da pessoa.
