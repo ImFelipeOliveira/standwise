@@ -114,20 +114,22 @@ describe('ip and authentication limits', () => {
     expect(other.headers.get('RateLimit-Remaining')).toBe('119');
   });
 
-  test('after 20 failures a valid token from the same ip is locked out without a session lookup', async () => {
+  test('after 20 failures a valid token from the same ip is still served and an invalid one is 429', async () => {
     const { app } = createTestApp();
     const alice = await login(app, '203.0.113.4', 'gho_1');
-    const before = await db.execute(sql`SELECT last_used_at FROM sessions`);
     for (let i = 0; i < 20; i++) {
       expect((await draft(app, '203.0.113.4', `sw_bad${i}`)).status).toBe(401);
     }
-    const locked = await draft(app, '203.0.113.4', alice);
-    expect(locked.status).toBe(429);
-    expect(locked.headers.get('Retry-After')).toBeTruthy();
-    const after = await db.execute(sql`SELECT last_used_at FROM sessions`);
-    expect(after[0]).toEqual(before[0]);
-    const elsewhere = await draft(app, '203.0.113.99', alice);
-    expect(elsewhere.status).not.toBe(429);
+    const valid = await app.request('/openapi.internal.json', {
+      headers: { authorization: `Bearer ${alice}`, 'x-test-ip': '203.0.113.4' },
+    });
+    expect(valid.status).toBe(200);
+    const member = await draft(app, '203.0.113.4', alice);
+    expect(member.status).not.toBe(429);
+    expect(member.status).not.toBe(401);
+    const invalid = await draft(app, '203.0.113.4', 'sw_still_bad');
+    expect(invalid.status).toBe(429);
+    expect(invalid.headers.get('Retry-After')).toBeTruthy();
   });
 
   test('the same member from another ip shares the member bucket', async () => {
