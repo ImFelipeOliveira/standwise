@@ -1,4 +1,5 @@
 import { type Language, type MessageKey, t as translate } from '@standwise/core';
+import { API_KEY_SCOPES, type ApiKeyScope } from '@standwise/db';
 import type { SetupStatus } from '@standwise/orchestrator';
 import { newConfigFileUrl, newConfigRepoUrl, standwiseYmlTemplate } from './config-template';
 import { Layout } from './layout';
@@ -9,12 +10,26 @@ const REASONS: Record<string, MessageKey> = {
   no_access: 'web.setup.reason.no_access',
 };
 
+const SCOPE_LABELS: Record<ApiKeyScope, MessageKey> = {
+  'teams:read': 'web.apiKeys.scope.teams_read',
+  'dailies:read': 'web.apiKeys.scope.dailies_read',
+  'digests:read': 'web.apiKeys.scope.digests_read',
+  'blockers:read': 'web.apiKeys.scope.blockers_read',
+};
+
+export type NewApiKey = { name: string; key: string };
+
 const formatDate = (lang: Language, date: Date) =>
   new Intl.DateTimeFormat(lang, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(
     date,
   );
 
-export function SetupPage(props: { lang: Language; status: SetupStatus }) {
+export function SetupPage(props: {
+  lang: Language;
+  status: SetupStatus;
+  csrf: string;
+  newKey?: NewApiKey;
+}) {
   const { status } = props;
   const t = (key: MessageKey) => translate(props.lang, key);
   const reasonText = (reason: string) => {
@@ -82,6 +97,88 @@ export function SetupPage(props: { lang: Language; status: SetupStatus }) {
           </a>
         )}
       </section>
+      {status.apiKeys.manage ? (
+        <section>
+          <h2>{t('web.apiKeys.title')}</h2>
+          <p>{t('web.apiKeys.description')}</p>
+          {props.newKey ? (
+            <div class="secret" role="alert">
+              <strong>
+                {translate(props.lang, 'web.apiKeys.created', { name: props.newKey.name })}
+              </strong>
+              <p>{t('web.apiKeys.copyNow')}</p>
+              <pre>{props.newKey.key}</pre>
+            </div>
+          ) : null}
+          {status.apiKeys.keys.length === 0 ? (
+            <p>{t('web.apiKeys.none')}</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>{t('web.apiKeys.name')}</th>
+                  <th>{t('web.apiKeys.prefix')}</th>
+                  <th>{t('web.apiKeys.scopes')}</th>
+                  <th>{t('web.apiKeys.createdAt')}</th>
+                  <th>{t('web.apiKeys.lastUsed')}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {status.apiKeys.keys.map((k) => (
+                  <tr>
+                    <td>{k.name}</td>
+                    <td>
+                      <code>swk_{k.prefix}</code>
+                    </td>
+                    <td>{k.scopes.map((scope) => t(SCOPE_LABELS[scope])).join(', ')}</td>
+                    <td>{formatDate(props.lang, k.createdAt)}</td>
+                    <td>
+                      {k.lastUsedAt ? formatDate(props.lang, k.lastUsedAt) : t('web.apiKeys.never')}
+                    </td>
+                    <td>
+                      {k.revokedAt ? (
+                        t('web.apiKeys.revoked')
+                      ) : (
+                        <form method="post" action={`/setup/api-keys/${k.id}/revoke`}>
+                          <input type="hidden" name="csrf" value={props.csrf} />
+                          <input
+                            type="hidden"
+                            name="installation_id"
+                            value={status.installationId}
+                          />
+                          <button type="submit">{t('web.apiKeys.revoke')}</button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <form method="post" action="/setup/api-keys">
+            <input type="hidden" name="csrf" value={props.csrf} />
+            <input type="hidden" name="installation_id" value={status.installationId} />
+            <p>
+              <label>
+                {t('web.apiKeys.name')} <input type="text" name="name" required maxlength={80} />
+              </label>
+            </p>
+            <fieldset>
+              <legend>{t('web.apiKeys.scopes')}</legend>
+              {API_KEY_SCOPES.map((scope) => (
+                <label class="choice">
+                  <input type="checkbox" name="scopes" value={scope} /> {t(SCOPE_LABELS[scope])}{' '}
+                  <code>{scope}</code>
+                </label>
+              ))}
+            </fieldset>
+            <p>
+              <button type="submit">{t('web.apiKeys.create')}</button>
+            </p>
+          </form>
+        </section>
+      ) : null}
       <section>
         <h2>{t('web.setup.failedTitle')}</h2>
         {status.failedDeliveries.length === 0 ? (

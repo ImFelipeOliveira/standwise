@@ -4,9 +4,9 @@ import type { Deps } from './deps';
 const TTL_MS = 10 * 60 * 1000;
 
 type Account = Pick<InstallationRow, 'id' | 'accountLogin' | 'accountType' | 'accountId'>;
-type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
+export type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
 
-function statusOf(error: unknown): number | undefined {
+export function statusOf(error: unknown): number | undefined {
   const status = (error as { status?: unknown } | null)?.status;
   return typeof status === 'number' ? status : undefined;
 }
@@ -16,7 +16,7 @@ function isUserAccountOwner(account: Account, member: MemberRow): boolean {
   return account.accountLogin.toLowerCase() === member.login.toLowerCase();
 }
 
-async function currentLogin(octokit: Octokit, githubUserId: number): Promise<string | null> {
+export async function currentLogin(octokit: Octokit, githubUserId: number): Promise<string | null> {
   try {
     const response = await octokit.request('GET /user/{account_id}', {
       account_id: githubUserId,

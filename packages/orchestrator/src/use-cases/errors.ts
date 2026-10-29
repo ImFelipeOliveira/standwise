@@ -10,13 +10,16 @@ export type DomainErrorCode =
   | 'installation_pending'
   | 'access_denied'
   | 'slack_oauth_failed'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'insufficient_scope'
+  | 'not_found';
 
 export class DomainError extends Error {
   constructor(
     readonly code: DomainErrorCode,
     message: string,
     readonly details?: unknown,
+    readonly fields?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'DomainError';

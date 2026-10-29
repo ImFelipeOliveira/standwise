@@ -1,5 +1,6 @@
 export * from './client';
 export * from './crypto';
+export * from './repo/api-keys';
 export * from './repo/connections';
 export * from './repo/dailies';
 export * from './repo/deliveries';
@@ -7,4 +8,5 @@ export * from './repo/installations';
 export * from './repo/members';
 export * from './repo/rate-limits';
 export * from './repo/sessions';
-export type { DeliveryRow, InstallationRow, MemberRow, Provider } from './schema';
+export type { ApiKeyScope, DeliveryRow, InstallationRow, MemberRow, Provider } from './schema';
+export { API_KEY_SCOPES } from './schema';

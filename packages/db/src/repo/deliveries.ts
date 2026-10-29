@@ -1,5 +1,5 @@
 import type { MessageRef } from '@standwise/core';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type DeliveryRow, deliveries } from '../schema';
 
@@ -128,4 +128,40 @@ export async function listFailedDeliveries(
     .where(and(eq(deliveries.installationId, installationId), eq(deliveries.status, 'failed')))
     .orderBy(desc(deliveries.updatedAt))
     .limit(limit);
+}
+
+export type DigestPageFilter = {
+  team?: string;
+  from?: string;
+  to?: string;
+  after?: { date: string; id: string };
+  limit: number;
+};
+
+export async function listDigestDeliveries(
+  db: Db,
+  installationId: number,
+  f: DigestPageFilter,
+): Promise<DeliveryRow[]> {
+  const { after } = f;
+  return db
+    .select()
+    .from(deliveries)
+    .where(
+      and(
+        eq(deliveries.installationId, installationId),
+        eq(deliveries.kind, 'digest'),
+        f.team ? eq(deliveries.teamName, f.team) : undefined,
+        f.from ? gte(deliveries.date, f.from) : undefined,
+        f.to ? lte(deliveries.date, f.to) : undefined,
+        after
+          ? or(
+              lt(deliveries.date, after.date),
+              and(eq(deliveries.date, after.date), lt(deliveries.id, after.id)),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(deliveries.date), desc(deliveries.id))
+    .limit(f.limit);
 }

@@ -8,15 +8,38 @@ Host: your-standwise-host
 Authorization: Bearer swk_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-API keys are prefixed with `swk_`. They are available once an admin creates a key; until then the `apiKey` security scheme is declared but no operation requires it.
+API keys are prefixed with `swk_`. Every operation under `/v1/org` requires one. Only `swk_` keys are accepted there: a session token (`sw_`) sent to `/v1/org` fails with `401 unauthorized`, and an API key sent to a session-only route fails the same way.
 
 ### Creating a key
 
-Only an organization admin can create keys. Each key belongs to one organization and carries a set of scopes, so an integration receives only the access it needs. The full secret is shown once, at creation. Standwise stores only a hash and cannot show it again.
+Only an organization admin can create keys. An admin signs in with GitHub, opens the Standwise setup page of the organization and uses the **API keys** section: name the key, pick its scopes and create it. For a personal account, the account owner is the admin. Each key belongs to one organization and sees only that organization's data.
+
+The full secret is shown once, when the key is created. Standwise stores only a hash and cannot show it again, so copy it right away. The list shows each key's prefix (the first 8 characters after `swk_`), scopes, creation date and last use, which is updated at most once per minute.
 
 ### Scopes
 
-Grant the narrowest scope that works. A request that needs a scope the key does not have fails with `403 forbidden`.
+Grant the narrowest scope that works.
+
+| Scope | Allows |
+| --- | --- |
+| `teams:read` | `GET /v1/org/teams` |
+| `dailies:read` | `GET /v1/org/dailies` and `GET /v1/org/dailies/{id}` |
+| `digests:read` | `GET /v1/org/digests` |
+| `blockers:read` | `GET /v1/org/blockers` |
+
+A request that needs a scope the key does not have fails with `403 insufficient_scope`. The error names the missing scope in `required_scope`:
+
+```json
+{
+  "error": {
+    "code": "insufficient_scope",
+    "message": "api key lacks the dailies:read scope",
+    "required_scope": "dailies:read"
+  }
+}
+```
+
+Missing, malformed, unknown and revoked keys fail with `401 unauthorized`. Each key is limited to 600 requests per minute (see Rate limits).
 
 ### Revoking a key
 

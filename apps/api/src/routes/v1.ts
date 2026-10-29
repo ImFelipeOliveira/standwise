@@ -25,6 +25,8 @@ import {
   DraftSchema,
   errorResponse,
   MetaSchema,
+  RATE_LIMITED,
+  rateHeaders,
   SESSION_EXAMPLE,
   SessionRequestSchema,
   SessionSchema,
@@ -35,9 +37,6 @@ type Env = SessionEnv;
 
 export type V1Options = { getClientIp: GetClientIp };
 
-const RATE_LIMITED = errorResponse('Rate limit exceeded. Wait `Retry-After` seconds.', {
-  rate_limited: 'rate limit exceeded',
-});
 const UNAUTHORIZED = errorResponse('Missing, invalid or expired session.', {
   unauthorized: 'missing or invalid session',
 });
@@ -50,18 +49,6 @@ const ORG_ERRORS = {
     installation_pending: 'installation is still being processed',
   }),
 };
-
-const rateHeaders = {
-  'RateLimit-Limit': { description: 'Requests allowed per window.', schema: { type: 'integer' } },
-  'RateLimit-Remaining': {
-    description: 'Requests left in the window.',
-    schema: { type: 'integer' },
-  },
-  'RateLimit-Reset': {
-    description: 'Seconds until the window resets.',
-    schema: { type: 'integer' },
-  },
-} as const;
 
 const meta = createRoute({
   method: 'get',

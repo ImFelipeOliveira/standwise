@@ -1,6 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import type { Deps } from '@standwise/orchestrator';
+import type { GetClientIp } from '../middleware/rate-limit';
 import { apiKeyScheme } from '../openapi/document';
 import { HealthSchema } from '../openapi/schemas';
+import { orgRoutes } from './org';
 
 const health = createRoute({
   method: 'get',
@@ -19,9 +22,12 @@ const health = createRoute({
   },
 });
 
-export function publicRoutes(): OpenAPIHono {
+export type PublicOptions = { getClientIp: GetClientIp };
+
+export function publicRoutes(deps: Deps, options: PublicOptions): OpenAPIHono {
   const app = new OpenAPIHono();
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', apiKeyScheme());
   app.openapi(health, (c) => c.json({ ok: true }, 200));
+  app.route('/', orgRoutes(deps, options));
   return app;
 }

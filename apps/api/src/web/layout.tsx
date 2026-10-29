@@ -20,6 +20,14 @@ a.button { display: inline-block; background: ${BRAND.accent}; color: #fff; padd
 a { color: ${BRAND.accent}; }
 pre { background: ${BRAND.background}; padding: 12px; border-radius: 8px; overflow-x: auto; color: ${BRAND.text}; }
 code { color: ${BRAND.text}; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid ${BRAND.background}; color: ${BRAND.muted}; vertical-align: top; }
+button { background: ${BRAND.accent}; color: #fff; border: 0; padding: 8px 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+input[type=text] { padding: 6px 8px; border: 1px solid ${BRAND.muted}; border-radius: 6px; font: inherit; }
+fieldset { border: 1px solid ${BRAND.background}; border-radius: 8px; }
+label.choice { display: block; color: ${BRAND.muted}; }
+.secret { border: 2px solid ${BRAND.accent}; border-radius: 8px; padding: 8px 16px; margin-bottom: 16px; }
+.secret pre { white-space: pre-wrap; word-break: break-all; }
 `;
 
 export function Logo() {

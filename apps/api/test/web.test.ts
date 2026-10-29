@@ -60,6 +60,9 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
               }
               return { status: 204 };
             }
+            if (route === 'GET /orgs/{org}/memberships/{username}') {
+              throw Object.assign(new Error('not found'), { status: 404 });
+            }
             if (route === 'GET /repos/{owner}/{repo}') {
               if (opts.hasConfigRepo === false) {
                 throw Object.assign(new Error('not found'), { status: 404 });

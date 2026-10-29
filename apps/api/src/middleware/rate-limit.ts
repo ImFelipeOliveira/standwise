@@ -83,7 +83,9 @@ export function ipRateLimit(
   };
 }
 
-export function subjectRateLimit(deps: Deps): MiddlewareHandler<RateLimitEnv> {
+export function subjectRateLimit<E extends RateLimitEnv = RateLimitEnv>(
+  deps: Deps,
+): MiddlewareHandler<E> {
   return async (c, next) => {
     const subject = c.get('rateLimitSubject');
     await enforceRateLimit(deps, c, subject.key, subject.limit);

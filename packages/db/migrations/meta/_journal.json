@@ -43,6 +43,13 @@
       "when": 1793237677368,
       "tag": "0005_rate_limits_window_index",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793238266039,
+      "tag": "0006_api_keys",
+      "breakpoints": true
     }
   ]
 }

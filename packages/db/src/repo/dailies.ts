@@ -1,5 +1,5 @@
 import type { DailySubmission } from '@standwise/core';
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dailies, members } from '../schema';
 
@@ -59,4 +59,96 @@ export async function listDailies(
     .innerJoin(members, eq(members.id, dailies.memberId))
     .where(and(eq(dailies.installationId, installationId), eq(dailies.date, date)))
     .orderBy(dailies.submittedAt);
+}
+
+export type DailyCursor = { date: string; id: string };
+
+export type DailyRecord = {
+  id: string;
+  login: string;
+  date: string;
+  payload: DailySubmission;
+  submittedAt: Date;
+};
+
+export type DailyPageFilter = {
+  date?: string;
+  logins?: string[];
+  after?: DailyCursor;
+  includeAfter?: boolean;
+  withBlockers?: boolean;
+  limit: number;
+};
+
+const recordColumns = {
+  id: dailies.id,
+  login: members.login,
+  date: dailies.date,
+  payload: dailies.payload,
+  submittedAt: dailies.submittedAt,
+};
+
+export async function listDailiesPage(
+  db: Db,
+  installationId: number,
+  f: DailyPageFilter,
+): Promise<DailyRecord[]> {
+  if (f.logins && f.logins.length === 0) return [];
+  const { after } = f;
+  return db
+    .select(recordColumns)
+    .from(dailies)
+    .innerJoin(members, eq(members.id, dailies.memberId))
+    .where(
+      and(
+        eq(dailies.installationId, installationId),
+        f.date ? eq(dailies.date, f.date) : undefined,
+        f.logins ? inArray(sql`lower(${members.login})`, f.logins) : undefined,
+        f.withBlockers ? sql`jsonb_array_length(${dailies.payload}->'blockers') > 0` : undefined,
+        after
+          ? or(
+              lt(dailies.date, after.date),
+              and(
+                eq(dailies.date, after.date),
+                f.includeAfter ? lte(dailies.id, after.id) : lt(dailies.id, after.id),
+              ),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(dailies.date), desc(dailies.id))
+    .limit(f.limit);
+}
+
+export async function getDailyById(
+  db: Db,
+  installationId: number,
+  id: string,
+): Promise<DailyRecord | null> {
+  const [row] = await db
+    .select(recordColumns)
+    .from(dailies)
+    .innerJoin(members, eq(members.id, dailies.memberId))
+    .where(and(eq(dailies.installationId, installationId), eq(dailies.id, id)));
+  return row ?? null;
+}
+
+export async function listSubmitters(
+  db: Db,
+  installationId: number,
+  dates: string[],
+): Promise<Map<string, Set<string>>> {
+  const result = new Map<string, Set<string>>();
+  if (dates.length === 0) return result;
+  const rows = await db
+    .select({ date: dailies.date, login: members.login })
+    .from(dailies)
+    .innerJoin(members, eq(members.id, dailies.memberId))
+    .where(and(eq(dailies.installationId, installationId), inArray(dailies.date, dates)));
+  for (const row of rows) {
+    const set = result.get(row.date) ?? new Set<string>();
+    set.add(row.login.toLowerCase());
+    result.set(row.date, set);
+  }
+  return result;
 }

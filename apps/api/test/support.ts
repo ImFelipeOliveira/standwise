@@ -8,7 +8,11 @@ export const TEST_IP = '192.0.2.1';
 
 export const headerIp = (c: Context) => c.req.header('x-test-ip') ?? TEST_IP;
 
-export function createTestApp(options: { getClientIp?: (c: Context) => string } = {}) {
+export type FakeRequest = (route: string, params: Record<string, unknown>) => Promise<unknown>;
+
+export function createTestApp(
+  options: { getClientIp?: (c: Context) => string; request?: FakeRequest } = {},
+) {
   let now = new Date('2026-10-28T15:00:05Z');
   const deps: Deps = {
     db,
@@ -17,7 +21,8 @@ export function createTestApp(options: { getClientIp?: (c: Context) => string } 
     encryptionKey: new Uint8Array(32).fill(7),
     github: {
       app: {} as Deps['github']['app'],
-      installationOctokit: async () => ({}) as never,
+      installationOctokit: async () =>
+        ({ request: options.request ?? (async () => ({})) }) as never,
       getUserProfile: async (githubToken: string) => {
         const id = Number(githubToken.slice(4)) || 1;
         return {

@@ -15,13 +15,22 @@ export const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   access_denied: 403,
   slack_oauth_failed: 502,
   rate_limited: 429,
+  insufficient_scope: 403,
+  not_found: 404,
 };
 
 export function onError(error: Error, c: Context): Response {
   if (error instanceof DomainError) {
-    const { code, message, details } = error;
+    const { code, message, details, fields } = error;
     return c.json(
-      { error: { code, message, ...(details !== undefined ? { issues: details } : {}) } },
+      {
+        error: {
+          code,
+          message,
+          ...(details !== undefined ? { issues: details } : {}),
+          ...fields,
+        },
+      },
       STATUS[code],
     );
   }

@@ -125,6 +125,34 @@ export const deliveries = pgTable(
   (t) => [unique().on(t.installationId, t.teamName, t.date, t.kind, t.subject)],
 );
 
+export const API_KEY_SCOPES = [
+  'teams:read',
+  'dailies:read',
+  'digests:read',
+  'blockers:read',
+] as const;
+
+export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
+
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    installationId: installationRef(),
+    name: text('name').notNull(),
+    prefix: text('prefix').notNull(),
+    secretHash: text('secret_hash').notNull().unique(),
+    scopes: text('scopes').array().$type<ApiKeyScope[]>().notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => members.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [index('api_keys_installation_idx').on(t.installationId)],
+);
+
 export type InstallationRow = typeof installations.$inferSelect;
 export type MemberRow = typeof members.$inferSelect;
 export type DeliveryRow = typeof deliveries.$inferSelect;

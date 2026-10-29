@@ -1,20 +1,26 @@
 import { negotiateLanguage } from '@standwise/core';
-import { type MemberRow, resolveSession } from '@standwise/db';
+import { API_KEY_SCOPES, type MemberRow, resolveSession } from '@standwise/db';
 import {
   completeSlackConnect,
   completeWebLogin,
+  createInstallationApiKey,
   createMembershipCheck,
+  csrfToken,
   type Deps,
   DomainError,
   getSetupStatus,
+  revokeInstallationApiKey,
+  type SetupStatus,
   startSlackConnect,
   startWebLogin,
+  verifyCsrf,
 } from '@standwise/orchestrator';
 import { type Context, Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { z } from 'zod';
 import { STATUS } from '../http/errors';
 import { ErrorPage } from '../web/error';
-import { SetupPage } from '../web/setup';
+import { type NewApiKey, SetupPage } from '../web/setup';
 
 const COOKIE = 'sw_web';
 const LOGIN_COOKIE = 'sw_login';
@@ -24,6 +30,19 @@ const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_den
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
 
 type Session = { token: string; member: MemberRow };
+
+const installationField = z.string().regex(/^\d+$/).transform(Number);
+
+const createKeyForm = z.object({
+  installation_id: installationField,
+  name: z.string(),
+  scopes: z
+    .union([z.enum(API_KEY_SCOPES), z.array(z.enum(API_KEY_SCOPES))])
+    .optional()
+    .transform((scopes) => (scopes === undefined ? [] : [scopes].flat())),
+});
+
+const revokeKeyForm = z.object({ installation_id: installationField });
 
 export function webRoutes(deps: Deps): Hono {
   const app = new Hono();
@@ -40,6 +59,23 @@ export function webRoutes(deps: Deps): Hono {
     if (!session) throw new DomainError('unauthorized', 'login required');
     return session;
   };
+
+  const readForm = async (c: Context, session: Session) => {
+    const form = await c.req.parseBody({ all: true }).catch(() => ({}) as Record<string, never>);
+    if (!verifyCsrf(deps.env.sessionSecret, session.token, form.csrf)) {
+      throw new DomainError('forbidden', 'invalid csrf token');
+    }
+    return form;
+  };
+
+  const setupPage = (c: Context, session: Session, status: SetupStatus, newKey?: NewApiKey) => (
+    <SetupPage
+      lang={negotiateLanguage(c.req.header('accept-language'))}
+      status={status}
+      csrf={csrfToken(deps.env.sessionSecret, session.token)}
+      newKey={newKey}
+    />
+  );
 
   const loginRedirect = (c: Context) => {
     const url = new URL(c.req.url);
@@ -119,9 +155,43 @@ export function webRoutes(deps: Deps): Hono {
       getSetupStatus(deps, isMember, session.member, installationId(c)),
     );
     if (result instanceof Response) return result;
-    return c.html(
-      <SetupPage lang={negotiateLanguage(c.req.header('accept-language'))} status={result} />,
+    return c.html(setupPage(c, session, result));
+  });
+
+  app.post('/setup/api-keys', async (c) => {
+    const session = await requireSession(c);
+    const form = await readForm(c, session);
+    const parsed = createKeyForm.safeParse(form);
+    if (!parsed.success) {
+      throw new DomainError('invalid_request', 'invalid form', parsed.error.issues);
+    }
+    const { installation_id: installationId, name, scopes } = parsed.data;
+    const created = await createInstallationApiKey(deps, isMember, session.member, {
+      installationId,
+      name,
+      scopes,
+    });
+    c.header('Cache-Control', 'no-store');
+    const status = await getSetupStatus(deps, isMember, session.member, installationId);
+    return c.html(setupPage(c, session, status, { name: name.trim(), key: created.key }));
+  });
+
+  app.post('/setup/api-keys/:id/revoke', async (c) => {
+    const session = await requireSession(c);
+    const form = await readForm(c, session);
+    const parsed = revokeKeyForm.safeParse(form);
+    if (!parsed.success) {
+      throw new DomainError('invalid_request', 'invalid form', parsed.error.issues);
+    }
+    const installationId = parsed.data.installation_id;
+    await revokeInstallationApiKey(
+      deps,
+      isMember,
+      session.member,
+      installationId,
+      c.req.param('id'),
     );
+    return c.redirect(`/setup?installation_id=${installationId}`, 303);
   });
 
   app.get('/connect/slack', async (c) => {

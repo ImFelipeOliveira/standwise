@@ -12,11 +12,11 @@ export type AppOptions = { getClientIp: GetClientIp };
 
 export function createApp(deps: Deps, options: AppOptions): Hono {
   const app = new Hono();
-  const publicApi = publicRoutes();
+  const publicApi = publicRoutes(deps, { getClientIp: options.getClientIp });
   const internalApi = v1Routes(deps, { getClientIp: options.getClientIp });
   app.onError(onError);
-  app.route('/', publicApi);
   app.route('/', internalApi);
+  app.route('/', publicApi);
   app.route(
     '/',
     docsRoutes(deps, { public: publicApi, internal: internalApi }, options.getClientIp),

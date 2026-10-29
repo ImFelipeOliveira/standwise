@@ -41,7 +41,7 @@ describe('public openapi document', () => {
     const doc = (await res.json()) as Doc;
     expect(doc.openapi).toBe('3.1.0');
     expect(doc.info.title).toBe('Standwise API');
-    expect(doc.info.version).toBe('1.0.0');
+    expect(doc.info.version).toBe('1.1.0');
     expect(doc.info.contact.email).toBe('help@sw.test');
     expect(doc.servers).toEqual([{ url: 'https://sw.test' }]);
     expect(doc.tags.map((t) => t.name)).toEqual(['Organization', 'Webhooks', 'Meta']);
@@ -56,7 +56,14 @@ describe('public openapi document', () => {
 
   test('every public route documented', async () => {
     const doc = (await (await load('/openapi.json')).json()) as Doc;
-    expect(Object.keys(doc.paths)).toEqual(['/health']);
+    expect(Object.keys(doc.paths).sort()).toEqual([
+      '/health',
+      '/v1/org/blockers',
+      '/v1/org/dailies',
+      '/v1/org/dailies/{id}',
+      '/v1/org/digests',
+      '/v1/org/teams',
+    ]);
     for (const operations of Object.values(doc.paths)) {
       for (const op of Object.values(operations)) {
         expect(op.summary).toBeTruthy();

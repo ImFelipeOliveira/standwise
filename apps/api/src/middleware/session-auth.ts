@@ -11,7 +11,7 @@ import {
 
 export type SessionEnv = RateLimitEnv & { Variables: { member: MemberRow } };
 
-function bearerToken(header: string | undefined): string {
+export function bearerToken(header: string | undefined): string {
   return header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
 }
 

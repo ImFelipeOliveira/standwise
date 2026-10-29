@@ -14,3 +14,5 @@ A paginated response carries the items and a `next_cursor`:
 ```
 
 When `next_cursor` is `null` there are no more pages. Treat the cursor as an opaque string: do not parse it, build it or store it for long. Keep the same filters while paginating.
+
+An invalid `cursor` or a `limit` outside 1 to 100 fails with `422 invalid_request`. Dailies and digests are ordered newest first. For blockers, `limit` counts blockers, not dailies.

@@ -1,7 +1,14 @@
 import type { ConfigError } from '@standwise/core';
-import { getConnection, listFailedDeliveries, type MemberRow } from '@standwise/db';
+import {
+  type ApiKeySummary,
+  getConnection,
+  listApiKeys,
+  listFailedDeliveries,
+  type MemberRow,
+} from '@standwise/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
+import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
 
 const FAILED_LIMIT = 5;
@@ -17,6 +24,7 @@ export type SetupStatus = {
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
   slack: { connected: false } | { connected: true; workspace: string };
   failedDeliveries: { team: string; at: Date; error: string }[];
+  apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
   supportEmail: string;
 };
 
@@ -48,11 +56,15 @@ export async function getSetupStatus(
     installationId,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
-  const [configRepo, connection, failed] = await Promise.all([
+  const [configRepo, connection, failed, admin] = await Promise.all([
     findConfigRepo(octokit, installation.accountLogin),
     getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
     listFailedDeliveries(deps.db, installation.id, FAILED_LIMIT),
+    isInstallationAdmin(deps, installation.id, current),
   ]);
+  const apiKeys: SetupStatus['apiKeys'] = admin
+    ? { manage: true, keys: await listApiKeys(deps.db, installation.id) }
+    : { manage: false };
   const config: SetupStatus['config'] =
     installation.status === 'configured'
       ? { status: 'configured' }
@@ -73,6 +85,7 @@ export async function getSetupStatus(
       at: d.updatedAt,
       error: d.error ?? '',
     })),
+    apiKeys,
     supportEmail: deps.env.supportEmail,
   };
 }

@@ -5,18 +5,23 @@ import { STATUS } from '../http/errors';
 const errorCodes = ['internal', ...Object.keys(STATUS)];
 
 export const ErrorSchema = z
-  .object({
-    error: z.object({
+  .strictObject({
+    error: z.strictObject({
       code: z.enum(errorCodes).openapi({ example: 'unauthorized' }),
       message: z.string().openapi({ example: 'missing or invalid session' }),
       issues: z.array(z.unknown()).optional(),
+      required_scope: z.string().optional().openapi({ example: 'dailies:read' }),
     }),
   })
   .openapi('Error');
 
 export type ErrorExamples = Record<string, string>;
 
-export function errorResponse(description: string, examples: ErrorExamples) {
+export function errorResponse(
+  description: string,
+  examples: ErrorExamples,
+  extra: Record<string, unknown> = {},
+) {
   return {
     description,
     content: {
@@ -25,13 +30,29 @@ export function errorResponse(description: string, examples: ErrorExamples) {
         examples: Object.fromEntries(
           Object.entries(examples).map(([code, message]) => [
             code,
-            { summary: code, value: { error: { code, message } } },
+            { summary: code, value: { error: { code, message, ...extra } } },
           ]),
         ),
       },
     },
   };
 }
+
+export const RATE_LIMITED = errorResponse('Rate limit exceeded. Wait `Retry-After` seconds.', {
+  rate_limited: 'rate limit exceeded',
+});
+
+export const rateHeaders = {
+  'RateLimit-Limit': { description: 'Requests allowed per window.', schema: { type: 'integer' } },
+  'RateLimit-Remaining': {
+    description: 'Requests left in the window.',
+    schema: { type: 'integer' },
+  },
+  'RateLimit-Reset': {
+    description: 'Seconds until the window resets.',
+    schema: { type: 'integer' },
+  },
+} as const;
 
 export const HealthSchema = z
   .object({ ok: z.boolean().openapi({ example: true }) })
