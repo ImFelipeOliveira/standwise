@@ -665,6 +665,13 @@
   - `standwise_whoami` → `{ login, orgs }`.
   - `standwise_get_draft` `{ org?: string }` → o JSON de `GET /v1/draft`. Com org ambígua, devolve erro listando as orgs.
   - `standwise_submit_daily` `{ org?: string; yesterday; today; blockers; confirmed: true }` → `POST /v1/dailies`. O campo `confirmed` é obrigatório e precisa ser o literal `true`. A descrição da tool diz que o agente **deve mostrar a daily final à pessoa e obter confirmação explícita** antes de chamar; com qualquer outro valor, a tool recusa sem chamar a API.
+- **Tools de gestor (decisão do Felipe, 2026-10-28)**, apoiadas em rotas **internas** novas `GET /v1/manage/teams`, `/v1/manage/digests`, `/v1/manage/dailies` e `/v1/manage/blockers`. As rotas usam sessão `sw_`, ficam no `/openapi.internal.json` e reusam os casos de uso de leitura da Task 17, com autorização própria:
+  - `canReadTeam(deps, installationId, member, team)` → verdadeiro se o login (atual, por id) está em `managers` do time no config, ou se a pessoa é admin da instalação (`isInstallationAdmin`). Caso contrário, `403 forbidden`.
+  - Histórico limitado a **90 dias** a partir de hoje no fuso do time. Fora disso, `422 invalid_request`.
+  - Mesmos dados das rotas de API key: só o que foi confirmado, sem sugestões nem agregados por pessoa.
+  - Tools MCP: `standwise_list_teams` (só os times que a pessoa pode ler), `standwise_get_digest { org?, team, date }`, `standwise_list_dailies { org?, team, from, to }` e `standwise_list_blockers { org?, team, from?, to? }`.
+  - As `instructions` do servidor MCP dizem que os dados servem para destravar o time (impedimentos, contexto, resumos do time). Dizem também que o Standwise não oferece nem incentiva comparação, ranking ou avaliação individual.
+  - Testes: um gestor de `backend` lê `backend` e recebe 403 em `platform`; um admin lê os dois; um membro comum recebe 403; a janela de 90 dias é respeitada; as tools listam e devolvem os dados da API falsa.
 - Prompt MCP `daily` com o mesmo fluxo da skill da Task 14 (rascunho → perguntar "hoje" e impedimentos → confirmar → enviar), para clientes que suportam prompts.
 - `mcp.md`: configuração pronta para copiar em Claude Desktop, Cursor, Codex e VS Code (`{"command": "standwise", "args": ["mcp"]}`), as tools e a regra de confirmação.
 - Fase 2 (fora deste plano): MCP remoto em `/mcp` (Streamable HTTP + OAuth 2.1).
