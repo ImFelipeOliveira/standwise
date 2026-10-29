@@ -509,6 +509,7 @@
   6. `standwise submit --file <tmp>`; informar se foi `late` (vai para a thread).
   Regras escritas na skill: nunca inventar atividade que não esteja no draft ou que a pessoa não tenha dito; nunca enviar sem confirmação.
 
+- **Plugin com MCP (decisão do Felipe, 2026-10-28):** o plugin também declara o servidor MCP (`standwise` com args `["mcp"]`, no formato atual de plugins do Claude Code, conferido na documentação antes de implementar). Assim, instalar o plugin traz a skill `/daily` e as tools do MCP juntas. A skill prefere as tools do MCP (confirmação por elicitation) e usa a CLI como alternativa. O plugin não instala o binário: a skill detecta binário ou login ausentes e orienta. O teste valida também a declaração do MCP.
 - [ ] **Step 1: Write the failing test** → `plugin.json` é JSON válido com `name: "standwise"`; o `SKILL.md` tem frontmatter com `name` e `description`, e contém os comandos `standwise draft` e `standwise submit` e a regra de confirmação.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Write the files.** **Step 4: Run** → PASS.
 - [ ] **Step 5: Manual check** → `claude --plugin-dir packages/plugin`, rodar `/daily` contra a API local, conferir o fluxo até o envio.
