@@ -5,6 +5,8 @@ import { createMcpServer } from '../mcp/server';
 
 type Id = string | number;
 
+const EOF_GRACE_MS = 5000;
+
 const requestId = (message: JSONRPCMessage): Id | undefined =>
   'id' in message && 'method' in message ? message.id : undefined;
 
@@ -40,6 +42,9 @@ export async function mcp(ctx: Ctx): Promise<number> {
   process.stdin.once('end', () => {
     ended = true;
     closeWhenIdle();
+    setTimeout(() => {
+      server.close().catch(() => undefined);
+    }, EOF_GRACE_MS);
   });
 
   await closed;

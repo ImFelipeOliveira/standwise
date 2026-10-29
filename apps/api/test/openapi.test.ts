@@ -139,6 +139,7 @@ describe('internal openapi document', () => {
       '/v1/meta',
       '/v1/sessions',
       '/v1/sessions/current',
+      '/v1/today',
     ]);
     expect((await new Validator().validate(doc)).valid).toBe(true);
   });

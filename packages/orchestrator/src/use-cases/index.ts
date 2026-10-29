@@ -7,6 +7,7 @@ export * from './emit-event';
 export * from './errors';
 export * from './get-draft';
 export * from './get-setup-status';
+export * from './get-today';
 export * from './handle-github-event';
 export * from './installation-api-keys';
 export * from './is-installation-admin';

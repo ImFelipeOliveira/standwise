@@ -1,4 +1,4 @@
-import type { DailySubmission } from '@standwise/core';
+import type { DailyConfirmation, DailySubmission } from '@standwise/core';
 import { getDelivery, getMemberDaily, type MemberRow, upsertDaily } from '@standwise/db';
 import type { Deps } from '../deps';
 import { newBlockers } from '../events';
@@ -25,6 +25,7 @@ export async function submitDaily(
   isMember: MembershipCheck,
   member: MemberRow,
   payload: DailySubmission,
+  options: { confirmation?: DailyConfirmation } = {},
 ): Promise<SubmitDailyResult> {
   const ctx = await resolveOrgContext(deps, isMember, member, payload.org);
   const previous = await getMemberDaily(deps.db, ctx.installationId, ctx.member.id, ctx.date);
@@ -32,7 +33,7 @@ export async function submitDaily(
     installationId: ctx.installationId,
     memberId: ctx.member.id,
     date: ctx.date,
-    payload,
+    payload: options.confirmation ? { ...payload, confirmation: options.confirmation } : payload,
     submittedAt: deps.now(),
   });
   const teams = ctx.mine.map((t) => t.name);

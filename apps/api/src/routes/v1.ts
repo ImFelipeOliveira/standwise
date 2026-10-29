@@ -1,10 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import type { DailyConfirmation } from '@standwise/core';
 import {
   createMembershipCheck,
   type Deps,
   DomainError,
   endSession,
   getDraft,
+  getToday,
   startSession,
   submitDaily,
 } from '@standwise/orchestrator';
@@ -32,6 +34,7 @@ import {
   SessionRequestSchema,
   SessionSchema,
   SubmitResultSchema,
+  TodaySchema,
 } from '../openapi/schemas';
 import { manageRoutes } from './manage';
 
@@ -151,13 +154,47 @@ const draft = createRoute({
   },
 });
 
+const today = createRoute({
+  method: 'get',
+  path: '/v1/today',
+  tags: ['Daily'],
+  summary: 'Get the standup date',
+  description:
+    "Returns the date the next daily counts for and the person's teams, without building the draft. Used by the MCP server to show the date before asking for confirmation.\n\nRetorna a data em que a próxima daily conta e os times da pessoa, sem montar o rascunho. Usado pelo servidor MCP para mostrar a data antes de pedir a confirmação.",
+  security: [{ session: [] }],
+  request: { query: z.object({ org: z.string().optional().openapi({ example: 'acme' }) }) },
+  responses: {
+    200: {
+      description: 'The standup date.',
+      headers: rateHeaders,
+      content: {
+        'application/json': {
+          schema: TodaySchema,
+          example: { org: 'acme', date: '2026-10-28', teams: ['Alpha'] },
+        },
+      },
+    },
+    401: UNAUTHORIZED,
+    403: errorResponse('The person has no access to the organization.', {
+      forbidden: 'not a member of this organization',
+    }),
+    404: ORG_ERRORS[404],
+    409: ORG_ERRORS[409],
+    422: errorResponse('The request or the person is not valid for this organization.', {
+      invalid_request: 'org is required',
+      not_in_team: 'you are not in any team of this organization',
+    }),
+    429: RATE_LIMITED,
+  },
+});
+
 const dailies = createRoute({
   method: 'post',
   path: '/v1/dailies',
   tags: ['Daily'],
   summary: 'Submit the daily',
   description:
-    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread.',
+    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply. The optional `X-Standwise-Confirmation` header (`human` or `agent`) records who confirmed it; other values are ignored.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread. O cabeçalho opcional `X-Standwise-Confirmation` (`human` ou `agent`) registra quem confirmou; outros valores são ignorados.',
   security: [{ session: [] }],
   request: {
     body: {
@@ -195,6 +232,12 @@ const dailies = createRoute({
   },
 });
 
+const CONFIRMATION_HEADER = 'x-standwise-confirmation';
+
+function confirmationOf(value: string | undefined): DailyConfirmation | undefined {
+  return value === 'agent' || value === 'human' ? value : undefined;
+}
+
 const BODY_ERRORS: Record<string, DomainError> = {
   '/v1/sessions': new DomainError('invalid_request', 'request body must be JSON'),
   '/v1/dailies': new DomainError('invalid_daily', 'request body must be JSON'),
@@ -215,7 +258,13 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
 
   app.use('/v1/*', ipRateLimit(deps, options.getClientIp, 'api', IP_LIMIT));
   app.use('/v1/sessions', ipRateLimit(deps, options.getClientIp, 'sessions', SESSION_START_LIMIT));
-  for (const path of ['/v1/sessions/current', '/v1/draft', '/v1/dailies', '/v1/manage/*']) {
+  for (const path of [
+    '/v1/sessions/current',
+    '/v1/draft',
+    '/v1/today',
+    '/v1/dailies',
+    '/v1/manage/*',
+  ]) {
     app.use(path, sessionAuth(deps, options.getClientIp), subjectRateLimit(deps));
   }
 
@@ -244,10 +293,19 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
     c.json(await getDraft(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
   );
 
+  app.openapi(today, async (c) =>
+    c.json(await getToday(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+  );
+
   app.openapi(
     dailies,
     async (c) =>
-      c.json(await submitDaily(deps, isMember, c.get('member'), c.req.valid('json')), 200),
+      c.json(
+        await submitDaily(deps, isMember, c.get('member'), c.req.valid('json'), {
+          confirmation: confirmationOf(c.req.header(CONFIRMATION_HEADER)),
+        }),
+        200,
+      ),
     (result) => {
       if (!result.success) {
         throw new DomainError('invalid_daily', 'invalid daily', result.error.issues);

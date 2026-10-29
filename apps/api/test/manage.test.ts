@@ -113,8 +113,12 @@ describe('manage routes', () => {
       submittedAt: '2026-10-27T12:00:00.000Z',
     });
     expect(page.data[0]).not.toHaveProperty('suggestions');
+    expect(page.data[0]?.teams).toEqual(['backend']);
     const blockers = await get('carol', '/v1/manage/blockers?org=acme&team=backend');
     expect((blockers.body as Page).data.map((b) => b.text)).toEqual(['waiting on infra']);
+    expect((blockers.body as Page).data.map((b) => b.teams)).toEqual([['backend']]);
+    const admin = await get('frank', '/v1/manage/dailies?org=acme&team=backend');
+    expect((admin.body as Page).data[0]?.teams).toEqual(['backend', 'platform']);
     for (const team of ['platform', 'ghost']) {
       const denied = await get('carol', `/v1/manage/dailies?org=acme&team=${team}`);
       expect(denied.res.status).toBe(403);

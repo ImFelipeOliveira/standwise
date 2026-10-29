@@ -161,3 +161,11 @@ export const SubmitResultSchema = z
     late: z.boolean(),
   })
   .openapi('SubmitResult', { example: { date: '2026-10-28', teams: ['Alpha'], late: false } });
+
+export const TodaySchema = z
+  .object({
+    org: z.string(),
+    date: z.string(),
+    teams: z.array(z.string()),
+  })
+  .openapi('Today', { example: { org: 'acme', date: '2026-10-28', teams: ['Alpha'] } });

@@ -2,7 +2,7 @@ import { addCalendarDays, localDate } from '@standwise/core';
 import { listMemberInstallations, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
-import { canReadTeam, findTeamConfig } from './can-read-team';
+import { readableTeams } from './can-read-team';
 import { DomainError } from './errors';
 import { listOrgBlockers, type OrgBlocker } from './list-org-blockers';
 import { listOrgDailies, type OrgDaily } from './list-org-dailies';
@@ -23,7 +23,11 @@ export type ManagedQuery = {
 };
 
 type ManagedOrg = { member: MemberRow; installationId: number };
-type ManagedTeam = { installationId: number; team: string; from: string; to: string };
+type ManagedTeam = {
+  installationId: number;
+  readable: Set<string>;
+  scope: { team: string; from: string; to: string };
+};
 
 async function resolveManagedOrg(
   deps: Deps,
@@ -70,11 +74,14 @@ async function resolveManagedTeam(
   );
   const team = query.team;
   if (!team) throw new DomainError('invalid_request', 'team is required');
-  const config = await findTeamConfig(deps, installationId, team);
-  if (!config || !(await canReadTeam(deps, installationId, current, team))) {
-    throw new DomainError('forbidden', 'you cannot read this team');
-  }
-  return { installationId, team, ...historyRange(deps, config.timezone, query) };
+  const teams = await readableTeams(deps, installationId, current);
+  const config = teams.find((t) => t.name === team);
+  if (!config) throw new DomainError('forbidden', 'you cannot read this team');
+  return {
+    installationId,
+    readable: new Set(teams.map((t) => t.name)),
+    scope: { team, ...historyRange(deps, config.timezone, query) },
+  };
 }
 
 export async function listManagedTeams(
@@ -84,12 +91,17 @@ export async function listManagedTeams(
   org: string | undefined,
 ): Promise<OrgTeam[]> {
   const { member: current, installationId } = await resolveManagedOrg(deps, isMember, member, org);
-  const teams = await listOrgTeams(deps, installationId);
-  const readable: OrgTeam[] = [];
-  for (const team of teams) {
-    if (await canReadTeam(deps, installationId, current, team.name)) readable.push(team);
-  }
-  return readable;
+  const readable = new Set(
+    (await readableTeams(deps, installationId, current)).map((team) => team.name),
+  );
+  return (await listOrgTeams(deps, installationId)).filter((team) => readable.has(team.name));
+}
+
+function scopeTeams<T extends { teams: string[] }>(page: Page<T>, readable: Set<string>): Page<T> {
+  return {
+    ...page,
+    data: page.data.map((row) => ({ ...row, teams: row.teams.filter((t) => readable.has(t)) })),
+  };
 }
 
 export async function listManagedDigests(
@@ -98,7 +110,7 @@ export async function listManagedDigests(
   member: MemberRow,
   query: ManagedQuery,
 ): Promise<Page<OrgDigest>> {
-  const { installationId, ...scope } = await resolveManagedTeam(deps, isMember, member, query);
+  const { installationId, scope } = await resolveManagedTeam(deps, isMember, member, query);
   return listOrgDigests(deps, installationId, {
     ...scope,
     cursor: query.cursor,
@@ -112,12 +124,18 @@ export async function listManagedDailies(
   member: MemberRow,
   query: ManagedQuery,
 ): Promise<Page<OrgDaily>> {
-  const { installationId, ...scope } = await resolveManagedTeam(deps, isMember, member, query);
-  return listOrgDailies(deps, installationId, {
+  const { installationId, readable, scope } = await resolveManagedTeam(
+    deps,
+    isMember,
+    member,
+    query,
+  );
+  const page = await listOrgDailies(deps, installationId, {
     ...scope,
     cursor: query.cursor,
     limit: query.limit,
   });
+  return scopeTeams(page, readable);
 }
 
 export async function listManagedBlockers(
@@ -126,10 +144,16 @@ export async function listManagedBlockers(
   member: MemberRow,
   query: ManagedQuery,
 ): Promise<Page<OrgBlocker>> {
-  const { installationId, ...scope } = await resolveManagedTeam(deps, isMember, member, query);
-  return listOrgBlockers(deps, installationId, {
+  const { installationId, readable, scope } = await resolveManagedTeam(
+    deps,
+    isMember,
+    member,
+    query,
+  );
+  const page = await listOrgBlockers(deps, installationId, {
     ...scope,
     cursor: query.cursor,
     limit: query.limit,
   });
+  return scopeTeams(page, readable);
 }

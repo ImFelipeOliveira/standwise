@@ -1,4 +1,4 @@
-import type { DailySubmission } from '@standwise/core';
+import type { DailyConfirmation, DailySubmission } from '@standwise/core';
 
 export const DEFAULT_API_URL = 'https://api.standwise.dev';
 
@@ -26,9 +26,14 @@ export type Session = { token: string; login: string; orgs: Org[] };
 async function request<T>(
   apiUrl: string,
   path: string,
-  options: { method?: string; token?: string; body?: unknown } = {},
+  options: {
+    method?: string;
+    token?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { accept: 'application/json' };
+  const headers: Record<string, string> = { accept: 'application/json', ...options.headers };
   if (options.token) headers.authorization = `Bearer ${options.token}`;
   if (options.body !== undefined) headers['content-type'] = 'application/json';
   let response: Response;
@@ -62,8 +67,23 @@ export const createSession = (apiUrl: string, githubToken: string) =>
 export const getDraft = (apiUrl: string, token: string, org: string) =>
   request<unknown>(apiUrl, `/v1/draft?org=${encodeURIComponent(org)}`, { token });
 
-export const postDaily = (apiUrl: string, token: string, daily: DailySubmission) =>
-  request<unknown>(apiUrl, '/v1/dailies', { method: 'POST', token, body: daily });
+export const postDaily = (
+  apiUrl: string,
+  token: string,
+  daily: DailySubmission,
+  confirmation?: DailyConfirmation,
+) =>
+  request<unknown>(apiUrl, '/v1/dailies', {
+    method: 'POST',
+    token,
+    body: daily,
+    headers: confirmation ? { 'x-standwise-confirmation': confirmation } : {},
+  });
+
+export type Today = { org: string; date: string; teams: string[] };
+
+export const getToday = (apiUrl: string, token: string, org: string) =>
+  request<Today>(apiUrl, `/v1/today?org=${encodeURIComponent(org)}`, { token });
 
 export const revokeSession = (apiUrl: string, token: string) =>
   request<unknown>(apiUrl, '/v1/sessions/current', { method: 'DELETE', token });

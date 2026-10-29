@@ -348,6 +348,21 @@ describe('org access', () => {
   });
 });
 
+describe('today', () => {
+  test('returns the standup date for the org without fetching activity', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    h.setNow(new Date('2026-10-31T15:00:00Z'));
+    const res = await get(h, token, '/v1/today?org=acme');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ org: 'acme', date: '2026-11-02', teams: ['Alpha'] });
+    expect(h.activityCalls).toEqual([]);
+    expect((await get(h, null, '/v1/today?org=acme')).status).toBe(401);
+    expect((await get(h, token, '/v1/today')).status).toBe(422);
+  });
+});
+
 describe('draft', () => {
   test('draft requires auth', async () => {
     const h = harness();
@@ -408,6 +423,40 @@ describe('draft', () => {
 });
 
 describe('dailies', () => {
+  test('records how the daily was confirmed from the confirmation header', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const send = (value?: string) =>
+      h.app.request('/v1/dailies', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          ...(value ? { 'x-standwise-confirmation': value } : {}),
+        },
+        body: JSON.stringify(daily),
+      });
+    const stored = async () => (await listDailies(db, INST, '2026-10-28'))[0]?.payload;
+    expect((await send('agent')).status).toBe(200);
+    expect(await stored()).toEqual({ ...daily, confirmation: 'agent' });
+    expect((await send('human')).status).toBe(200);
+    expect(await stored()).toEqual({ ...daily, confirmation: 'human' });
+    expect((await send('robot')).status).toBe(200);
+    expect(await stored()).toEqual(daily);
+    expect((await send()).status).toBe(200);
+    expect(await stored()).toEqual(daily);
+  });
+
+  test('rejects control and bidi characters', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const res = await post(h, token, { ...daily, today: [{ text: 'a\u202eb' }] });
+    expect(res.status).toBe(422);
+    expect(await listDailies(db, INST, '2026-10-28')).toEqual([]);
+  });
+
   test('events emitted', async () => {
     await seed();
     const h = harness();

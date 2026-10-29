@@ -4,27 +4,26 @@ import type { Deps } from '../deps';
 import { currentLogin } from '../membership';
 import { isInstallationAdmin } from './is-installation-admin';
 
-export async function findTeamConfig(
-  deps: Deps,
-  installationId: number,
-  team: string,
-): Promise<TeamConfig | null> {
+async function configuredTeams(deps: Deps, installationId: number): Promise<TeamConfig[]> {
   const installation = await getInstallation(deps.db, installationId);
-  if (installation?.status !== 'configured' || !installation.config) return null;
-  return installation.config.teams.find((t) => t.name === team) ?? null;
+  if (installation?.status !== 'configured' || !installation.config) return [];
+  return installation.config.teams;
 }
 
-async function isTeamManager(
+export async function readableTeams(
   deps: Deps,
   installationId: number,
   member: MemberRow,
-  team: TeamConfig,
-): Promise<boolean> {
+): Promise<TeamConfig[]> {
+  const teams = await configuredTeams(deps, installationId);
+  if (teams.length === 0) return [];
   const octokit = await deps.github.installationOctokit(installationId);
-  const login = await currentLogin(octokit, member.githubUserId);
-  if (login === null) return false;
-  const wanted = login.toLowerCase();
-  return team.managers.some((manager) => manager.toLowerCase() === wanted);
+  const login = (await currentLogin(octokit, member.githubUserId))?.toLowerCase();
+  const managed = teams.filter(
+    (team) => login !== undefined && team.managers.some((m) => m.toLowerCase() === login),
+  );
+  if (managed.length === teams.length) return managed;
+  return (await isInstallationAdmin(deps, installationId, member)) ? teams : managed;
 }
 
 export async function canReadTeam(
@@ -33,8 +32,5 @@ export async function canReadTeam(
   member: MemberRow,
   team: string,
 ): Promise<boolean> {
-  const config = await findTeamConfig(deps, installationId, team);
-  if (!config) return false;
-  if (await isTeamManager(deps, installationId, member, config)) return true;
-  return isInstallationAdmin(deps, installationId, member);
+  return (await readableTeams(deps, installationId, member)).some((t) => t.name === team);
 }

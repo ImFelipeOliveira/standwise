@@ -210,6 +210,19 @@ describe('team reads', () => {
     }
   });
 
+  test('team names in dailies and blockers are limited to the teams the caller can read', async () => {
+    const { deps, isMember, roles } = await setup();
+    roles.set('frank', { role: 'admin', state: 'active' });
+    await submit('bob', '2026-10-27', ['waiting on infra']);
+    const query = { org: 'acme', team: 'backend' };
+    const dailies = await listManagedDailies(deps, isMember, who('carol'), query);
+    expect(dailies.data.map((d) => d.teams)).toEqual([['backend']]);
+    const blockers = await listManagedBlockers(deps, isMember, who('carol'), query);
+    expect(blockers.data.map((b) => b.teams)).toEqual([['backend']]);
+    const admin = await listManagedDailies(deps, isMember, who('frank'), query);
+    expect(admin.data.map((d) => d.teams)).toEqual([['backend', 'platform']]);
+  });
+
   test('team is required', async () => {
     const { deps, isMember } = await setup();
     expect(await codeOf(listManagedDigests(deps, isMember, who('carol'), { org: 'acme' }))).toBe(

@@ -42,6 +42,45 @@ describe('DailySubmissionSchema', () => {
   test('rejects empty org', () => {
     expect(DailySubmissionSchema.safeParse({ ...valid, org: '' }).success).toBe(false);
   });
+
+  test('caps ref titles at 200 characters', () => {
+    const ref = { kind: 'pull_request', url: 'https://github.com/a/b/pull/1' };
+    const ok = [{ text: 'x', ref: { ...ref, title: 'a'.repeat(200) } }];
+    const long = [{ text: 'x', ref: { ...ref, title: 'a'.repeat(201) } }];
+    expect(DailySubmissionSchema.safeParse({ ...valid, today: ok }).success).toBe(true);
+    expect(DailySubmissionSchema.safeParse({ ...valid, today: long }).success).toBe(false);
+  });
+
+  test('rejects control, bidi and line separator characters in text and titles', () => {
+    const ref = { kind: 'pull_request', url: 'https://github.com/a/b/pull/1' };
+    const unsafe = [
+      '\u0000',
+      '\t',
+      '\n',
+      '\r',
+      '\u001b',
+      '\u007f',
+      '\u0085',
+      '\u009f',
+      '\u202a',
+      '\u202e',
+      '\u2066',
+      '\u2069',
+      '\u2028',
+      '\u2029',
+    ];
+    for (const char of unsafe) {
+      const inText = [{ text: `a${char}b` }];
+      const inTitle = [{ text: 'a', ref: { ...ref, title: `a${char}b` } }];
+      expect(DailySubmissionSchema.safeParse({ ...valid, today: inText }).success).toBe(false);
+      expect(DailySubmissionSchema.safeParse({ ...valid, blockers: inTitle }).success).toBe(false);
+    }
+  });
+
+  test('accepts plain spaces, accents and emoji', () => {
+    const today = [{ text: 'Revisar os PRs do time, sem pressa 🙂 — ação' }];
+    expect(DailySubmissionSchema.safeParse({ ...valid, today }).success).toBe(true);
+  });
 });
 
 describe('teamsForMember', () => {

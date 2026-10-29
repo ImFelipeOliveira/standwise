@@ -1,4 +1,4 @@
-import type { DailySubmission } from '@standwise/core';
+import type { StoredDaily } from '@standwise/core';
 import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dailies, members } from '../schema';
@@ -9,7 +9,7 @@ export async function upsertDaily(
     installationId: number;
     memberId: string;
     date: string;
-    payload: DailySubmission;
+    payload: StoredDaily;
     submittedAt: Date;
   },
 ): Promise<{ id: string }> {
@@ -30,7 +30,7 @@ export async function getMemberDaily(
   installationId: number,
   memberId: string,
   date: string,
-): Promise<{ id: string; payload: DailySubmission } | null> {
+): Promise<{ id: string; payload: StoredDaily } | null> {
   const [row] = await db
     .select({ id: dailies.id, payload: dailies.payload })
     .from(dailies)
@@ -69,7 +69,7 @@ export async function listDailies(
   db: Db,
   installationId: number,
   date: string,
-): Promise<{ login: string; memberId: string; payload: DailySubmission; submittedAt: Date }[]> {
+): Promise<{ login: string; memberId: string; payload: StoredDaily; submittedAt: Date }[]> {
   return db
     .select({
       login: members.login,
@@ -89,7 +89,7 @@ export type DailyRecord = {
   id: string;
   login: string;
   date: string;
-  payload: DailySubmission;
+  payload: StoredDaily;
   submittedAt: Date;
 };
 

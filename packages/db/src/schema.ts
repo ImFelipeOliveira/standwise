@@ -1,4 +1,4 @@
-import type { ConfigError, DailySubmission, MessageRef, StandwiseConfig } from '@standwise/core';
+import type { ConfigError, MessageRef, StandwiseConfig, StoredDaily } from '@standwise/core';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -102,7 +102,7 @@ export const dailies = pgTable(
     installationId: installationRef(),
     memberId: memberRef(),
     date: date('date', { mode: 'string' }).notNull(),
-    payload: jsonb('payload').$type<DailySubmission>().notNull(),
+    payload: jsonb('payload').$type<StoredDaily>().notNull(),
     submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
   },
   (t) => [unique().on(t.installationId, t.memberId, t.date)],

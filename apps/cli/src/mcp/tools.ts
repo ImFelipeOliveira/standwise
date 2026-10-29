@@ -1,8 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { type DailySubmission, DailySubmissionSchema } from '@standwise/core';
+import {
+  type DailyConfirmation,
+  type DailySubmission,
+  DailySubmissionSchema,
+  hasUnsafeChars,
+} from '@standwise/core';
 import { z } from 'zod';
-import { ApiError, getDraft, getManage, NetworkError, postDaily } from '../api';
+import { ApiError, getDraft, getManage, getToday, NetworkError, postDaily } from '../api';
 import { type Ctx, EXIT, ExitError, type Io } from '../io';
 import { requireBoundCredentials, requireCredentials, resolveOrg } from '../session';
 import { stripControl } from '../url';
@@ -148,60 +153,80 @@ async function respond(
   }
 }
 
-function itemLines(items: DailySubmission['today']): string {
-  if (items.length === 0) return '- (none)';
-  return items
-    .map((item) => {
-      const url = item.ref ? ` (${stripControl(item.ref.url)})` : '';
-      return `- ${stripControl(item.text)}${url}`;
-    })
-    .join('\n');
+function itemLine(item: DailySubmission['today'][number]): string {
+  if (!item.ref) return `- ${item.text}`;
+  const label = item.ref.title ? `${item.ref.kind}: ${item.ref.title}` : item.ref.kind;
+  return `- ${item.text} [${label}] (${item.ref.url})`;
 }
 
-export function dailySummary(daily: DailySubmission): string {
+function itemLines(items: DailySubmission['today']): string {
+  return items.length === 0 ? '- (none)' : items.map(itemLine).join('\n');
+}
+
+export function dailySummary(daily: DailySubmission, date: string): string {
   return [
-    `Send this daily to ${stripControl(daily.org)}? Date: today, in your team's time zone.`,
+    `Send this daily to ${daily.org}? Date: ${date}.`,
     `Yesterday:\n${itemLines(daily.yesterday)}`,
     `Today:\n${itemLines(daily.today)}`,
     `Blockers:\n${itemLines(daily.blockers)}`,
   ].join('\n\n');
 }
 
-type Confirmation = 'person' | 'agent';
+export const ELICITATION_TIMEOUT_MS = 10 * 60 * 1000;
+
+type Session = { token: string; apiUrl: string; org: string };
+
+function validDaily(daily: DailySubmission): DailySubmission {
+  const parsed = DailySubmissionSchema.safeParse(daily);
+  if (!parsed.success || hasUnsafeChars(daily.org)) {
+    const issues = parsed.success
+      ? 'org: must not contain control, bidi or line separator characters'
+      : parsed.error.issues
+          .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+          .join('; ');
+    throw new ToolError('invalid_input', `the daily is invalid. Nothing was sent. ${issues}`);
+  }
+  return parsed.data;
+}
 
 async function confirmSubmission(
   server: McpServer,
+  s: Session,
   daily: DailySubmission,
   confirmed: true | undefined,
-): Promise<Confirmation> {
+): Promise<DailyConfirmation> {
   if (!server.server.getClientCapabilities()?.elicitation?.form) {
     if (confirmed !== true) throw new ToolError('confirmation_required', CONFIRMATION_RULE);
     return 'agent';
   }
-  const answer = await server.server.elicitInput({
-    mode: 'form',
-    message: dailySummary(daily),
-    requestedSchema: {
-      type: 'object',
-      properties: {
-        confirm: {
-          type: 'boolean',
-          title: 'Send this daily',
-          description: 'Check to send the daily exactly as shown.',
-          default: false,
+  const today = await getToday(s.apiUrl, s.token, s.org);
+  const answer = await server.server.elicitInput(
+    {
+      mode: 'form',
+      message: dailySummary(daily, today.date),
+      requestedSchema: {
+        type: 'object',
+        properties: {
+          confirm: {
+            type: 'boolean',
+            title: 'Send this daily',
+            description: 'Check to send the daily exactly as shown.',
+            default: false,
+          },
         },
+        required: ['confirm'],
       },
-      required: ['confirm'],
     },
-  });
+    { timeout: ELICITATION_TIMEOUT_MS },
+  );
   if (answer.action !== 'accept' || answer.content?.confirm !== true) {
     throw new ToolError('not_confirmed', 'the person did not confirm the daily. Nothing was sent.');
   }
-  return 'person';
+  return 'human';
 }
 
 const AGENT_CONFIRMATION_NOTE =
-  'This client does not support elicitation, so the confirmation came from the agent (confirmed: true), not directly from the person.';
+  'Tell the person this daily was confirmed by you, the agent, because this client cannot ask them directly.';
 
 function toolCtx(io: Io, orgLogin?: string): Ctx {
   return { io, lang: 'en', flags: { org: orgLogin } };
@@ -275,7 +300,7 @@ export function registerTools(server: McpServer, io: Io): void {
         date: z.string(),
         teams: z.array(z.string()),
         late: z.boolean(),
-        confirmation: z.enum(['person', 'agent']),
+        confirmation: z.enum(['human', 'agent']),
       },
       annotations: {
         title: 'Submit the daily',
@@ -288,14 +313,17 @@ export function registerTools(server: McpServer, io: Io): void {
     async (input) => {
       try {
         const s = await session(io, input.org);
-        const daily: DailySubmission = {
+        const daily = validDaily({
           org: s.org,
           yesterday: input.yesterday,
           today: input.today,
           blockers: input.blockers,
-        };
-        const confirmation = await confirmSubmission(server, daily, input.confirmed);
-        const result = (await postDaily(s.apiUrl, s.token, daily)) as Record<string, unknown>;
+        });
+        const confirmation = await confirmSubmission(server, s, daily, input.confirmed);
+        const result = (await postDaily(s.apiUrl, s.token, daily, confirmation)) as Record<
+          string,
+          unknown
+        >;
         return success(
           { ...result, confirmation },
           confirmation === 'agent' ? { note: AGENT_CONFIRMATION_NOTE } : {},

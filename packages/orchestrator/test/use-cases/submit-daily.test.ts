@@ -6,7 +6,7 @@ import {
   setMemberInstallations,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { createMembershipCheck, submitDaily } from '../../src';
+import { createMembershipCheck, getToday, listOrgDailies, submitDaily } from '../../src';
 import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -20,6 +20,29 @@ async function setup(cfg = config()) {
 }
 
 describe('submitDaily', () => {
+  test('stores how the daily was confirmed without exposing it in organization reads', async () => {
+    const { deps, isMember, member } = await setup();
+    await submitDaily(deps, isMember, member, daily, { confirmation: 'agent' });
+    const [row] = await listDailies(db, INST, '2026-10-28');
+    expect(row?.payload).toEqual({ ...daily, confirmation: 'agent' });
+    const page = await listOrgDailies(deps, INST, {});
+    expect(page.data[0]).not.toHaveProperty('confirmation');
+    await submitDaily(deps, isMember, member, daily);
+    const [plain] = await listDailies(db, INST, '2026-10-28');
+    expect(plain?.payload).toEqual(daily);
+  });
+
+  test('getToday returns the standup date without fetching activity', async () => {
+    const { deps, isMember, member, calls, setNow } = await setup();
+    setNow(new Date('2026-10-31T15:00:00Z'));
+    expect(await getToday(deps, isMember, member, 'ACME')).toEqual({
+      org: 'acme',
+      date: '2026-11-02',
+      teams: ['Alpha'],
+    });
+    expect(calls.activity).toEqual([]);
+  });
+
   test('replaces the daily of the same day', async () => {
     const { deps, isMember, member, queue } = await setup();
     const first = await submitDaily(deps, isMember, member, daily);
