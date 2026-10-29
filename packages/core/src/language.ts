@@ -14,5 +14,5 @@ export function negotiateLanguage(acceptLanguage: string | undefined): Language 
     if (tag === 'pt' || tag.startsWith('pt-')) return 'pt-BR';
     if (tag === 'en' || tag.startsWith('en-')) return 'en';
   }
-  return 'pt-BR';
+  return 'en';
 }

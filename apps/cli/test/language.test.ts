@@ -2,10 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import { cliLanguage } from '../src/language';
 
 describe('cliLanguage', () => {
-  test('defaults to pt-BR', () => {
-    expect(cliLanguage({})).toBe('pt-BR');
-    expect(cliLanguage({ LANG: 'C' })).toBe('pt-BR');
-    expect(cliLanguage({ LANG: 'fr_FR.UTF-8' })).toBe('pt-BR');
+  test('defaults to en', () => {
+    expect(cliLanguage({})).toBe('en');
+    expect(cliLanguage({ LANG: 'C' })).toBe('en');
+    expect(cliLanguage({ LC_ALL: 'POSIX' })).toBe('en');
+    expect(cliLanguage({ LANG: 'fr_FR.UTF-8' })).toBe('en');
   });
 
   test('maps locale names', () => {

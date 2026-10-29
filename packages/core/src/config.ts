@@ -56,7 +56,7 @@ const teamSchema = z.strictObject({
   workdays: z.array(weekday).min(1).default(['mon', 'tue', 'wed', 'thu', 'fri']),
   remind_at: time,
   digest_at: time,
-  language: z.enum(['pt-BR', 'en']).default('pt-BR'),
+  language: z.enum(['pt-BR', 'en']).default('en'),
   managers: z.array(login).min(1),
   members: z.array(login).min(1),
   chat: z.strictObject({

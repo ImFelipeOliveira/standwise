@@ -52,7 +52,7 @@ describe('parseConfig', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const t = r.config.teams[0];
-    expect(t?.language).toBe('pt-BR');
+    expect(t?.language).toBe('en');
     expect(t?.workdays).toEqual(['mon', 'tue', 'wed', 'thu', 'fri']);
     expect(t?.signals.cardStaleDays).toBe(5);
     expect(t?.signals.prReviewHours).toBe(48);

@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { negotiateLanguage } from '../src/language';
 
 describe('negotiateLanguage', () => {
-  test('defaults to pt-BR', () => {
-    expect(negotiateLanguage(undefined)).toBe('pt-BR');
-    expect(negotiateLanguage('')).toBe('pt-BR');
-    expect(negotiateLanguage('fr-FR,de;q=0.8')).toBe('pt-BR');
+  test('defaults to en', () => {
+    expect(negotiateLanguage(undefined)).toBe('en');
+    expect(negotiateLanguage('')).toBe('en');
+    expect(negotiateLanguage('fr-FR,de;q=0.8')).toBe('en');
   });
 
   test('maps pt and pt-* to pt-BR', () => {

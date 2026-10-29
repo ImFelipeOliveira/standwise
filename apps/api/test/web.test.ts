@@ -333,15 +333,15 @@ describe('setup page', () => {
     expect(html).toContain('Alpha');
   });
 
-  test('setup renders in english by Accept-Language and pt-BR by default', async () => {
+  test('setup renders in pt-BR by Accept-Language and english by default', async () => {
     const { app } = harness();
     const { cookie } = await seed();
-    const en = await app.request(`/setup?installation_id=${INST}`, {
-      headers: { cookie, 'accept-language': 'en-US,en;q=0.9' },
+    const pt = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { cookie, 'accept-language': 'pt-BR,pt;q=0.9' },
     });
-    expect(await en.text()).toContain('Connect Slack');
-    const pt = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     expect(await pt.text()).toContain('Conectar Slack');
+    const en = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(await en.text()).toContain('Connect Slack');
   });
 
   test('setup shows the connected slack workspace', async () => {
@@ -499,7 +499,9 @@ describe('setup right after install', () => {
     });
     expect(en.status).toBe(409);
     expect(await en.text()).toContain('still being processed');
-    const pt = await app.request('/setup?installation_id=777&resynced=1', { headers: { cookie } });
+    const pt = await app.request('/setup?installation_id=777&resynced=1', {
+      headers: { cookie, 'accept-language': 'pt-BR' },
+    });
     expect(pt.status).toBe(409);
     expect(await pt.text()).toContain('ainda está sendo processada');
   });
@@ -519,7 +521,9 @@ describe('browser error pages', () => {
     const enHtml = await en.text();
     expect(enHtml).toContain('<html lang="en"');
     expect(enHtml).toContain('You do not have access');
-    const pt = await app.request(`/setup?installation_id=${FOREIGN}`, { headers: { cookie } });
+    const pt = await app.request(`/setup?installation_id=${FOREIGN}`, {
+      headers: { cookie, 'accept-language': 'pt-BR' },
+    });
     expect(pt.status).toBe(403);
     const ptHtml = await pt.text();
     expect(ptHtml).toContain('<html lang="pt-BR"');

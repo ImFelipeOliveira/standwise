@@ -56,7 +56,7 @@ export function SetupPage(props: {
     const key = REASONS[reason];
     return key ? t(key) : '';
   };
-  const template = standwiseYmlTemplate(status.login, t('web.template.teamName'));
+  const template = standwiseYmlTemplate(status.login, t('web.template.teamName'), props.lang);
   return (
     <Layout lang={props.lang} title={t('web.setup.title')}>
       <h1>{t('web.setup.heading')}</h1>

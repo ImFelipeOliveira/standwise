@@ -156,14 +156,14 @@ describe('creating keys', () => {
     expect(page.headers.get('cache-control')).toBe('no-store');
     expect(page.headers.getSetCookie().join(';')).toMatch(/sw_flash=;.*Max-Age=0/s);
     expect(key).not.toBe('');
-    expect(html).toContain('Copie agora');
-    expect(html).toContain('Revogue');
+    expect(html).toContain('Copy it now');
+    expect(html).toContain('Revoke this key');
     expect(html).toContain('Reporting');
     const again = await (await setupPage(app, alice.cookie)).text();
     expect(again).not.toContain(key);
     expect(again).toContain(key.slice(4, 12));
     expect(again).toContain('Reporting');
-    expect(again).toContain('Nunca');
+    expect(again).toContain('Never');
     const resolved = await resolveApiKey(db, key);
     expect(resolved?.installationId).toBe(INST);
     expect(resolved?.scopes).toEqual(['teams:read', 'dailies:read']);
@@ -316,7 +316,7 @@ describe('revoking keys', () => {
     expect(res.headers.get('location')).toBe(`/setup?installation_id=${INST}`);
     expect(await resolveApiKey(db, key)).toBeNull();
     const page = await (await setupPage(app, alice.cookie)).text();
-    expect(page).toContain('Revogada');
+    expect(page).toContain('Revoked');
     expect(page).not.toContain(`/setup/api-keys/${listed?.id}/revoke`);
   });
 
@@ -356,7 +356,7 @@ describe('revoking keys', () => {
     for (const id of [crypto.randomUUID(), 'nope', foreign.id]) {
       const res = await revoke(id);
       expect(res.status).toBe(404);
-      expect(await res.text()).toContain('Não encontrado');
+      expect(await res.text()).toContain('Not found');
     }
     expect(await resolveApiKey(db, foreign.key)).not.toBeNull();
     const { key } = await createAndShow(app, alice);

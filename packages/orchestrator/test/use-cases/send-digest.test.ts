@@ -48,7 +48,7 @@ describe('sendDigest', () => {
     const text = posted[0]?.msg.fallbackText ?? '';
     expect(text).toContain('@UALICE');
     expect(text).toContain('did a thing');
-    expect(text).toContain('Não enviaram');
+    expect(text).toContain('Did not send the daily');
     expect(text).toContain('@bob');
   });
 

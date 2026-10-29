@@ -145,7 +145,7 @@ describe('webhooks section', () => {
     expect(
       await getWebhookEndpointSecret(db, INST, await endpointId(), new Uint8Array(32).fill(7)),
     ).toBe(secret);
-    expect(html).toContain('Copie agora');
+    expect(html).toContain('Copy it now');
     expect(html).toContain(URL_OK);
     const again = await (await setupPage(app, alice.cookie)).text();
     expect(again).not.toMatch(SECRET);
@@ -212,7 +212,7 @@ describe('webhooks section', () => {
     expect(queue.enqueued.filter((j) => j.name === 'deliver-webhook')).toHaveLength(1);
     const html = await (await setupPage(app, alice.cookie)).text();
     expect(html).toContain('ping');
-    expect(html).toContain('Pendente');
+    expect(html).toContain('Pending');
   });
 
   test('an admin disables an endpoint', async () => {
@@ -227,7 +227,7 @@ describe('webhooks section', () => {
     const [endpoint] = await listInstallationWebhookEndpoints(db, INST);
     expect(endpoint?.active).toBe(false);
     const html = await (await setupPage(app, alice.cookie)).text();
-    expect(html).toContain('Desativado');
+    expect(html).toContain('Disabled');
     expect(html).not.toContain(`/setup/webhooks/${id}/test`);
   });
 });

@@ -2,6 +2,10 @@
 
 Breaking changes are announced here at least 90 days before they take effect. See the versioning guide.
 
+## Unreleased
+
+- Default language is now English when none is specified.
+
 ## 1.2.0
 
 - Outbound webhooks: an organization admin registers HTTPS endpoints on the setup page and picks the events `daily.submitted`, `blocker.opened` and `digest.sent`. A `ping` test event can be sent from the setup page.

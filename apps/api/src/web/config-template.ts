@@ -1,6 +1,9 @@
-export function standwiseYmlTemplate(login: string, teamName: string): string {
+import type { Language } from '@standwise/core';
+
+export function standwiseYmlTemplate(login: string, teamName: string, lang: Language): string {
   return `teams:
   - name: ${teamName}
+    language: ${lang}
     timezone: America/Sao_Paulo
     remind_at: "09:00"
     digest_at: "10:00"
