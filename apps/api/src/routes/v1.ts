@@ -13,12 +13,18 @@ import {
   getLastDaily,
   listMemberInstallations,
   type MemberRow,
+  removeMemberInstallation,
   resolveSession,
   setMemberInstallations,
   upsertDaily,
   upsertMember,
 } from '@standwise/db';
-import { type Deps, linkChatIdentities, resolveTeams } from '@standwise/orchestrator';
+import {
+  createMembershipCheck,
+  type Deps,
+  linkChatIdentities,
+  resolveTeams,
+} from '@standwise/orchestrator';
 import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 
@@ -44,18 +50,26 @@ type OrgContext = {
   date: string;
 };
 
+type MembershipCheck = ReturnType<typeof createMembershipCheck>;
+
 async function loadOrg(
   deps: Deps,
+  isMember: MembershipCheck,
   member: MemberRow,
   org: string | undefined,
 ): Promise<OrgContext> {
-  const wanted = (org ?? '').toLowerCase();
+  if (!org) throw fail(422, 'invalid_request', 'org is required');
+  const wanted = org.toLowerCase();
   const entry = (await listMemberInstallations(deps.db, member.id)).find(
     (i) => i.accountLogin.toLowerCase() === wanted,
   );
   if (!entry) throw fail(404, 'org_not_found', `organization ${org ?? ''} not found`);
   const installation = await getInstallation(deps.db, entry.installationId);
-  if (installation?.status !== 'configured' || !installation.config) {
+  if (!installation || !(await isMember(installation, member))) {
+    await removeMemberInstallation(deps.db, member.id, entry.installationId);
+    throw fail(404, 'org_not_found', `organization ${org} not found`);
+  }
+  if (installation.status !== 'configured' || !installation.config) {
     throw fail(409, 'org_not_configured', `organization ${entry.accountLogin} is not configured`);
   }
   const teams = await resolveTeams(
@@ -90,6 +104,7 @@ async function isLate(deps: Deps, ctx: OrgContext): Promise<boolean> {
 
 export function v1Routes(deps: Deps): Hono<Env> {
   const app = new Hono<Env>();
+  const isMember = createMembershipCheck(deps);
 
   app.onError((error, c: Context) => {
     if (error instanceof ApiError) {
@@ -109,9 +124,15 @@ export function v1Routes(deps: Deps): Hono<Env> {
     if (!body.success) {
       throw fail(422, 'invalid_request', 'githubToken is required', body.error.issues);
     }
-    const profile = await deps.github.getUserProfile(body.data.githubToken, {
-      appId: Number(deps.env.appId),
-    });
+    const profile = await deps.github
+      .getUserProfile(body.data.githubToken, { appId: Number(deps.env.appId) })
+      .catch((error: unknown) => {
+        const status = (error as { status?: unknown } | null)?.status;
+        if (status === 401 || status === 403) {
+          throw fail(401, 'unauthorized', 'GitHub token invalid or expired');
+        }
+        throw error;
+      });
     const member = await upsertMember(deps.db, {
       githubUserId: profile.githubUserId,
       login: profile.login,
@@ -144,7 +165,7 @@ export function v1Routes(deps: Deps): Hono<Env> {
 
   app.get('/draft', async (c) => {
     const member = c.get('member');
-    const ctx = await loadOrg(deps, member, c.req.query('org'));
+    const ctx = await loadOrg(deps, isMember, member, c.req.query('org'));
     const cal = ctx.mine[0] as ResolvedTeam;
     const lastDaily = await getLastDaily(deps.db, ctx.installationId, member.id, ctx.date);
     const since = activitySince({ date: ctx.date, cal, ...(lastDaily ? { lastDaily } : {}) });
@@ -167,7 +188,7 @@ export function v1Routes(deps: Deps): Hono<Env> {
       throw fail(422, 'invalid_daily', 'invalid daily', parsed.error.issues);
     }
     const payload: DailySubmission = parsed.data;
-    const ctx = await loadOrg(deps, member, payload.org);
+    const ctx = await loadOrg(deps, isMember, member, payload.org);
     await upsertDaily(deps.db, {
       installationId: ctx.installationId,
       memberId: member.id,

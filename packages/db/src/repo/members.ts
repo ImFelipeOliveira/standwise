@@ -105,3 +105,18 @@ export async function listMemberInstallations(
     .where(eq(memberInstallations.memberId, memberId))
     .orderBy(installations.id);
 }
+
+export async function removeMemberInstallation(
+  db: Db,
+  memberId: string,
+  installationId: number,
+): Promise<void> {
+  await db
+    .delete(memberInstallations)
+    .where(
+      and(
+        eq(memberInstallations.memberId, memberId),
+        eq(memberInstallations.installationId, installationId),
+      ),
+    );
+}

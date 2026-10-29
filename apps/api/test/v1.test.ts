@@ -5,11 +5,14 @@ import {
   completeDelivery,
   getIdentities,
   listDailies,
+  listMemberInstallations,
+  resolveSession,
   setInstallationConfig,
   upsertInstallation,
 } from '@standwise/db';
 import type { Deps } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
+import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
 
@@ -40,10 +43,21 @@ type Harness = {
   app: ReturnType<typeof createApp>;
   queue: ReturnType<typeof createMemoryQueue>;
   activityCalls: Date[];
+  membershipCalls: string[];
+  members: Set<string>;
   setNow: (d: Date) => void;
 };
 
-function harness(opts: { slackUser?: string | null; hasSlack?: boolean } = {}): Harness {
+function harness(
+  opts: {
+    slackUser?: string | null;
+    hasSlack?: boolean;
+    findUserError?: Error;
+    profileError?: unknown;
+  } = {},
+): Harness {
+  const membershipCalls: string[] = [];
+  const members = new Set(['alice']);
   const queue = createMemoryQueue();
   const activityCalls: Date[] = [];
   let now = new Date('2026-10-28T15:00:00Z');
@@ -54,13 +68,26 @@ function harness(opts: { slackUser?: string | null; hasSlack?: boolean } = {}): 
     encryptionKey: KEY,
     github: {
       app: {} as Deps['github']['app'],
-      installationOctokit: async () => ({}) as never,
-      getUserProfile: async () => ({
-        githubUserId: 1,
-        login: 'Alice',
-        email: 'alice@acme.com',
-        installationIds: [INST, 999],
-      }),
+      installationOctokit: async () =>
+        ({
+          request: async (route: string, params: { org: string; username: string }) => {
+            if (route !== 'GET /orgs/{org}/members/{username}') throw new Error(route);
+            membershipCalls.push(`${params.org}/${params.username}`);
+            if (!members.has(params.username.toLowerCase())) {
+              throw Object.assign(new Error('not found'), { status: 404 });
+            }
+            return { status: 204 };
+          },
+        }) as never,
+      getUserProfile: async () => {
+        if (opts.profileError) throw opts.profileError;
+        return {
+          githubUserId: 1,
+          login: 'Alice',
+          email: 'alice@acme.com',
+          installationIds: [INST, 999],
+        };
+      },
       listActivity: async (_o, _owner, _login, since) => {
         activityCalls.push(since);
         return [];
@@ -72,7 +99,10 @@ function harness(opts: { slackUser?: string | null; hasSlack?: boolean } = {}): 
       opts.hasSlack === false
         ? null
         : ({
-            findUserByEmail: async () => (opts.slackUser === undefined ? 'U9' : opts.slackUser),
+            findUserByEmail: async () => {
+              if (opts.findUserError) throw opts.findUserError;
+              return opts.slackUser === undefined ? 'U9' : opts.slackUser;
+            },
           } as never),
     env: {
       publicUrl: 'https://sw.test',
@@ -89,6 +119,8 @@ function harness(opts: { slackUser?: string | null; hasSlack?: boolean } = {}): 
     app: createApp(deps),
     queue,
     activityCalls,
+    membershipCalls,
+    members,
     setNow: (d) => {
       now = d;
     },
@@ -184,6 +216,98 @@ describe('sessions', () => {
       body: '{}',
     });
     expect(res.status).toBe(422);
+  });
+});
+
+describe('sessions resilience', () => {
+  test('slack failure does not block login', async () => {
+    await seed();
+    const h = harness({ findUserError: new ChatDeliveryError('token_revoked', 'revoked') });
+    const res = await h.app.request('/v1/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ githubToken: 'gho_x' }),
+    });
+    expect(res.status).toBe(200);
+    expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
+  });
+
+  test('invalid github token is 401', async () => {
+    for (const status of [401, 403]) {
+      const h = harness({ profileError: Object.assign(new Error('bad'), { status }) });
+      const res = await h.app.request('/v1/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ githubToken: 'gho_x' }),
+      });
+      expect(res.status).toBe(401);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('unauthorized');
+    }
+  });
+});
+
+describe('org access', () => {
+  test('removed member gets 404 and loses the installation', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    h.members.delete('alice');
+    const res = await get(h, token, '/v1/draft?org=acme');
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('org_not_found');
+    const me = await resolveSession(db, token, 'cli');
+    expect(await listMemberInstallations(db, me?.id ?? '')).toEqual([]);
+  });
+
+  test('removed member cannot submit', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    h.members.delete('alice');
+    expect((await post(h, token, daily)).status).toBe(404);
+  });
+
+  test('positive membership is cached for ten minutes', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    await get(h, token, '/v1/draft?org=acme');
+    await get(h, token, '/v1/draft?org=acme');
+    expect(h.membershipCalls).toHaveLength(1);
+    h.setNow(new Date('2026-10-28T15:11:00Z'));
+    await get(h, token, '/v1/draft?org=acme');
+    expect(h.membershipCalls).toHaveLength(2);
+  });
+
+  test('user account requires login match without github call', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'ALICE', accountType: 'User' });
+    await setInstallationConfig(db, INST, { status: 'configured', config: config() });
+    const h = harness();
+    const token = await login(h);
+    const res = await get(h, token, '/v1/draft?org=alice');
+    expect(res.status).toBe(200);
+    expect(h.membershipCalls).toHaveLength(0);
+  });
+
+  test('other tenant is not reachable', async () => {
+    await seed();
+    await upsertInstallation(db, { id: 22, accountLogin: 'globex', accountType: 'Organization' });
+    await setInstallationConfig(db, 22, { status: 'configured', config: config() });
+    const h = harness();
+    const token = await login(h);
+    const draft = await get(h, token, '/v1/draft?org=globex');
+    expect(draft.status).toBe(404);
+    const submit = await post(h, token, { ...daily, org: 'globex' });
+    expect(submit.status).toBe(404);
+  });
+
+  test('missing org is invalid request', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const res = await get(h, token, '/v1/draft');
+    expect(res.status).toBe(422);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_request');
   });
 });
 

@@ -11,6 +11,7 @@
     "@standwise/github": "workspace:*",
     "@standwise/orchestrator": "workspace:*",
     "@standwise/queue": "workspace:*",
+    "@standwise/slack": "workspace:*",
     "hono": "^4.9.0",
     "zod": "^4.6.7"
   }
