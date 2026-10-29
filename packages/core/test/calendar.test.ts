@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  addCalendarDays,
   type Calendar,
   dailyDateFor,
   isDue,
@@ -61,5 +62,11 @@ describe('calendar', () => {
     expect(isDue(new Date('2026-10-29T00:15:00-03:00'), '2026-10-28', '23:30', tz)).toBe(true);
     expect(isDue(new Date('2026-10-29T01:31:00-03:00'), '2026-10-28', '23:30', tz)).toBe(false);
     expect(isDue(new Date('2026-10-29T00:15:00-03:00'), '2026-10-29', '23:30', tz)).toBe(false);
+  });
+
+  test('addCalendarDays steps whole days', () => {
+    expect(addCalendarDays('2026-03-09', -1)).toBe('2026-03-08');
+    expect(addCalendarDays('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addCalendarDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

@@ -1,12 +1,10 @@
-import { isDue, isWorkday, localDate, type TeamConfig } from '@standwise/core';
+import { addCalendarDays, isDue, isWorkday, localDate, type TeamConfig } from '@standwise/core';
 import { getDelivery, listConfiguredInstallations, MAX_DELIVERY_ATTEMPTS } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 function dueDigestDate(now: Date, team: TeamConfig): string | null {
   const today = localDate(now, team.timezone);
-  const yesterday = localDate(new Date(now.getTime() - DAY_MS), team.timezone);
+  const yesterday = addCalendarDays(today, -1);
   for (const date of [today, yesterday]) {
     if (isWorkday(date, team) && isDue(now, date, team.digestAt, team.timezone)) return date;
   }

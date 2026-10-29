@@ -177,17 +177,20 @@ export function fakeChat() {
   const replies: { ref: MessageRef; msg: Message }[] = [];
   let failure: Error | null = null;
   let counter = 0;
+  const hooks: { afterSend?: () => Promise<void> } = {};
   const chat: ChatChannel = {
     postToChannel: async (channel, msg) => {
       if (failure) throw failure;
       posted.push({ channel, msg });
       counter++;
+      await hooks.afterSend?.();
       return { channel: 'C1', id: `${counter}.0` };
     },
     replyInThread: async (ref, msg) => {
       if (failure) throw failure;
       replies.push({ ref, msg });
       counter++;
+      await hooks.afterSend?.();
       return { channel: ref.channel, id: `${counter}.1` };
     },
     sendDirect: async () => {
@@ -199,8 +202,30 @@ export function fakeChat() {
     chat,
     posted,
     replies,
+    hooks,
     failWith: (error: Error | null) => {
       failure = error;
+    },
+  };
+}
+
+export function flakyDb() {
+  let armed = false;
+  const proxy = new Proxy(db, {
+    get(target, prop, receiver) {
+      if (prop === 'update' && armed) {
+        armed = false;
+        return () => {
+          throw new Error('db down');
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  return {
+    db: proxy,
+    failNextUpdate: () => {
+      armed = true;
     },
   };
 }

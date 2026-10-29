@@ -1,4 +1,4 @@
-import { buildLateDaily, teamsForMember } from '@standwise/core';
+import { buildLateDaily, type MessageRef, teamsForMember } from '@standwise/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -26,7 +26,6 @@ export async function sendLateDaily(deps: WorkerDeps, job: SendLateDailyJob): Pr
   );
   if (!found) return;
   const chat = await deps.chatFor(job.installationId, 'slack');
-  if (!chat) return;
 
   const teams = await resolveTeams(
     deps,
@@ -61,12 +60,17 @@ export async function sendLateDaily(deps: WorkerDeps, job: SendLateDailyJob): Pr
     };
     const claim = await claimDelivery(deps.db, key);
     if (claim.status !== 'claimed') continue;
+    if (!chat) {
+      await failDelivery(deps.db, key, claim.token, 'no_chat_connection');
+      continue;
+    }
+    let ref: MessageRef;
     try {
-      const ref = await chat.replyInThread(digest.ref, buildLateDaily(entry, team.language));
-      await completeDelivery(deps.db, key, claim.token, ref);
+      ref = await chat.replyInThread(digest.ref, buildLateDaily(entry, team.language));
     } catch (error) {
       await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
       throw error;
     }
+    await completeDelivery(deps.db, key, claim.token, ref);
   }
 }

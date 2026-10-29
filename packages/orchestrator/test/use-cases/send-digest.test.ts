@@ -3,8 +3,8 @@ import type { StandwiseConfig } from '@standwise/core';
 import { getDelivery, setIdentity, upsertDaily, upsertMember } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { sendDigest } from '../../src';
-import { config, daily, fakeChat, fakeDeps, INST, seedMember, seedOrg } from './fakes';
+import { sendDigest, sendLateDaily } from '../../src';
+import { config, daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -104,5 +104,56 @@ describe('sendDigest', () => {
     await sendDigest(deps, { ...job, teamName: 'Gone' });
     expect(posted).toHaveLength(0);
     expect(await getDelivery(db, { ...key, teamName: 'Gone' })).toBeNull();
+  });
+
+  test('daily submitted mid-digest gets a late reply', async () => {
+    const { deps, hooks, queue, replies, alice } = await setup();
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: null });
+    hooks.afterSend = async () => {
+      hooks.afterSend = undefined;
+      await upsertDaily(db, {
+        installationId: INST,
+        memberId: bob.id,
+        date: DATE,
+        payload: { ...daily, today: [{ text: 'bob in flight' }] },
+        submittedAt: new Date('2026-10-28T13:00:01Z'),
+      });
+      await upsertDaily(db, {
+        installationId: INST,
+        memberId: alice.id,
+        date: DATE,
+        payload: { ...daily, today: [{ text: 'alice changed' }] },
+        submittedAt: new Date('2026-10-28T13:00:02Z'),
+      });
+    };
+    await sendDigest(deps, job);
+    const late = queue.enqueued.filter((j) => j.name === 'send-late-daily');
+    expect(late.map((j) => j.data)).toEqual([
+      { installationId: INST, memberId: bob.id, date: DATE },
+      { installationId: INST, memberId: alice.id, date: DATE },
+    ]);
+    await sendLateDaily(deps, { installationId: INST, memberId: bob.id, date: DATE });
+    expect(replies).toHaveLength(1);
+    expect(replies[0]?.ref).toEqual({ channel: 'C1', id: '1.0' });
+    expect(replies[0]?.msg.fallbackText).toContain('bob in flight');
+  });
+
+  test('missing keeps the login spelling', async () => {
+    const { deps, posted } = await setup(config('[alice, Bob, carol]'));
+    await upsertMember(db, { githubUserId: 3, login: 'Carol', email: null });
+    await sendDigest(deps, job);
+    const text = posted[0]?.msg.fallbackText ?? '';
+    expect(text).toContain('@Bob');
+    expect(text).toContain('@Carol');
+  });
+
+  test('a failed completion after posting leaves the delivery pending', async () => {
+    const { deps, hooks } = await setup();
+    const flaky = flakyDb();
+    deps.db = flaky.db;
+    hooks.afterSend = async () => flaky.failNextUpdate();
+    await expect(sendDigest(deps, job)).rejects.toThrow('db down');
+    const row = await getDelivery(db, key);
+    expect(row?.status).toBe('pending');
   });
 });

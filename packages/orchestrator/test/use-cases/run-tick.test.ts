@@ -125,4 +125,28 @@ describe('runTick', () => {
       'Alpha',
     ]);
   });
+
+  test('tick uses the previous calendar day across a spring-forward', async () => {
+    const base = config();
+    const team = base.teams[0];
+    if (!team) throw new Error('no team');
+    const cfg = {
+      ...base,
+      teams: [
+        {
+          ...team,
+          timezone: 'America/New_York',
+          workdays: ['sun' as const],
+          digestAt: '23:30',
+        },
+      ],
+    };
+    const fake = await tickAt(new Date('2026-03-09T00:30:00-04:00'), cfg);
+    expect(fake.queue.enqueued).toEqual([
+      {
+        name: 'send-digest',
+        data: { installationId: INST, teamName: 'Alpha', date: '2026-03-08' },
+      },
+    ]);
+  });
 });

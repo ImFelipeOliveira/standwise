@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import {
   installations,
@@ -116,6 +116,16 @@ export async function getIdentities(
       ),
     );
   return new Map(rows.map((r) => [r.login.toLowerCase(), r.externalId]));
+}
+
+export async function getMemberLogins(db: Db, logins: string[]): Promise<Map<string, string>> {
+  if (logins.length === 0) return new Map();
+  const lowered = logins.map((l) => l.toLowerCase());
+  const rows = await db
+    .select({ login: members.login })
+    .from(members)
+    .where(inArray(sql`lower(${members.login})`, lowered));
+  return new Map(rows.map((r) => [r.login.toLowerCase(), r.login]));
 }
 
 export async function getMemberById(db: Db, id: string): Promise<MemberRow | null> {

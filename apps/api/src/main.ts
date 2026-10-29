@@ -15,7 +15,10 @@ import { parseEnv } from './env';
 
 const env = parseEnv();
 const db = createDb(env.DATABASE_URL);
-const queue = createPgBossQueue(env.DATABASE_URL);
+const queue = createPgBossQueue(env.DATABASE_URL, {
+  retryDelaySeconds: 120,
+  retryBackoff: true,
+});
 const app = createGitHubApp({
   appId: env.GITHUB_APP_ID,
   privateKey: env.GITHUB_APP_PRIVATE_KEY,

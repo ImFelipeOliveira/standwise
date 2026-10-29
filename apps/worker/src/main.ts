@@ -16,7 +16,10 @@ import { tickJob } from './jobs/tick';
 
 const env = parseEnv();
 const db = createDb(env.DATABASE_URL);
-const queue = createPgBossQueue(env.DATABASE_URL);
+const queue = createPgBossQueue(env.DATABASE_URL, {
+  retryDelaySeconds: 120,
+  retryBackoff: true,
+});
 const app = createGitHubApp({
   appId: env.GITHUB_APP_ID,
   privateKey: env.GITHUB_APP_PRIVATE_KEY,
@@ -52,3 +55,11 @@ await queue.work('tick', tickJob(deps));
 await queue.work('send-digest', sendDigestJob(deps));
 await queue.work('send-late-daily', sendLateDailyJob(deps));
 await queue.schedule('tick', '* * * * *');
+
+async function shutdown(): Promise<void> {
+  await queue.stop();
+  process.exit(0);
+}
+
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);

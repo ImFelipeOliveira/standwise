@@ -5,6 +5,7 @@ export type PgBossQueueOptions = {
   schema?: string;
   pollingIntervalSeconds?: number;
   retryDelaySeconds?: number;
+  retryBackoff?: boolean;
 };
 
 export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptions = {}): JobQueue {
@@ -38,6 +39,7 @@ export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptio
         ...(options.retryDelaySeconds === undefined
           ? {}
           : { retryDelay: options.retryDelaySeconds }),
+        ...(options.retryBackoff === undefined ? {} : { retryBackoff: options.retryBackoff }),
         ...(opts.singletonKey === undefined ? {} : { singletonKey: opts.singletonKey }),
         ...(opts.startAfter === undefined ? {} : { startAfter: opts.startAfter }),
       });

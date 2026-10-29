@@ -3,7 +3,7 @@ import { claimDelivery, completeDelivery, getDelivery, upsertDaily } from '@stan
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { sendLateDaily } from '../../src';
-import { daily, fakeChat, fakeDeps, INST, seedMember, seedOrg } from './fakes';
+import { daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -69,5 +69,32 @@ describe('sendLateDaily', () => {
     failWith(null);
     await sendLateDaily(deps, job);
     expect(replies).toHaveLength(1);
+  });
+
+  test('no chat connection is recorded as failed', async () => {
+    const { deps, job } = await setup();
+    deps.chatFor = async () => null;
+    await sendLateDaily(deps, job);
+    const row = await getDelivery(db, {
+      ...digestKey,
+      kind: 'late_daily',
+      subject: job.memberId,
+    });
+    expect(row?.status).toBe('failed');
+    expect(row?.error).toBe('no_chat_connection');
+  });
+
+  test('a failed completion after replying leaves the delivery pending', async () => {
+    const { deps, hooks, job } = await setup();
+    const flaky = flakyDb();
+    deps.db = flaky.db;
+    hooks.afterSend = async () => flaky.failNextUpdate();
+    await expect(sendLateDaily(deps, job)).rejects.toThrow('db down');
+    const row = await getDelivery(db, {
+      ...digestKey,
+      kind: 'late_daily',
+      subject: job.memberId,
+    });
+    expect(row?.status).toBe('pending');
   });
 });

@@ -23,6 +23,10 @@ export function localDate(now: Date, tz: string): string {
   return format(new TZDate(now, tz), 'yyyy-MM-dd');
 }
 
+export function addCalendarDays(date: string, days: number): string {
+  return fmt(addDays(plain(date), days));
+}
+
 export function isWorkday(date: string, cal: Calendar): boolean {
   const day = WEEKDAYS[plain(date).getDay()] as Weekday;
   return cal.workdays.includes(day);
