@@ -1,6 +1,7 @@
 import { createDb } from '@standwise/db';
 import {
   createGitHubApp,
+  exchangeWebCode,
   fetchConfigSource,
   getUserProfile,
   listActivity,
@@ -8,6 +9,7 @@ import {
 } from '@standwise/github';
 import { createChatFor, type Deps } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
+import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
 import { parseEnv } from './env';
 
@@ -34,7 +36,14 @@ const deps: Deps = {
     listActivity,
     resolveTeamMembers,
     fetchConfigSource,
+    exchangeWebCode: (code) =>
+      exchangeWebCode({
+        clientId: env.GITHUB_CLIENT_ID,
+        clientSecret: env.GITHUB_CLIENT_SECRET,
+        code,
+      }),
   },
+  slack: { exchangeCode: exchangeSlackCode },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
   env: {
     publicUrl: env.PUBLIC_URL,

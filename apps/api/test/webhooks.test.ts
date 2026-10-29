@@ -43,6 +43,14 @@ function harness(source: Source) {
         calls.push(owner);
         return source;
       },
+      exchangeWebCode: async () => {
+        throw new Error('unused');
+      },
+    },
+    slack: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
     },
     chatFor: async () => null,
     env: {

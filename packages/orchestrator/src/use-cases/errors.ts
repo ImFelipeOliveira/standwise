@@ -4,7 +4,9 @@ export type DomainErrorCode =
   | 'invalid_daily'
   | 'org_not_found'
   | 'org_not_configured'
-  | 'not_in_team';
+  | 'not_in_team'
+  | 'forbidden'
+  | 'invalid_state';
 
 export class DomainError extends Error {
   constructor(

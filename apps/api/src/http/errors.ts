@@ -9,6 +9,8 @@ const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   org_not_found: 404,
   org_not_configured: 409,
   not_in_team: 422,
+  forbidden: 403,
+  invalid_state: 400,
 };
 
 export function onError(error: Error, c: Context): Response {

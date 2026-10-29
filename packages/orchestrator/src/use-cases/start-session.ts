@@ -1,6 +1,7 @@
 import {
   createSession,
   getInstallation,
+  type MemberRow,
   setMemberInstallations,
   upsertMember,
 } from '@standwise/db';
@@ -14,12 +15,12 @@ export type StartSessionResult = {
   orgs: { installationId: number; login: string }[];
 };
 
-export async function startSession(
+export async function syncMemberFromGitHub(
   deps: Deps,
-  input: { githubToken: string },
-): Promise<StartSessionResult> {
+  githubToken: string,
+): Promise<{ member: MemberRow; known: { id: number; accountLogin: string }[] }> {
   const profile = await deps.github
-    .getUserProfile(input.githubToken, { appId: Number(deps.env.appId) })
+    .getUserProfile(githubToken, { appId: Number(deps.env.appId) })
     .catch((error: unknown) => {
       const status = (error as { status?: unknown } | null)?.status;
       if (status === 401 || status === 403) {
@@ -40,6 +41,14 @@ export async function startSession(
   const ids = known.map((i) => i.id);
   await setMemberInstallations(deps.db, member.id, ids);
   await linkChatIdentities(deps, member.id, profile.email, ids);
+  return { member, known };
+}
+
+export async function startSession(
+  deps: Deps,
+  input: { githubToken: string },
+): Promise<StartSessionResult> {
+  const { member, known } = await syncMemberFromGitHub(deps, input.githubToken);
   const token = await createSession(deps.db, member.id, 'cli');
   return {
     token,

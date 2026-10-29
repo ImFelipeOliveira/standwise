@@ -100,6 +100,14 @@ function harness(
       },
       resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      exchangeWebCode: async () => {
+        throw new Error('unused');
+      },
+    },
+    slack: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
     },
     chatFor: async () =>
       opts.hasSlack === false

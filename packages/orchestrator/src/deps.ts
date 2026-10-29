@@ -9,6 +9,7 @@ import type {
   resolveTeamMembers,
 } from '@standwise/github';
 import type { JobQueue } from '@standwise/queue';
+import type { exchangeSlackCode } from '@standwise/slack';
 
 export type Deps = {
   db: Db;
@@ -22,6 +23,10 @@ export type Deps = {
     listActivity: typeof listActivity;
     resolveTeamMembers: typeof resolveTeamMembers;
     fetchConfigSource: typeof fetchConfigSource;
+    exchangeWebCode: (code: string) => Promise<string>;
+  };
+  slack: {
+    exchangeCode: typeof exchangeSlackCode;
   };
   chatFor: (installationId: number, provider: 'slack') => Promise<ChatChannel | null>;
   env: {

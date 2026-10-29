@@ -85,6 +85,14 @@ export function fakeDeps(opts: FakeOptions = {}) {
         calls.config.push(owner);
         return opts.source ?? { found: false, reason: 'no_repo' };
       },
+      exchangeWebCode: async () => {
+        throw new Error('unused');
+      },
+    },
+    slack: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
     },
     chatFor: async () =>
       ({
