@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
-import { hitRateLimit, pruneRateLimits } from '../src';
+import { hitRateLimit, peekRateLimit, pruneRateLimits } from '../src';
 import { db, useCleanDb } from './setup';
 
 useCleanDb();
@@ -22,6 +22,14 @@ describe('rate limits repo', () => {
     const first = await hitRateLimit(db, 'k', now, 60, () => false);
     const second = await hitRateLimit(db, 'k', now, 60, () => false);
     expect([first.count, second.count]).toEqual([1, 2]);
+  });
+
+  test('peekRateLimit reads without counting', async () => {
+    expect((await peekRateLimit(db, 'k', now, 60)).count).toBe(0);
+    await hitRateLimit(db, 'k', now, 60, () => false);
+    expect((await peekRateLimit(db, 'k', now, 60)).count).toBe(1);
+    expect((await peekRateLimit(db, 'k', now, 60)).count).toBe(1);
+    expect((await peekRateLimit(db, 'k', new Date('2026-10-28T15:01:00Z'), 60)).count).toBe(0);
   });
 
   test('pruneRateLimits removes windows older than 10 minutes', async () => {

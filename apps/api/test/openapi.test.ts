@@ -180,6 +180,8 @@ describe('docs page security', () => {
     expect(csp).toContain(cdn);
     expect(csp).toContain('https://fonts.scalar.com');
     expect(csp).not.toContain("script-src 'unsafe-inline'");
+    expect(csp).toContain("form-action 'none'");
+    expect(csp).toMatch(/connect-src 'self' https:\/\/sw\.test(;|$)/);
     const nonce = /nonce-([A-Za-z0-9+/=_-]+)/.exec(csp)?.[1];
     expect(nonce).toBeTruthy();
     expect(html).toContain(`nonce="${nonce}"`);

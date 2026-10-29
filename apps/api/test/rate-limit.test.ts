@@ -114,6 +114,22 @@ describe('ip and authentication limits', () => {
     expect(other.headers.get('RateLimit-Remaining')).toBe('119');
   });
 
+  test('after 20 failures a valid token from the same ip is locked out without a session lookup', async () => {
+    const { app } = createTestApp();
+    const alice = await login(app, '203.0.113.4', 'gho_1');
+    const before = await db.execute(sql`SELECT last_used_at FROM sessions`);
+    for (let i = 0; i < 20; i++) {
+      expect((await draft(app, '203.0.113.4', `sw_bad${i}`)).status).toBe(401);
+    }
+    const locked = await draft(app, '203.0.113.4', alice);
+    expect(locked.status).toBe(429);
+    expect(locked.headers.get('Retry-After')).toBeTruthy();
+    const after = await db.execute(sql`SELECT last_used_at FROM sessions`);
+    expect(after[0]).toEqual(before[0]);
+    const elsewhere = await draft(app, '203.0.113.99', alice);
+    expect(elsewhere.status).not.toBe(429);
+  });
+
   test('the same member from another ip shares the member bucket', async () => {
     const { app } = createTestApp();
     const alice = await login(app, '203.0.113.1', 'gho_1');
@@ -167,6 +183,36 @@ describe('client ip resolution', () => {
   test('falls back to the connection when the header has fewer entries than hops', async () => {
     const res = await ipOf({ trustProxy: true, hops: 2 }, { 'x-forwarded-for': '6.6.6.6' });
     expect(await res.text()).toBe('10.1.1.1');
+  });
+
+  test('a null connection address is a 500, not a shared bucket', async () => {
+    const app = new Hono();
+    const resolve = clientIpResolver({ trustProxy: false, hops: 1 });
+    app.onError(() => new Response(null, { status: 500 }));
+    app.get('/', (c) => c.text(resolve(c)));
+    const res = await app.request('/', {}, { server: { requestIP: () => null } });
+    expect(res.status).toBe(500);
+  });
+
+  test('ipv6 addresses are keyed by their /64 prefix', async () => {
+    const a = await ipOf({ trustProxy: false, hops: 1 }, {}, '2001:db8:1:2:aaaa:bbbb:cccc:dddd');
+    const b = await ipOf({ trustProxy: false, hops: 1 }, {}, '2001:db8:1:2::1');
+    const c = await ipOf({ trustProxy: false, hops: 1 }, {}, '2001:db8:1:3::1');
+    expect(await a.text()).toBe('2001:db8:1:2::/64');
+    expect(await b.text()).toBe('2001:db8:1:2::/64');
+    expect(await c.text()).toBe('2001:db8:1:3::/64');
+  });
+
+  test('ipv6 forwarded entries are keyed by /64 and ipv4-mapped ipv6 becomes ipv4', async () => {
+    const proxied = await ipOf(
+      { trustProxy: true, hops: 1 },
+      { 'x-forwarded-for': '6.6.6.6, 2001:DB8:0:0:ffff::9' },
+    );
+    expect(await proxied.text()).toBe('2001:db8:0:0::/64');
+    const mapped = await ipOf({ trustProxy: false, hops: 1 }, {}, '::ffff:203.0.113.9');
+    expect(await mapped.text()).toBe('203.0.113.9');
+    const plain = await ipOf({ trustProxy: false, hops: 1 }, {}, '203.0.113.9');
+    expect(await plain.text()).toBe('203.0.113.9');
   });
 
   test('a missing server is a 500, not a shared bucket', async () => {

@@ -36,6 +36,9 @@ export function docsRoutes(
     '/docs/api',
     Scalar((c) => {
       const nonce = btoa(crypto.randomUUID());
+      const publicOrigin = new URL(deps.env.publicUrl).origin;
+      const connect =
+        publicOrigin === new URL(c.req.url).origin ? "'self'" : `'self' ${publicOrigin}`;
       c.header(
         'Content-Security-Policy',
         [
@@ -44,7 +47,8 @@ export function docsRoutes(
           "style-src 'self' 'unsafe-inline'",
           "font-src 'self' https://fonts.scalar.com data:",
           "img-src 'self' data: https:",
-          "connect-src 'self'",
+          `connect-src ${connect}`,
+          "form-action 'none'",
           "base-uri 'none'",
           "frame-ancestors 'none'",
         ].join('; '),

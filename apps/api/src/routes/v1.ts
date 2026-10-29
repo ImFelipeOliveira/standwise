@@ -192,8 +192,8 @@ const dailies = createRoute({
 });
 
 const BODY_ERRORS: Record<string, DomainError> = {
-  '/v1/sessions': new DomainError('invalid_request', 'githubToken is required'),
-  '/v1/dailies': new DomainError('invalid_daily', 'invalid daily'),
+  '/v1/sessions': new DomainError('invalid_request', 'request body must be JSON'),
+  '/v1/dailies': new DomainError('invalid_daily', 'request body must be JSON'),
 };
 
 function bodyError(error: Error, path: string): Error {

@@ -1,4 +1,4 @@
-import { hitRateLimit } from '@standwise/db';
+import { hitRateLimit, peekRateLimit } from '@standwise/db';
 import { type Deps, DomainError } from '@standwise/orchestrator';
 import type { Context, MiddlewareHandler } from 'hono';
 
@@ -23,14 +23,51 @@ export function clientIpResolver(options: { trustProxy: boolean; hops: number })
     if (typeof server?.requestIP !== 'function') {
       throw new Error('server connection info is required to resolve the client ip');
     }
-    const connection = server.requestIP(c.req.raw)?.address ?? 'unknown';
-    if (!options.trustProxy) return connection;
+    const connection = server.requestIP(c.req.raw)?.address;
+    if (!connection) throw new Error('connection address is unavailable');
+    if (!options.trustProxy) return normalizeIp(connection);
     const forwarded = (c.req.header('x-forwarded-for') ?? '')
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean);
-    return forwarded[forwarded.length - options.hops] ?? connection;
+    return normalizeIp(forwarded[forwarded.length - options.hops] ?? connection);
   };
+}
+
+const MAPPED_IPV4 = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i;
+
+function normalizeIp(address: string): string {
+  const bare = address.split('%')[0] ?? address;
+  const mapped = MAPPED_IPV4.exec(bare);
+  if (mapped?.[1]) return mapped[1];
+  if (!bare.includes(':')) return bare;
+  const [head = '', tail] = bare.toLowerCase().split('::');
+  const headGroups = head ? head.split(':') : [];
+  const tailGroups = tail ? tail.split(':') : [];
+  const missing = Math.max(0, 8 - headGroups.length - tailGroups.length);
+  const groups = [...headGroups, ...Array<string>(missing).fill('0'), ...tailGroups];
+  const prefix = groups.slice(0, 4).map((group) => Number.parseInt(group || '0', 16).toString(16));
+  return `${prefix.join(':')}::/64`;
+}
+
+export async function assertNotLockedOut(
+  deps: Deps,
+  c: Context,
+  key: string,
+  limit: number,
+): Promise<void> {
+  const now = deps.now();
+  const { count, windowStart } = await peekRateLimit(deps.db, key, now, WINDOW_SECONDS);
+  if (count < limit) return;
+  const resetSeconds = Math.max(
+    1,
+    Math.ceil((windowStart.getTime() + WINDOW_SECONDS * 1000 - now.getTime()) / 1000),
+  );
+  c.header('RateLimit-Limit', String(limit));
+  c.header('RateLimit-Remaining', '0');
+  c.header('RateLimit-Reset', String(resetSeconds));
+  c.header('Retry-After', String(resetSeconds));
+  throw new DomainError('rate_limited', 'rate limit exceeded');
 }
 
 export async function enforceRateLimit(

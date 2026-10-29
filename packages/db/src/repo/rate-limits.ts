@@ -1,4 +1,4 @@
-import { lt, sql } from 'drizzle-orm';
+import { and, eq, lt, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { rateLimits } from '../schema';
 
@@ -11,6 +11,21 @@ export async function pruneRateLimits(db: Db, now: Date = new Date()): Promise<v
   await db
     .delete(rateLimits)
     .where(lt(rateLimits.windowStart, new Date(now.getTime() - RETENTION_MS)));
+}
+
+export async function peekRateLimit(
+  db: Db,
+  key: string,
+  now: Date,
+  windowSeconds: number,
+): Promise<RateLimitHit> {
+  const windowMs = windowSeconds * 1000;
+  const windowStart = new Date(Math.floor(now.getTime() / windowMs) * windowMs);
+  const [row] = await db
+    .select({ count: rateLimits.count })
+    .from(rateLimits)
+    .where(and(eq(rateLimits.key, key), eq(rateLimits.windowStart, windowStart)));
+  return { count: row?.count ?? 0, windowStart };
 }
 
 export async function hitRateLimit(

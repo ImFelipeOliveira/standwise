@@ -31,7 +31,9 @@ describe.each(cases)('%s bad bodies', (path, code) => {
       body: '{not json',
     });
     expect(res.status).toBe(422);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(code);
+    const { error } = (await res.json()) as { error: { code: string; message: string } };
+    expect(error.code).toBe(code);
+    expect(error.message).toBe('request body must be JSON');
   });
 
   test('missing content-type is 422', async () => {
