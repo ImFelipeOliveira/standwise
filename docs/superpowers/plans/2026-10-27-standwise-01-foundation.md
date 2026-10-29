@@ -549,18 +549,13 @@
 - Test: `apps/api/test/openapi.test.ts`, `apps/api/test/rate-limit.test.ts`
 
 **Interfaces:**
-- `GET /openapi.json` → documento OpenAPI 3.1 com `info` (título "Standwise API", versão `1.0.0`, `contact.email` = `SUPPORT_EMAIL`, descrição que inclui o conteúdo dos guias), `servers: [{ url: PUBLIC_URL }]`, `securitySchemes`: `session` (bearer `sw_…`) e `apiKey` (bearer `swk_…`, Task 17), e as tags `Sessions`, `Dailies`, `Organization` (Task 17), `Webhooks` (Task 18) e `Meta`.
+- **Rotas internas vs públicas (decisão do Felipe):** `/v1/meta`, `/v1/sessions`, `/v1/draft` e `/v1/dailies` são **internas** (CLI, skill, MCP). Elas também usam `createRoute` e schemas Zod (tipagem e validação), mas ficam **fora** do `/openapi.json` público, registradas com `hide: true` ou equivalente. Um segundo documento, `GET /openapi.internal.json`, exige sessão `sw_` e serve à CLI e aos testes. O documento público contém só `Organization` (Task 17), `Webhooks` (Task 18) e `GET /health`.
+- `GET /openapi.json` → documento OpenAPI 3.1 com `info` (título "Standwise API", versão `1.0.0`, `contact.email` = `SUPPORT_EMAIL`, descrição que inclui o conteúdo dos guias), `servers: [{ url: PUBLIC_URL }]`, `securitySchemes`: `apiKey` (bearer `swk_…`, Task 17), e as tags `Organization` (Task 17), `Webhooks` (Task 18) e `Meta` (`/health`).
 - `GET /docs` → página HTML com a referência Scalar (`@scalar/hono-api-reference`) apontando para `/openapi.json`, título "Standwise API".
 - Toda rota documentada tem: `summary`, `description` (pt-BR e en no mesmo texto, en primeiro), schema de request e response com `example`, e **todas** as respostas de erro possíveis (`401`, `404`, `409`, `422`, `429`) com o schema `Error` e um exemplo de cada `code`.
 - Os guias em `docs/api/guides/*.md` são importados como texto e montados na `description` do documento (seções `## Authentication`, `## Integrating an AI agent` etc.), para aparecerem no `/docs`. Conteúdo mínimo:
-  - `authentication.md`: sessão `sw_` (device flow → `POST /v1/sessions`) vs API key `swk_` (Task 17), expiração (web 7 dias, CLI 90 dias de inatividade), revogação.
-  - `ai-agents.md`: passo a passo com `curl` para um agente de IA:
-    1. device flow com o `githubClientId` de `/v1/meta`;
-    2. `POST /v1/sessions`;
-    3. `GET /v1/draft`;
-    4. mostrar o rascunho e **pedir confirmação explícita à pessoa** (regra obrigatória, com o porquê);
-    5. `POST /v1/dailies`.
-    Inclui o tratamento de `org` ambígua.
+  - `authentication.md`: API key `swk_` (Task 17): criação pelo admin, escopos, revogação e boas práticas de armazenamento.
+  - `ai-agents.md`: "Agentes de IA escrevem a daily pelo MCP ou pela skill, não pela API". Traz o porquê (confirmação explícita da pessoa garantida num só lugar), um link para `mcp.md` (Task 19) e para a skill do Claude Code (Task 14), e a configuração do MCP pronta para Cursor, Codex, Claude Desktop e VS Code.
   - `errors.md`: envelope `{ error: { code, message, issues? } }` e tabela de todos os `code` com status HTTP e o que fazer.
   - `pagination.md`: cursor opaco (`cursor`/`next_cursor`, `limit` de 1 a 100, padrão 50).
   - `rate-limits.md`: limites e headers `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`.
@@ -569,8 +564,9 @@
 
 - [ ] **Step 1: Write the failing tests:**
   - `openapi is valid` → `GET /openapi.json` responde 200, `openapi === "3.1.0"`, e o documento passa no validador (`@seriousme/openapi-schema-validator` ou equivalente).
-  - `every route documented` → cada rota JSON registrada no app aparece em `paths`, e cada operação tem `summary`, `description`, ao menos um `example` de resposta 2xx e as respostas de erro listadas acima.
-  - `guides embedded` → `info.description` contém `## Integrating an AI agent` e a frase sobre confirmação explícita.
+  - `every public route documented` → cada rota pública registrada aparece em `paths`, e cada operação tem `summary`, `description`, ao menos um `example` de resposta 2xx e as respostas de erro listadas acima.
+  - `guides embedded` → `info.description` contém `## AI agents` e aponta para o MCP.
+  - `internal routes hidden` → `/openapi.json` não contém `/v1/sessions`, `/v1/draft` nem `/v1/dailies`; `/openapi.internal.json` sem sessão dá 401 e, com sessão, contém as três.
   - `docs page` → `GET /docs` responde 200 HTML e referencia `/openapi.json`.
   - `rate limit` → a 11ª chamada a `POST /v1/sessions` do mesmo IP em 60 s dá 429 com `Retry-After`; os headers `RateLimit-*` aparecem nas respostas 2xx.
   - Todos os testes existentes de `v1` e `webhooks` continuam passando sem mudar as asserções de comportamento.
