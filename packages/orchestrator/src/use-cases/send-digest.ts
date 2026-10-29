@@ -14,6 +14,7 @@ import {
   getInstallation,
   getMemberLogins,
   listDailies,
+  operationalConfig,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
@@ -48,8 +49,9 @@ async function enqueueLateDailies(
 
 export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<void> {
   const installation = await getInstallation(deps.db, job.installationId);
-  if (installation?.status !== 'configured' || !installation.config) return;
-  const teamConfig = installation.config.teams.find((t) => t.name === job.teamName);
+  const config = operationalConfig(installation);
+  if (!installation || !config) return;
+  const teamConfig = config.teams.find((t) => t.name === job.teamName);
   if (!teamConfig) return;
 
   const key: DeliveryKey = { ...job, kind: 'digest' };
@@ -73,7 +75,7 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
       return;
     }
     const [resolved] = await resolveTeams(deps, installation.id, installation.accountLogin, {
-      ...installation.config,
+      ...config,
       teams: [teamConfig],
     });
     if (!resolved) throw new Error('team not resolved');

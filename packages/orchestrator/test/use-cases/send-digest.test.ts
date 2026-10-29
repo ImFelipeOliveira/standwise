@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { StandwiseConfig } from '@standwise/core';
-import { getDelivery, setIdentity, upsertDaily, upsertMember } from '@standwise/db';
+import {
+  getDelivery,
+  setIdentity,
+  setInstallationConfig,
+  upsertDaily,
+  upsertMember,
+} from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { sendDigest, sendLateDaily } from '../../src';
@@ -39,6 +45,17 @@ describe('sendDigest', () => {
     const row = await getDelivery(db, key);
     expect(row?.status).toBe('sent');
     expect(row?.ref).toEqual({ channel: 'C1', id: '1.0' });
+  });
+
+  test('digest uses the last valid config while standwise.yml is invalid', async () => {
+    const { deps, posted } = await setup();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    await sendDigest(deps, job);
+    expect(posted).toHaveLength(1);
+    expect(posted[0]?.channel).toBe('#alpha');
   });
 
   test('digest marks missing and unknown identity', async () => {

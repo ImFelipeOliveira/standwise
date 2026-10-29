@@ -290,6 +290,26 @@ describe('setup page', () => {
     expect(html).toContain('must be HH:MM (24h)');
   });
 
+  test('setup says the last valid config stays in use while invalid', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, {
+        status: 'invalid',
+        errors: [{ path: 'teams', message: 'bad' }],
+      });
+    });
+    const en = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(await en.text()).toContain(
+      'Standwise keeps using the last valid version until you fix it.',
+    );
+    const pt = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { cookie, 'accept-language': 'pt-BR' },
+    });
+    expect(await pt.text()).toContain(
+      'O Standwise continua usando a última versão válida até você corrigir.',
+    );
+  });
+
   test('setup shows the unconfigured reason', async () => {
     const { app } = harness();
     const { cookie } = await seed(async (id) => {

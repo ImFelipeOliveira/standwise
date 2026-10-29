@@ -3,6 +3,7 @@ import {
   getInstallation,
   listMemberInstallations,
   type MemberRow,
+  operationalConfig,
   removeMemberInstallation,
 } from '@standwise/db';
 import type { Deps } from '../deps';
@@ -38,18 +39,14 @@ export async function resolveOrgContext(
     await removeMemberInstallation(deps.db, member.id, entry.installationId);
     throw new DomainError('org_not_found', `organization ${org} not found`);
   }
-  if (installation.status !== 'configured' || !installation.config) {
+  const config = operationalConfig(installation);
+  if (!config) {
     throw new DomainError(
       'org_not_configured',
       `organization ${entry.accountLogin} is not configured`,
     );
   }
-  const teams = await resolveTeams(
-    deps,
-    installation.id,
-    installation.accountLogin,
-    installation.config,
-  );
+  const teams = await resolveTeams(deps, installation.id, installation.accountLogin, config);
   const [first, ...rest] = teamsForMember(current.login, teams);
   if (!first) {
     throw new DomainError('not_in_team', 'you are not in any team of this organization');

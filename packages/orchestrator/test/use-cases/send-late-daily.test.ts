@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { claimDelivery, completeDelivery, getDelivery, upsertDaily } from '@standwise/db';
+import {
+  claimDelivery,
+  completeDelivery,
+  getDelivery,
+  setInstallationConfig,
+  upsertDaily,
+} from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { sendLateDaily } from '../../src';
@@ -47,6 +53,16 @@ describe('sendLateDaily', () => {
       subject: job.memberId,
     });
     expect(row?.status).toBe('sent');
+  });
+
+  test('late daily uses the last valid config while standwise.yml is invalid', async () => {
+    const { deps, replies, job } = await setup();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    await sendLateDaily(deps, job);
+    expect(replies).toHaveLength(1);
   });
 
   test('no reply when the digest was not sent', async () => {

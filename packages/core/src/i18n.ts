@@ -13,6 +13,8 @@ const ptBR = {
   'web.setup.configTitle': 'Arquivo standwise.yml',
   'web.setup.configOk': 'Configurado.',
   'web.setup.configInvalid': 'O standwise.yml é inválido. Corrija os erros abaixo e faça o commit.',
+  'web.setup.configKeepsLastValid':
+    'O Standwise continua usando a última versão válida até você corrigir.',
   'web.setup.configMissing': 'Ainda não configurado.',
   'web.setup.reason': 'Motivo',
   'web.setup.reason.no_repo': 'O repositório .github não existe.',
@@ -146,6 +148,8 @@ const en = {
   'web.setup.configTitle': 'standwise.yml file',
   'web.setup.configOk': 'Configured.',
   'web.setup.configInvalid': 'standwise.yml is invalid. Fix the errors below and commit.',
+  'web.setup.configKeepsLastValid':
+    'Standwise keeps using the last valid version until you fix it.',
   'web.setup.configMissing': 'Not configured yet.',
   'web.setup.reason': 'Reason',
   'web.setup.reason.no_repo': 'The .github repository does not exist.',

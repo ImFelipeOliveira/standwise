@@ -69,6 +69,7 @@ export function SetupPage(props: {
         {status.config.status === 'invalid' ? (
           <>
             <p>{t('web.setup.configInvalid')}</p>
+            {status.config.lastValid ? <p>{t('web.setup.configKeepsLastValid')}</p> : null}
             <ul>
               {status.config.errors.map((e) => (
                 <li>

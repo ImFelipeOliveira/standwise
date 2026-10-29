@@ -13,9 +13,9 @@ import {
   getIdentities,
   getInstallation,
   getLastDaily,
-  listConfiguredInstallations,
   listDailies,
   listFailedDeliveries,
+  listOperationalInstallations,
   resolveSession,
   revokeSession,
   saveConnection,
@@ -162,16 +162,29 @@ describe('installations', () => {
     expect(row?.status).toBe('invalid');
     expect(row?.config).toEqual(config);
     expect(row?.configErrors).toEqual(errors);
-    expect(await listConfiguredInstallations(db)).toEqual([]);
+    expect(await listOperationalInstallations(db)).toEqual([
+      { id: INST, accountLogin: 'acme', config },
+    ]);
   });
 
-  test('listConfiguredInstallations returns configured only', async () => {
+  test('listOperationalInstallations returns configured installations', async () => {
     await seed();
     const config = { teams: [], members: {} };
     await setInstallationConfig(db, INST, { status: 'configured', config });
-    expect(await listConfiguredInstallations(db)).toEqual([
+    expect(await listOperationalInstallations(db)).toEqual([
       { id: INST, accountLogin: 'acme', config },
     ]);
+  });
+
+  test('listOperationalInstallations skips invalid without a valid config and unconfigured', async () => {
+    await seed();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    expect(await listOperationalInstallations(db)).toEqual([]);
+    await setInstallationConfig(db, INST, { status: 'unconfigured', reason: 'no_file' });
+    expect(await listOperationalInstallations(db)).toEqual([]);
   });
 
   test('deleteInstallation cascades', async () => {

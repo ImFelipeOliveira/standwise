@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { parseConfig, type StandwiseConfig } from '@standwise/core';
-import { claimDelivery, completeDelivery, failDelivery } from '@standwise/db';
+import {
+  claimDelivery,
+  completeDelivery,
+  failDelivery,
+  setInstallationConfig,
+} from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { runTick } from '../../src';
 import { config, fakeDeps, INST, seedOrg } from './fakes';
@@ -52,6 +57,23 @@ describe('runTick', () => {
     expect(early.queue.enqueued).toEqual([]);
 
     const fake = await tickAt(local('2026-10-28T10:00:00'));
+    await runTick(fake.deps);
+    expect(fake.queue.enqueued).toEqual([
+      {
+        name: 'send-digest',
+        data: { installationId: INST, teamName: 'Alpha', date: '2026-10-28' },
+      },
+    ]);
+  });
+
+  test('tick keeps the last valid config while standwise.yml is invalid', async () => {
+    await seedOrg();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    const fake = fakeDeps();
+    fake.setNow(local('2026-10-28T10:00:00'));
     await runTick(fake.deps);
     expect(fake.queue.enqueued).toEqual([
       {

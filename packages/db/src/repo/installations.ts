@@ -1,5 +1,5 @@
 import type { ConfigError, StandwiseConfig } from '@standwise/core';
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type InstallationRow, installations } from '../schema';
 
@@ -52,13 +52,26 @@ export async function setInstallationConfig(
     .where(eq(installations.id, id));
 }
 
-export async function listConfiguredInstallations(
+const OPERATIONAL_STATUSES: InstallationRow['status'][] = ['configured', 'invalid'];
+
+export function operationalConfig(
+  installation: Pick<InstallationRow, 'status' | 'config'> | null | undefined,
+): StandwiseConfig | null {
+  if (!installation?.config) return null;
+  return OPERATIONAL_STATUSES.includes(installation.status) ? installation.config : null;
+}
+
+export async function listOperationalInstallations(
   db: Db,
 ): Promise<{ id: number; accountLogin: string; config: StandwiseConfig }[]> {
-  const rows = await db.select().from(installations).where(eq(installations.status, 'configured'));
-  return rows.flatMap((r) =>
-    r.config ? [{ id: r.id, accountLogin: r.accountLogin, config: r.config }] : [],
-  );
+  const rows = await db
+    .select()
+    .from(installations)
+    .where(inArray(installations.status, OPERATIONAL_STATUSES));
+  return rows.flatMap((r) => {
+    const config = operationalConfig(r);
+    return config ? [{ id: r.id, accountLogin: r.accountLogin, config }] : [];
+  });
 }
 
 export async function getInstallation(db: Db, id: number): Promise<InstallationRow | null> {

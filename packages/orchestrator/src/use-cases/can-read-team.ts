@@ -1,13 +1,11 @@
 import type { TeamConfig } from '@standwise/core';
-import { getInstallation, type MemberRow } from '@standwise/db';
+import { getInstallation, type MemberRow, operationalConfig } from '@standwise/db';
 import type { Deps } from '../deps';
 import { currentLogin } from '../membership';
 import { isInstallationAdmin } from './is-installation-admin';
 
 async function configuredTeams(deps: Deps, installationId: number): Promise<TeamConfig[]> {
-  const installation = await getInstallation(deps.db, installationId);
-  if (installation?.status !== 'configured' || !installation.config) return [];
-  return installation.config.teams;
+  return operationalConfig(await getInstallation(deps.db, installationId))?.teams ?? [];
 }
 
 export async function readableTeams(

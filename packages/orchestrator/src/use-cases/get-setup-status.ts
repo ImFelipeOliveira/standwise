@@ -5,6 +5,7 @@ import {
   listApiKeys,
   listFailedDeliveries,
   type MemberRow,
+  operationalConfig,
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
@@ -21,7 +22,7 @@ export type SetupStatus = {
   admin: boolean;
   config:
     | { status: 'configured' }
-    | { status: 'invalid'; errors: ConfigError[] }
+    | { status: 'invalid'; errors: ConfigError[]; lastValid: boolean }
     | { status: 'unconfigured'; reason: string };
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
   slack: { connected: false } | { connected: true; workspace: string };
@@ -78,7 +79,11 @@ export async function getSetupStatus(
     installation.status === 'configured'
       ? { status: 'configured' }
       : installation.status === 'invalid'
-        ? { status: 'invalid', errors: installation.configErrors ?? [] }
+        ? {
+            status: 'invalid',
+            errors: installation.configErrors ?? [],
+            lastValid: operationalConfig(installation) !== null,
+          }
         : { status: 'unconfigured', reason: installation.unconfiguredReason ?? 'no_repo' };
   return {
     installationId: installation.id,

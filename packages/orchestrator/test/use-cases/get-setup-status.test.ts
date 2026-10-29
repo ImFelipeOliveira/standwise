@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { createApiKey, revokeApiKey, setMemberInstallations } from '@standwise/db';
+import {
+  createApiKey,
+  revokeApiKey,
+  setInstallationConfig,
+  setMemberInstallations,
+} from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, getSetupStatus } from '../../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -58,5 +63,29 @@ describe('getSetupStatus api keys', () => {
     const status = await getSetupStatus(deps, isMember, member, INST);
     expect(status.apiKeys).toEqual({ manage: false });
     expect(status.owner).toBe('acme');
+  });
+});
+
+describe('getSetupStatus config', () => {
+  const errors = [{ path: 'teams', message: 'bad' }];
+
+  test('an invalid file keeps the last valid config in use', async () => {
+    const { deps, isMember, member } = await setup(false);
+    await setInstallationConfig(db, INST, { status: 'invalid', errors });
+    expect((await getSetupStatus(deps, isMember, member, INST)).config).toEqual({
+      status: 'invalid',
+      errors,
+      lastValid: true,
+    });
+  });
+
+  test('an invalid file without a previous valid config has nothing in use', async () => {
+    await seedOrg(null);
+    await setInstallationConfig(db, INST, { status: 'invalid', errors });
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps();
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    expect(status.config).toEqual({ status: 'invalid', errors, lastValid: false });
   });
 });

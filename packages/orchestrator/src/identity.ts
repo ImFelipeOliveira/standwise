@@ -1,4 +1,4 @@
-import { getInstallation, getMemberById, setIdentity } from '@standwise/db';
+import { getInstallation, getMemberById, operationalConfig, setIdentity } from '@standwise/db';
 import type { Deps } from './deps';
 
 export async function linkChatIdentities(
@@ -13,10 +13,11 @@ export async function linkChatIdentities(
   for (const installationId of installationIds) {
     try {
       const installation = await getInstallation(deps.db, installationId);
-      if (installation?.status !== 'configured' || !installation.config) continue;
+      const config = operationalConfig(installation);
+      if (!config) continue;
       const chat = await deps.chatFor(installationId, 'slack');
       if (!chat) continue;
-      const overrides = Object.entries(installation.config.members).find(
+      const overrides = Object.entries(config.members).find(
         ([key]) => key.toLowerCase() === login,
       )?.[1];
       const externalId = overrides?.slack ?? (email ? await chat.findUserByEmail(email) : null);

@@ -218,6 +218,16 @@ describe('sessions', () => {
     expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U1');
   });
 
+  test('sessions link slack with the last valid config while standwise.yml is invalid', async () => {
+    await seed();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    await login(harness());
+    expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U9');
+  });
+
   test('sessions without slack connection links nothing', async () => {
     await seed();
     const h = harness({ hasSlack: false });
@@ -387,6 +397,40 @@ describe('draft', () => {
     const res = await get(h, token, '/v1/draft?org=acme');
     expect(res.status).toBe(409);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'org_not_configured',
+    );
+  });
+
+  test('draft and submit use the last valid config while standwise.yml is invalid', async () => {
+    await seed();
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    const h = harness();
+    const token = await login(h);
+    expect((await get(h, token, '/v1/draft?org=acme')).status).toBe(200);
+    const res = await post(h, token, daily);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ date: '2026-10-28', teams: ['Alpha'], late: false });
+  });
+
+  test('draft is not configured when standwise.yml was never valid', async () => {
+    await seed(null);
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    const h = harness();
+    const token = await login(h);
+    const res = await get(h, token, '/v1/draft?org=acme');
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'org_not_configured',
+    );
+    const submit = await post(h, token, daily);
+    expect(submit.status).toBe(409);
+    expect(((await submit.json()) as { error: { code: string } }).error.code).toBe(
       'org_not_configured',
     );
   });

@@ -1,5 +1,5 @@
 import { addCalendarDays, isDue, isWorkday, localDate, type TeamConfig } from '@standwise/core';
-import { getDelivery, listConfiguredInstallations, MAX_DELIVERY_ATTEMPTS } from '@standwise/db';
+import { getDelivery, listOperationalInstallations, MAX_DELIVERY_ATTEMPTS } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
 
 function dueDigestDate(now: Date, team: TeamConfig): string | null {
@@ -13,7 +13,7 @@ function dueDigestDate(now: Date, team: TeamConfig): string | null {
 
 export async function runTick(deps: WorkerDeps): Promise<void> {
   const now = deps.now();
-  for (const installation of await listConfiguredInstallations(deps.db)) {
+  for (const installation of await listOperationalInstallations(deps.db)) {
     for (const team of installation.config.teams) {
       const date = dueDigestDate(now, team);
       if (!date) continue;
