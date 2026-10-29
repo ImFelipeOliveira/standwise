@@ -41,6 +41,7 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
+  const admins = new Set(['alice']);
   const deps: Deps = {
     db,
     queue: createMemoryQueue(),
@@ -61,7 +62,10 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
               return { status: 204 };
             }
             if (route === 'GET /orgs/{org}/memberships/{username}') {
-              throw Object.assign(new Error('not found'), { status: 404 });
+              if (params.org !== 'acme' || !admins.has(String(params.username).toLowerCase())) {
+                throw Object.assign(new Error('not found'), { status: 404 });
+              }
+              return { status: 200, data: { role: 'admin', state: 'active' } };
             }
             if (route === 'GET /repos/{owner}/{repo}') {
               if (opts.hasConfigRepo === false) {
@@ -111,6 +115,7 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
     slackCalls,
     webCodes,
     orgMembers,
+    admins,
   };
 }
 
@@ -357,6 +362,32 @@ describe('setup page', () => {
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     expect(await res.text()).toContain('Acme Workspace');
   });
+
+  test('a member who is not an admin sees slack read only', async () => {
+    const { app, admins } = harness();
+    const { cookie } = await seed();
+    admins.delete('alice');
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    const html = await res.text();
+    expect(html).not.toContain('/connect/slack');
+    expect(html).toContain('Ask an admin to connect Slack');
+  });
+
+  test('the admin sees reconnect when slack is connected', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const state = await app.request(`/connect/slack?installation_id=${INST}`, {
+      headers: { cookie },
+    });
+    const value = new URL(location(state)).searchParams.get('state') ?? '';
+    await app.request(`/oauth/slack/callback?code=c&state=${encodeURIComponent(value)}`, {
+      headers: { cookie },
+    });
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    const html = await res.text();
+    expect(html).toContain('Reconnect Slack');
+    expect(html).toContain(`/connect/slack?installation_id=${INST}`);
+  });
 });
 
 describe('slack connection', () => {
@@ -378,6 +409,24 @@ describe('slack connection', () => {
     expect(url.origin + url.pathname).toBe('https://slack.com/oauth/v2/authorize');
     expect(url.searchParams.get('redirect_uri')).toBe('https://sw.test/oauth/slack/callback');
     expect(state).toContain('.');
+  });
+
+  test('connect and callback forbid a member who is not an admin', async () => {
+    const { app, admins, slackCalls } = harness();
+    const { cookie } = await seed();
+    const { state } = await startConnect(app, cookie);
+    admins.delete('alice');
+    const callback = await app.request(
+      `/oauth/slack/callback?code=c&state=${encodeURIComponent(state)}`,
+      { headers: { cookie } },
+    );
+    expect(callback.status).toBe(403);
+    expect(slackCalls).toEqual([]);
+    expect(await getConnection(db, INST, 'slack', KEY)).toBeNull();
+    const connect = await app.request(`/connect/slack?installation_id=${INST}`, {
+      headers: { cookie },
+    });
+    expect(connect.status).toBe(403);
   });
 
   test('connect forbids a foreign installation and requires login', async () => {

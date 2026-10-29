@@ -32,6 +32,8 @@ const ptBR = {
   'web.slack.title': 'Slack',
   'web.slack.connect': 'Conectar Slack',
   'web.slack.connected': 'Conectado ao workspace',
+  'web.slack.reconnect': 'Reconectar Slack',
+  'web.slack.askAdmin': 'Peça a um admin para conectar o Slack.',
   'web.template.teamName': 'Time',
   'web.apiKeys.title': 'API keys',
   'web.apiKeys.description':
@@ -163,6 +165,8 @@ const en = {
   'web.slack.title': 'Slack',
   'web.slack.connect': 'Connect Slack',
   'web.slack.connected': 'Connected to workspace',
+  'web.slack.reconnect': 'Reconnect Slack',
+  'web.slack.askAdmin': 'Ask an admin to connect Slack.',
   'web.template.teamName': 'Team',
   'web.apiKeys.title': 'API keys',
   'web.apiKeys.description':

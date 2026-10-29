@@ -21,7 +21,7 @@ export async function createInstallationApiKey(
   member: MemberRow,
   input: CreateApiKeyInput,
 ): Promise<{ id: string; key: string }> {
-  const current = await requireAdmin(deps, isMember, member, input.installationId);
+  const { member: current } = await requireAdmin(deps, isMember, member, input.installationId);
   const name = input.name.trim();
   if (name.length === 0 || name.length > MAX_NAME_LENGTH) {
     throw new DomainError('invalid_request', `name must have 1 to ${MAX_NAME_LENGTH} characters`);

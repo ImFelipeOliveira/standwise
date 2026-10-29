@@ -111,10 +111,13 @@ export function SetupPage(props: {
           <p>
             {t('web.slack.connected')} <code>{status.slack.workspace}</code>
           </p>
-        ) : (
+        ) : null}
+        {status.admin ? (
           <a class="button" href={`/connect/slack?installation_id=${status.installationId}`}>
-            {t('web.slack.connect')}
+            {t(status.slack.connected ? 'web.slack.reconnect' : 'web.slack.connect')}
           </a>
+        ) : status.slack.connected ? null : (
+          <p>{t('web.slack.askAdmin')}</p>
         )}
       </section>
       {status.apiKeys.manage ? (

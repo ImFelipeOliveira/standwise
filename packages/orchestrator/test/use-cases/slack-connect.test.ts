@@ -25,6 +25,7 @@ async function setup(opts: Parameters<typeof fakeDeps>[0] = {}) {
   const member = await seedMember();
   await setMemberInstallations(db, member.id, [INST]);
   const harness = fakeDeps(opts);
+  harness.roles.set('alice', { role: 'admin', state: 'active' });
   return { ...harness, member, isMember: createMembershipCheck(harness.deps) };
 }
 
@@ -39,6 +40,16 @@ describe('startSlackConnect', () => {
     expect(parsed.origin + parsed.pathname).toBe('https://slack.com/oauth/v2/authorize');
     expect(parsed.searchParams.get('redirect_uri')).toBe('https://sw.test/oauth/slack/callback');
     expect(stateOf(url)).toContain('.');
+  });
+
+  test('forbids a member who is not an admin', async () => {
+    const { deps, member, isMember, roles } = await setup();
+    roles.set('alice', { role: 'member', state: 'active' });
+    expect(
+      await codeOf(
+        startSlackConnect(deps, isMember, member, { sessionToken: 'tok', installationId: INST }),
+      ),
+    ).toBe('forbidden');
   });
 });
 
@@ -60,6 +71,41 @@ describe('completeSlackConnect', () => {
       externalName: 'Acme Workspace',
       secret: 'xoxb-1',
     });
+  });
+
+  test('forbids a non admin callback and saves nothing', async () => {
+    const { deps, member, isMember, roles } = await setup();
+    roles.set('alice', { role: 'member', state: 'active' });
+    const state = signState(
+      deps.env.sessionSecret,
+      { kind: 'slack', installationId: INST, sessionHash: hashSessionToken('tok') },
+      deps.now(),
+    );
+    expect(
+      await codeOf(
+        completeSlackConnect(deps, isMember, member, { sessionToken: 'tok', code: 'c', state }),
+      ),
+    ).toBe('forbidden');
+    expect(await getConnection(db, INST, 'slack', KEY)).toBeNull();
+  });
+
+  test('forbids an admin demoted between start and callback', async () => {
+    const { deps, member, isMember, roles } = await setup();
+    const { url } = await startSlackConnect(deps, isMember, member, {
+      sessionToken: 'tok',
+      installationId: INST,
+    });
+    roles.set('alice', { role: 'member', state: 'active' });
+    expect(
+      await codeOf(
+        completeSlackConnect(deps, isMember, member, {
+          sessionToken: 'tok',
+          code: 'c',
+          state: stateOf(url),
+        }),
+      ),
+    ).toBe('forbidden');
+    expect(await getConnection(db, INST, 'slack', KEY)).toBeNull();
   });
 
   test('rejects a state bound to another session', async () => {

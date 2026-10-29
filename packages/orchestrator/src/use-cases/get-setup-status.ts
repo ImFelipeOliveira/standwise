@@ -18,6 +18,7 @@ export type SetupStatus = {
   installationId: number;
   owner: string;
   login: string;
+  admin: boolean;
   config:
     | { status: 'configured' }
     | { status: 'invalid'; errors: ConfigError[] }
@@ -83,6 +84,7 @@ export async function getSetupStatus(
     installationId: installation.id,
     owner: installation.accountLogin,
     login: current.login,
+    admin,
     config,
     configRepo,
     slack: connection

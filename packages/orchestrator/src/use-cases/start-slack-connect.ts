@@ -2,8 +2,8 @@ import type { MemberRow } from '@standwise/db';
 import { slackAuthorizeUrl } from '@standwise/slack';
 import type { Deps } from '../deps';
 import { hashSessionToken, signState } from '../state-token';
-import { authorizeInstallation } from './authorize-installation';
 import type { MembershipCheck } from './org-context';
+import { requireAdmin } from './require-admin';
 
 export async function startSlackConnect(
   deps: Deps,
@@ -11,12 +11,7 @@ export async function startSlackConnect(
   member: MemberRow,
   input: { sessionToken: string; installationId: number | undefined },
 ): Promise<{ url: string }> {
-  const { installation } = await authorizeInstallation(
-    deps,
-    isMember,
-    member,
-    input.installationId,
-  );
+  const { installation } = await requireAdmin(deps, isMember, member, input.installationId);
   const state = signState(
     deps.env.sessionSecret,
     {
