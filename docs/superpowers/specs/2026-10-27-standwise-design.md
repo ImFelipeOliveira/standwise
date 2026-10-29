@@ -209,6 +209,8 @@ Sem prazo: o projeto anda no ritmo do autor. A fase 1a é construída por comple
 
 **O que é:** o admin configura uma chave de API de LLM da própria organização (Anthropic, OpenAI…, BYOK). A chave fica criptografada como as demais conexões. A partir dela, o Standwise analisa o conteúdo das dailies **confirmadas**, junto com os sinais do GitHub e do gerenciador, e publica relatórios nos canais configurados (Slack, Google Chat, comentários em cards do Linear e do Jira…).
 
+**Escopo da chave:** **uma chave por organização** (instalação do GitHub App), cadastrada, trocada e removida só pelo admin, na página de setup ou no painel. Não existe chave por pessoa nem por time. Os times que ativam a análise usam a chave da organização, e o limite de custo mensal também é da organização.
+
 **O que a IA classifica e reporta (exemplos):**
 - impedimentos escritos em texto livre que não foram ligados a um PR ou card, para encaminhar a quem pode ajudar;
 - PRs que precisam de revisão, branches paradas ou divergentes da principal e PRs com conflito;
