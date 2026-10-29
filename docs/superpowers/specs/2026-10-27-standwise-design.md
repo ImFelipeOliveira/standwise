@@ -202,6 +202,8 @@ Sem prazo: o projeto anda no ritmo do autor. A fase 1a é construída por comple
 - **1b:** Google Chat + Jira (completa a v1 prometida).
 - **2:** Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
 
+**UI (decisão do Felipe, 2026-10-28):** no plano 1, as poucas páginas web (login, setup, erros) continuam em Hono JSX com estilos simples. A biblioteca de componentes é decidida na fase 2, junto com o painel Next.js. Candidata preferida: shadcn/ui (Radix + Tailwind), com os tokens do protótipo do painel.
+
 ## 9. Deixado para o builder
 - Formato visual exato das mensagens (dentro das regras: impedimentos no topo, uma mensagem por consolidado).
 - Estrutura de rotas da API, nomes de tabelas e colunas, estratégia de migração.
