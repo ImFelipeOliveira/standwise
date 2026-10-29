@@ -22,7 +22,6 @@ export async function upsertDaily(
     });
 }
 
-/** Most recent daily with date strictly before `before`. */
 export async function getLastDaily(
   db: Db,
   installationId: number,

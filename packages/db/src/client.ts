@@ -12,7 +12,6 @@ export function createDb(url: string): Db {
 
 const migrationsFolder = fileURLToPath(new URL('../migrations', import.meta.url));
 
-/** Applies pending migrations using a short-lived connection. */
 export async function migrate(url: string): Promise<void> {
   const client = postgres(url, { max: 1, onnotice: () => {} });
   try {

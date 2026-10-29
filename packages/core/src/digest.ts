@@ -17,7 +17,6 @@ function itemInlines(item: Item): Inline[] {
   return [item.text, ' ', { link: { text: item.ref.title ?? item.text, url: item.ref.url } }];
 }
 
-/** Config member order; "@org/slug" entries match no login, so unmatched people follow in given order. */
 function orderEntries(team: TeamConfig, entries: DigestEntry[]): DigestEntry[] {
   const order = 'memberLogins' in team ? (team.memberLogins as string[]) : team.members;
   const remaining = [...entries];
@@ -84,7 +83,6 @@ export function buildDigest(input: {
   return message(blocks);
 }
 
-/** One person's daily, for a thread reply after the digest was already posted. */
 export function buildLateDaily(entry: DigestEntry, lang: Language): Message {
   return message([
     { type: 'paragraph', content: [t(lang, 'lateDaily')] },

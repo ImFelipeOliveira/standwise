@@ -13,7 +13,6 @@ export async function upsertMember(
   m: { githubUserId: number; login: string; email: string | null },
 ): Promise<MemberRow> {
   return db.transaction(async (tx) => {
-    // Release the login if another account (e.g. a renamed user's old row) still holds it.
     await tx
       .update(members)
       .set({ login: sql`'~' || ${members.githubUserId}` })
@@ -36,7 +35,6 @@ export async function upsertMember(
   });
 }
 
-/** Replaces the set of installations the member belongs to. */
 export async function setMemberInstallations(
   db: Db,
   memberId: string,
@@ -72,7 +70,6 @@ export async function setIdentity(
     });
 }
 
-/** Map of lowercase GitHub login to the provider's external id. */
 export async function getIdentities(
   db: Db,
   installationId: number,

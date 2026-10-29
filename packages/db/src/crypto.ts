@@ -3,7 +3,6 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
-/** AES-256-GCM. Returns base64(iv12 | tag16 | ciphertext). */
 export function encryptSecret(plain: string, key: Uint8Array): string {
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv('aes-256-gcm', key, iv);

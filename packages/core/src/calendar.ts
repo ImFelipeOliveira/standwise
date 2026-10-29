@@ -12,7 +12,6 @@ function parseDate(date: string): [number, number, number] {
   return [y as number, m as number, d as number];
 }
 
-/** Calendar date as a plain (timezone-free) Date at local noon, for day arithmetic. */
 function plain(date: string): Date {
   const [y, m, d] = parseDate(date);
   return new Date(y, m - 1, d, 12);

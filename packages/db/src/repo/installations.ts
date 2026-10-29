@@ -25,7 +25,6 @@ export type InstallationConfigResult =
   | { status: 'invalid'; errors: ConfigError[] }
   | { status: 'unconfigured'; reason: string };
 
-/** An 'invalid' result keeps the previous valid config in place. */
 export async function setInstallationConfig(
   db: Db,
   id: number,

@@ -23,10 +23,8 @@ export type Ref = z.infer<typeof RefSchema>;
 export type Item = z.infer<typeof ItemSchema>;
 export type DailySubmission = z.infer<typeof DailySubmissionSchema>;
 
-/** Team with "@org/slug" members already expanded; logins are lowercase. */
 export type ResolvedTeam = TeamConfig & { memberLogins: string[] };
 
-/** Teams the login belongs to, in config order, case-insensitive. */
 export function teamsForMember(login: string, teams: ResolvedTeam[]): ResolvedTeam[] {
   const wanted = login.toLowerCase();
   return teams.filter((t) => t.memberLogins.includes(wanted));

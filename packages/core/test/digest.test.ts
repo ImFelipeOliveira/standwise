@@ -58,7 +58,6 @@ describe('buildDigest', () => {
     const json = JSON.stringify(section);
     expect(json).toContain('{"mention":"U1"}');
     expect(json).toContain('waiting on infra');
-    // the blockers section precedes any person section
     const idxBlocker = msg.blocks.findIndex((b) => blockText(b).includes('waiting on infra'));
     const idxBob = msg.blocks.findIndex((b) => blockText(b).includes('bob did y'));
     expect(idxBlocker).toBeLessThan(idxBob);

@@ -30,12 +30,6 @@ export type ClaimResult =
 
 const staleSql = sql`${deliveries.updatedAt} < now() - make_interval(mins => ${STALE_PENDING_MINUTES})`;
 
-/**
- * Atomically claims the right to send. Inserts a 'pending' row; on conflict it only reopens a
- * 'failed' row, or a 'pending' row stale for over 10 minutes (dead worker), while attempts < 3.
- * The returned token (the new attempts value) fences completeDelivery/failDelivery. A stale
- * pending row already at the cap is marked failed.
- */
 export async function claimDelivery(db: Db, k: DeliveryKey): Promise<ClaimResult> {
   const claimed = await db
     .insert(deliveries)
@@ -90,7 +84,6 @@ export async function claimDelivery(db: Db, k: DeliveryKey): Promise<ClaimResult
   return row?.status === 'pending' ? { status: 'in_progress' } : { status: 'already_sent' };
 }
 
-/** Applies only if the caller still owns the claim (status pending and attempts = token). */
 export async function completeDelivery(
   db: Db,
   k: DeliveryKey,

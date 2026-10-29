@@ -8,7 +8,6 @@ const CLI_IDLE_DAYS = 90;
 
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 
-/** Returns the token ("sw_" + base64url of 32 random bytes); only its sha256 hex is stored. */
 export async function createSession(
   db: Db,
   memberId: string,
@@ -25,7 +24,6 @@ export async function resolveSession(
   kind: 'cli' | 'web',
 ): Promise<MemberRow | null> {
   const tokenHash = hash(token);
-  // web: fixed lifetime from creation; cli: expires after being idle.
   const fresh =
     kind === 'web'
       ? sql`${sessions.createdAt} > now() - make_interval(days => ${WEB_TTL_DAYS})`

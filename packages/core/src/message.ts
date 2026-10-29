@@ -8,7 +8,6 @@ export type Block =
 
 export type Message = { fallbackText: string; blocks: Block[] };
 
-/** Chat-agnostic person; without `chatUserId` they render as plain `@login` text. */
 export type Person = { login: string; chatUserId?: string };
 
 export function personInline(p: Person): Inline {
@@ -21,7 +20,6 @@ function inlineToText(i: Inline): string {
   return `${i.link.text} (${i.link.url})`;
 }
 
-/** Plain-text rendering used as the notification/fallback text. */
 export function toPlainText(blocks: Block[]): string {
   return blocks
     .map((b) => {

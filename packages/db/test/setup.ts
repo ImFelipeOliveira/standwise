@@ -9,7 +9,6 @@ await migrate(TEST_DATABASE_URL);
 
 export const db: Db = createDb(TEST_DATABASE_URL);
 
-/** Truncates every table before each test. Call once at the top level of a test file. */
 export function useCleanDb(): void {
   beforeEach(async () => {
     await db.execute(sql`

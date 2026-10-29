@@ -32,7 +32,6 @@ export function t(
   );
 }
 
-/** ISO `YYYY-MM-DD` to the language's display format (pt-BR: DD/MM/YYYY). */
 export function formatDate(lang: Language, isoDate: string): string {
   if (lang !== 'pt-BR') return isoDate;
   const [y, m, d] = isoDate.split('-');

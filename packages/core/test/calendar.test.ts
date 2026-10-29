@@ -20,7 +20,6 @@ describe('calendar', () => {
   });
 
   test('saturday counts for monday', () => {
-    // 2026-10-31 12:00 local (UTC-3) is a Saturday
     expect(dailyDateFor(new Date('2026-10-31T15:00:00Z'), cal)).toBe('2026-11-02');
     expect(dailyDateFor(new Date('2026-10-28T15:00:00Z'), cal)).toBe('2026-10-28');
   });

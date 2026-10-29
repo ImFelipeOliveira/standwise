@@ -52,9 +52,8 @@ describe('teamsForMember', () => {
 });
 
 describe('activitySince', () => {
-  // 2026-10-28 is a Wednesday; previous workday is 2026-10-27.
   test('activitySince uses last daily', () => {
-    const submittedAt = new Date('2026-10-27T12:10:00Z'); // 09:10 in Sao Paulo
+    const submittedAt = new Date('2026-10-27T12:10:00Z');
     const lastDaily = { date: '2026-10-27', submittedAt };
     expect(activitySince({ date: '2026-10-28', cal, lastDaily })).toEqual(submittedAt);
   });

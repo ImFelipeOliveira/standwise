@@ -9,7 +9,6 @@ export type ActivityItem = {
   count?: number;
 };
 
-/** Start of the window of GitHub activity to summarize for the daily of `date`. */
 export function activitySince(input: {
   date: string;
   cal: Calendar;
