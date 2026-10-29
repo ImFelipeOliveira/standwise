@@ -28,6 +28,7 @@ export type Deps = {
     publicUrl: string;
     supportEmail: string;
     appId: string;
+    webhookSecret: string;
     githubClientId: string;
     githubClientSecret: string;
     sessionSecret: string;

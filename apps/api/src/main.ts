@@ -40,6 +40,7 @@ const deps: Deps = {
     publicUrl: env.PUBLIC_URL,
     supportEmail: env.SUPPORT_EMAIL,
     appId: env.GITHUB_APP_ID,
+    webhookSecret: env.GITHUB_WEBHOOK_SECRET,
     githubClientId: env.GITHUB_CLIENT_ID,
     githubClientSecret: env.GITHUB_CLIENT_SECRET,
     sessionSecret: env.SESSION_SECRET,

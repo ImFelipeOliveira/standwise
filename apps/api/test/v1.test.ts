@@ -113,6 +113,7 @@ function harness(
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
       appId: '1',
+      webhookSecret: 'whsec',
     },
   };
   return {

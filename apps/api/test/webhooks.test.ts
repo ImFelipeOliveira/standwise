@@ -1,0 +1,202 @@
+import { describe, expect, test } from 'bun:test';
+import { Webhooks } from '@octokit/webhooks';
+import { parseConfig } from '@standwise/core';
+import { getInstallation, setInstallationConfig, upsertInstallation } from '@standwise/db';
+import type { Deps } from '@standwise/orchestrator';
+import { createMemoryQueue } from '@standwise/queue';
+import { db, useCleanDb } from '../../../packages/db/test/setup';
+import { createApp } from '../src/app';
+
+const SECRET = 'whsec';
+const signer = new Webhooks({ secret: SECRET });
+const INST = 21;
+
+const VALID = `
+teams:
+  - name: Alpha
+    timezone: America/Sao_Paulo
+    remind_at: "09:00"
+    digest_at: "10:00"
+    managers: [alice]
+    members: [alice, bob]
+    chat: { provider: slack, channel: "#alpha" }
+`;
+
+type Source = Awaited<ReturnType<Deps['github']['fetchConfigSource']>>;
+
+function harness(source: Source) {
+  const calls: string[] = [];
+  const deps: Deps = {
+    db,
+    queue: createMemoryQueue(),
+    now: () => new Date('2026-10-28T15:00:00Z'),
+    encryptionKey: new Uint8Array(32).fill(7),
+    github: {
+      app: {} as Deps['github']['app'],
+      installationOctokit: async () => ({}) as never,
+      getUserProfile: async () => {
+        throw new Error('unused');
+      },
+      listActivity: async () => [],
+      resolveTeamMembers: async (_o, _owner, members) => members,
+      fetchConfigSource: async (_o, owner) => {
+        calls.push(owner);
+        return source;
+      },
+    },
+    chatFor: async () => null,
+    env: {
+      publicUrl: 'https://sw.test',
+      supportEmail: 'help@sw.test',
+      appId: '1',
+      webhookSecret: SECRET,
+      githubClientId: 'cid',
+      githubClientSecret: 'secret',
+      sessionSecret: 'sess',
+      slackClientId: 'sid',
+      slackClientSecret: 'ssecret',
+    },
+  };
+  return { app: createApp(deps), calls };
+}
+
+async function send(
+  h: ReturnType<typeof harness>,
+  event: string,
+  payload: unknown,
+  signature?: string,
+): Promise<Response> {
+  const body = JSON.stringify(payload);
+  return h.app.request('/webhooks/github', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-github-event': event,
+      'x-hub-signature-256': signature ?? (await signer.sign(body)),
+    },
+    body,
+  });
+}
+
+const created = {
+  action: 'created',
+  installation: { id: INST, account: { login: 'acme', type: 'Organization' } },
+};
+
+const push = (
+  repo: string,
+  ref: string,
+  files: Partial<Record<'added' | 'modified' | 'removed', string[]>>,
+) => ({
+  ref,
+  repository: { name: repo, default_branch: 'main' },
+  installation: { id: INST },
+  commits: [{ added: [], modified: [], removed: [], ...files }],
+});
+
+describe('github webhooks', () => {
+  useCleanDb();
+
+  test('rejects bad signature', async () => {
+    const h = harness({ found: true, source: VALID });
+    const res = await send(h, 'installation', created, 'sha256=deadbeef');
+    expect(res.status).toBe(401);
+    expect(await getInstallation(db, INST)).toBeNull();
+    expect(h.calls).toEqual([]);
+  });
+
+  test('rejects missing signature', async () => {
+    const h = harness({ found: true, source: VALID });
+    const res = await h.app.request('/webhooks/github', {
+      method: 'POST',
+      headers: { 'x-github-event': 'installation' },
+      body: JSON.stringify(created),
+    });
+    expect(res.status).toBe(401);
+    expect(await getInstallation(db, INST)).toBeNull();
+  });
+
+  test('installation created with valid config', async () => {
+    const h = harness({ found: true, source: VALID });
+    const res = await send(h, 'installation', created);
+    expect(res.status).toBe(202);
+    const row = await getInstallation(db, INST);
+    expect(row?.status).toBe('configured');
+    expect(row?.accountLogin).toBe('acme');
+    expect(h.calls).toEqual(['acme']);
+  });
+
+  test('installation created without .github repo', async () => {
+    const h = harness({ found: false, reason: 'no_repo' });
+    await send(h, 'installation', created);
+    const row = await getInstallation(db, INST);
+    expect(row?.status).toBe('unconfigured');
+    expect(row?.unconfiguredReason).toBe('no_repo');
+  });
+
+  test('installation_repositories reloads config', async () => {
+    const h = harness({ found: true, source: VALID });
+    await send(h, 'installation_repositories', { ...created, action: 'added' });
+    expect((await getInstallation(db, INST))?.status).toBe('configured');
+  });
+
+  test('push with invalid config keeps last valid', async () => {
+    const good = parseConfig(VALID);
+    if (!good.ok) throw new Error('bad fixture');
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    await setInstallationConfig(db, INST, { status: 'configured', config: good.config });
+    const h = harness({ found: true, source: 'teams: nope' });
+    const res = await send(
+      h,
+      'push',
+      push('.github', 'refs/heads/main', { modified: ['standwise.yml'] }),
+    );
+    expect(res.status).toBe(202);
+    const row = await getInstallation(db, INST);
+    expect(row?.status).toBe('invalid');
+    expect(row?.config).toEqual(good.config);
+    expect(row?.configErrors?.length).toBeGreaterThan(0);
+  });
+
+  test('push removing standwise.yml makes installation unconfigured', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const h = harness({ found: false, reason: 'no_file' });
+    await send(h, 'push', push('.github', 'refs/heads/main', { removed: ['standwise.yml'] }));
+    const row = await getInstallation(db, INST);
+    expect(row?.status).toBe('unconfigured');
+    expect(row?.unconfiguredReason).toBe('no_file');
+  });
+
+  test('push to other repo ignored', async () => {
+    const h = harness({ found: true, source: VALID });
+    await send(h, 'push', push('app', 'refs/heads/main', { modified: ['standwise.yml'] }));
+    expect(h.calls).toEqual([]);
+  });
+
+  test('push to non default branch ignored', async () => {
+    const h = harness({ found: true, source: VALID });
+    await send(h, 'push', push('.github', 'refs/heads/dev', { modified: ['standwise.yml'] }));
+    expect(h.calls).toEqual([]);
+  });
+
+  test('push not touching standwise.yml ignored', async () => {
+    const h = harness({ found: true, source: VALID });
+    await send(h, 'push', push('.github', 'refs/heads/main', { modified: ['README.md'] }));
+    expect(h.calls).toEqual([]);
+  });
+
+  test('other events are accepted and ignored', async () => {
+    const h = harness({ found: true, source: VALID });
+    const res = await send(h, 'pull_request', { action: 'opened' });
+    expect(res.status).toBe(202);
+    expect(h.calls).toEqual([]);
+  });
+
+  test('installation deleted cascades', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const h = harness({ found: true, source: VALID });
+    const res = await send(h, 'installation', { ...created, action: 'deleted' });
+    expect(res.status).toBe(202);
+    expect(await getInstallation(db, INST)).toBeNull();
+  });
+});

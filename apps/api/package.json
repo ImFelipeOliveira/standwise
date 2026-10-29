@@ -6,6 +6,7 @@
   "main": "src/app.ts",
   "types": "src/app.ts",
   "dependencies": {
+    "@octokit/webhooks": "^14.2.0",
     "@standwise/core": "workspace:*",
     "@standwise/db": "workspace:*",
     "@standwise/github": "workspace:*",
