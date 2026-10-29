@@ -4,9 +4,11 @@ Standwise posts each team's digest to a Slack channel. One Slack workspace is co
 
 ## Connect
 
-On the setup page, click **Connect Slack** and approve the app. Any member of the organization who can open the setup page can connect it. The page then shows "Connected to workspace" and the workspace name.
+Only an organization admin can connect or reconnect Slack: a GitHub organization admin, or the account owner for a personal account. Standwise checks the role with GitHub when the connection starts and again when Slack sends the admin back. Other members see the connection on the setup page read-only.
 
-To connect again, for example after the app was removed from Slack, open `/connect/slack?installation_id=<id>` on the Standwise API, with the same installation id as the setup page.
+On the setup page, click **Connect Slack** and approve the app. The page then shows "Connected to workspace" and the workspace name.
+
+To connect again, for example after the app was removed from Slack or to move the digests to another workspace, click **Reconnect Slack** on the setup page. It goes through the same approval and replaces the previous connection.
 
 ## Bot permissions
 
@@ -37,7 +39,7 @@ Archived channels are not found.
 
 ## How people are mentioned
 
-The digest mentions each person with their Slack user when Standwise knows it, and shows `@` followed by their GitHub login as plain text otherwise. A person is linked to their Slack user when they sign in (with `standwise login` or on the setup page), if Slack is already connected and `standwise.yml` is valid:
+The digest mentions each person with their Slack user when Standwise knows it, and shows `@` followed by their GitHub login as plain text otherwise. A person is linked to their Slack user when they sign in (with `standwise login` or on the setup page), if Slack is already connected and `standwise.yml` has a valid version:
 
 1. If `standwise.yml` has `members.<login>.slack`, that id is used.
 2. Otherwise, Standwise looks up the Slack user with the primary verified email of the person's GitHub account.
@@ -53,10 +55,10 @@ When a post fails, the setup page lists it under "Latest failed deliveries" with
 | `channel_not_found` | The channel name does not exist, is archived, or is private and the bot is not in it. | Check `chat.channel`. For a private channel, invite the bot. |
 | `not_in_channel` | The bot is not a member of the channel. | Invite the bot to the channel. |
 | `is_archived` | The channel is archived. | Unarchive it or pick another channel. |
-| `invalid_auth`, `token_revoked`, `account_inactive` | The Slack token no longer works, usually because the app was removed from the workspace. | Connect Slack again. |
-| `missing_scope` | The token lacks a permission Standwise needs. | Connect Slack again and approve all permissions. |
+| `invalid_auth`, `token_revoked`, `account_inactive` | The Slack token no longer works, usually because the app was removed from the workspace. | An admin clicks **Reconnect Slack**. |
+| `missing_scope` | The token lacks a permission Standwise needs. | An admin clicks **Reconnect Slack** and approves all permissions. |
 | `ratelimited` | Slack asked Standwise to slow down. | Nothing to do; it is retried. |
-| `no_chat_connection` | Slack is not connected for this installation. | Click **Connect Slack** on the setup page. |
+| `no_chat_connection` | Slack is not connected for this installation. | An admin clicks **Connect Slack** on the setup page. |
 | `unsupported_provider` | The team uses `chat.provider: google-chat`, which is coming soon. | Use `slack`. |
 | `worker_died` | The worker stopped three times while sending. | Contact support if it repeats. |
 | `internal_error` | Unexpected error. The message has the details. | Contact support if it repeats. |

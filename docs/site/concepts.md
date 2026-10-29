@@ -24,7 +24,7 @@ A GitHub login listed under `managers` of a team. Managers read their team's dig
 
 ## Admin
 
-The owner of a personal account, or a member with the `admin` role in the GitHub organization. Admins create [API keys](/admin/api-keys) and [webhooks](/admin/webhooks), and can read every team through the manager tools.
+The owner of a personal account, or a member with the `admin` role in the GitHub organization. Admins connect Slack and create [API keys](/admin/api-keys) and [webhooks](/admin/webhooks), and can read every team through the manager tools.
 
 ## Daily
 

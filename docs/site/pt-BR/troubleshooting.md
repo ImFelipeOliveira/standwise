@@ -11,15 +11,15 @@ Os lembretes vêm em breve. Hoje o Standwise não os envia, mesmo com o `remind_
 O consolidado mostra `@` e o seu login do GitHub, em texto, quando o Standwise não conhece o seu usuário no Slack. O seu usuário do Slack é ligado quando você entra, então confira:
 
 1. **Você entrou depois que o Slack foi conectado.** Rode `standwise login` de novo.
-2. **O `standwise.yml` estava válido quando você entrou.** Se estava inválido ou não existia, rode `standwise login` de novo depois de corrigido.
+2. **O `standwise.yml` tinha uma versão válida quando você entrou.** Se não existia ou nunca tinha sido válido, rode `standwise login` de novo depois de corrigido.
 3. **Os seus e-mails batem.** O Standwise busca o seu usuário do Slack pelo e-mail principal verificado da sua conta do GitHub. Se a sua conta do Slack usa outro e-mail, peça ao admin para adicionar `members.<seu-login>.slack` com o seu id de membro do Slack no `standwise.yml` (veja [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades)) e rode `standwise login` de novo.
 
 ## O consolidado não chegou
 
 Abra a página de setup e confira, nesta ordem:
 
-1. **O estado da configuração é "Configurado."** Se estiver inválido ou não configurado, o Standwise fica pausado. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).
-2. **O Slack está conectado.** Senão, a entrega falha com `no_chat_connection`.
+1. **O estado da configuração.** Se não estiver configurado, ou estiver inválido sem uma versão válida em uso, o Standwise não roda. Se estiver inválido depois de uma versão válida, o Standwise continua usando a última versão válida, então uma mudança que você acabou de enviar ainda não vale. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).
+2. **O Slack está conectado.** Senão, a entrega falha com `no_chat_connection`. Só um admin pode conectar o Slack.
 3. **"Últimas entregas com falha"** para o time e a data. O código do erro diz o que aconteceu; veja [Erros de entrega](/pt-BR/admin/slack#erros-de-entrega). Um canal privado precisa do bot convidado, senão o erro é `channel_not_found`.
 4. **Hoje é dia útil** nos `workdays` do time, e o `digest_at` está no `timezone` do time. O consolidado não é enviado mais de 120 minutos depois do `digest_at`.
 5. **O time usa `chat.provider: slack`.** O Google Chat vem em breve.
@@ -34,7 +34,7 @@ A sua sessão guardada lista as organizações do momento em que você entrou. S
 
 ## `org_not_configured`
 
-A organização não tem um `standwise.yml` válido. Peça ao admin para olhar a página de setup.
+A organização não tem um `standwise.yml` válido em uso: o arquivo não existe, ou está inválido desde que foi criado ou desde que foi apagado. Um push inválido logo depois de uma versão válida não causa este erro, porque o Standwise continua usando a última versão válida. Peça ao admin para olhar a página de setup.
 
 ## `not_in_team`
 

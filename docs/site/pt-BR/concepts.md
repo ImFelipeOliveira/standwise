@@ -24,7 +24,7 @@ Um login do GitHub listado em `managers` de um time. Gestores leem os consolidad
 
 ## Admin
 
-O dono de uma conta pessoal, ou um membro com o papel `admin` na organização do GitHub. Admins criam [API keys](/pt-BR/admin/api-keys) e [webhooks](/pt-BR/admin/webhooks) e podem ler todos os times pelas tools de gestor.
+O dono de uma conta pessoal, ou um membro com o papel `admin` na organização do GitHub. Admins conectam o Slack, criam [API keys](/pt-BR/admin/api-keys) e [webhooks](/pt-BR/admin/webhooks) e podem ler todos os times pelas tools de gestor.
 
 ## Daily
 

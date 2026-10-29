@@ -224,4 +224,4 @@ These are the messages the setup page shows, as `path: message`. `teams.0` is th
 | `: Invalid input: expected object, received null` | The file is empty | Add at least one team |
 | A YAML syntax message with a line and column | Broken indentation, an unclosed `[` or quote | Fix the YAML at that line |
 
-While the file is invalid, Standwise pauses for the whole organization. See [Configuration states](/admin/install#configuration-states).
+While the file is invalid, Standwise keeps using the last valid version until you fix it. See [Configuration states](/admin/install#configuration-states).

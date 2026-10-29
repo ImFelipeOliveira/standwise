@@ -225,4 +225,4 @@ Estas são as mensagens que a página de setup mostra, no formato `caminho: mens
 | `: Invalid input: expected object, received null` | O arquivo está vazio | Adicione pelo menos um time |
 | Uma mensagem de sintaxe do YAML com linha e coluna | Indentação quebrada, `[` ou aspas sem fechar | Corrija o YAML nessa linha |
 
-Enquanto o arquivo estiver inválido, o Standwise fica pausado para a organização inteira. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).
+Enquanto o arquivo estiver inválido, o Standwise continua usando a última versão válida até você corrigir. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).

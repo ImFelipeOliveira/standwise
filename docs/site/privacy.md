@@ -70,8 +70,8 @@ The GitHub token from your login is used once to identify you and is not stored.
 | You | Your draft and your own dailies, through your agent |
 | Members of the team's Slack channel | The digest and the late dailies in its thread |
 | Team managers | The team's digests, dailies and confirmed blockers for the last 90 days, through the MCP manager tools |
-| Organization admins | Everything managers see, for every team; API keys and webhooks on the setup page |
-| Organization members who sign in to the setup page | Configuration status, the Slack workspace name and the last failed deliveries |
+| Organization admins | Everything managers see, for every team; on the setup page, the Slack connect and reconnect controls, API keys and webhooks |
+| Organization members who sign in to the setup page | Configuration status, the Slack workspace name, read-only, and the last failed deliveries. They cannot connect or replace the Slack workspace |
 | Systems with an API key | Teams, confirmed dailies, digests and blockers, limited by the key's scopes |
 | Webhook endpoints | The events they subscribed to |
 

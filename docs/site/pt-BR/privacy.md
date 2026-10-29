@@ -70,8 +70,8 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 | Você | O seu rascunho e as suas dailies, pelo seu agente |
 | Membros do canal do time no Slack | O consolidado e as dailies atrasadas na thread dele |
 | Gestores do time | Os consolidados, as dailies e os impedimentos confirmados do time nos últimos 90 dias, pelas tools de gestor do MCP |
-| Admins da organização | Tudo o que os gestores veem, de todos os times; API keys e webhooks na página de setup |
-| Membros da organização que entram na página de setup | O estado da configuração, o nome do workspace do Slack e as últimas entregas com falha |
+| Admins da organização | Tudo o que os gestores veem, de todos os times; na página de setup, os controles para conectar e reconectar o Slack, as API keys e os webhooks |
+| Membros da organização que entram na página de setup | O estado da configuração, o nome do workspace do Slack, só para leitura, e as últimas entregas com falha. Não podem conectar nem trocar o workspace do Slack |
 | Sistemas com uma API key | Times, dailies confirmadas, consolidados e impedimentos, limitados pelos escopos da key |
 | Endpoints de webhook | Os eventos que assinaram |
 

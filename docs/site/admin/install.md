@@ -24,19 +24,19 @@ The app asks for these permissions:
 
 After the install, GitHub sends you to the Standwise setup page. Sign in with GitHub when asked. The page address is `/setup?installation_id=<id>` on the Standwise API.
 
-Any member of the organization who signs in can open the setup page. Only admins see the **API keys** and **Webhooks** sections.
+Any member of the organization who signs in can open the setup page. Only admins can connect or reconnect Slack, and only admins see the **API keys** and **Webhooks** sections. An admin is a GitHub organization admin, or the account owner for a personal account.
 
 The page shows:
 
 - the organization and the state of `standwise.yml`;
 - a button to create the file from a template, and the template itself;
-- the Slack connection;
+- the Slack connection, with **Connect Slack** or **Reconnect Slack** for admins;
 - the last 5 failed deliveries, with the team, date and error;
 - for admins, API keys and webhooks.
 
 ## 3. Connect Slack
 
-Click **Connect Slack** and approve the app in your Slack workspace. The page then shows "Connected to workspace" and the workspace name. See [Slack](/admin/slack) for the permissions and for private channels.
+An admin clicks **Connect Slack** and approves the app in the Slack workspace. The page then shows "Connected to workspace" and the workspace name, and a **Reconnect Slack** button to connect again. Other members see the connection read-only, with "Ask an admin to connect Slack." while it is not connected. See [Slack](/admin/slack) for the permissions and for private channels.
 
 ## 4. Create `standwise.yml`
 
@@ -72,7 +72,7 @@ The setup page shows one of three states.
 
 ### Not configured
 
-"Not configured yet." Standwise could not find the file. The page shows the reason:
+"Not configured yet." Standwise could not find the file. Deleting the file switches Standwise off for the organization: the previous configuration is dropped, so a later invalid file does not bring it back. The page shows the reason:
 
 | Reason | Meaning | Fix |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ The setup page shows one of three states.
 
 "standwise.yml is invalid. Fix the errors below and commit." The page lists each error as `path: message`, for example `teams.0.digest_at: must be HH:MM (24h)`. See the [common errors](/admin/configuration#common-validation-errors).
 
-While the file is invalid, Standwise pauses for the whole organization: no digests are posted, and drafts and submissions fail with `org_not_configured`. Fix the file and commit to resume.
+If the file was valid right before the invalid push, the page also says "Standwise keeps using the last valid version until you fix it." Digests still go out and drafts and submissions still work, with the last valid version. Fix the file and commit to apply your changes. If there is no valid version in use (the file was never valid, or it was deleted before the invalid push), Standwise does not run for the organization: no digests are posted, and drafts and submissions fail with `org_not_configured`.
 
 Coming soon: a failing check run on the commit that breaks `standwise.yml`, and on pull requests that change it.
 

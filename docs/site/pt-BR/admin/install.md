@@ -24,19 +24,19 @@ O app pede estas permissões:
 
 Depois da instalação, o GitHub leva você para a página de setup do Standwise. Entre com o GitHub quando pedir. O endereço da página é `/setup?installation_id=<id>` na API do Standwise.
 
-Qualquer membro da organização que entrar pode abrir a página de setup. Só admins veem as seções **API keys** e **Webhooks**.
+Qualquer membro da organização que entrar pode abrir a página de setup. Só admins podem conectar ou reconectar o Slack, e só admins veem as seções **API keys** e **Webhooks**. Admin é quem é admin da organização no GitHub, ou o dono da conta, numa conta pessoal.
 
 A página mostra:
 
 - a organização e o estado do `standwise.yml`;
 - um botão para criar o arquivo a partir de um modelo, e o próprio modelo;
-- a conexão com o Slack;
+- a conexão com o Slack, com **Conectar Slack** ou **Reconectar Slack** para admins;
 - as 5 últimas entregas com falha, com time, data e erro;
 - para admins, as API keys e os webhooks.
 
 ## 3. Conecte o Slack
 
-Clique em **Conectar Slack** e aprove o app no seu workspace do Slack. A página passa a mostrar "Conectado ao workspace" e o nome do workspace. Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
+Um admin clica em **Conectar Slack** e aprova o app no workspace do Slack. A página passa a mostrar "Conectado ao workspace" e o nome do workspace, e um botão **Reconectar Slack** para conectar de novo. Os outros membros veem a conexão só para leitura, com "Peça a um admin para conectar o Slack." enquanto não estiver conectado. Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
 
 ## 4. Crie o `standwise.yml`
 
@@ -72,7 +72,7 @@ A página de setup mostra um de três estados.
 
 ### Não configurado
 
-"Ainda não configurado." O Standwise não encontrou o arquivo. A página mostra o motivo:
+"Ainda não configurado." O Standwise não encontrou o arquivo. Apagar o arquivo desliga o Standwise para a organização: a configuração anterior é descartada, então um arquivo inválido depois não a traz de volta. A página mostra o motivo:
 
 | Motivo | Significado | Como resolver |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ A página de setup mostra um de três estados.
 
 "O standwise.yml é inválido. Corrija os erros abaixo e faça o commit." A página lista cada erro como `caminho: mensagem`, por exemplo `teams.0.digest_at: must be HH:MM (24h)`. Veja os [erros comuns](/pt-BR/admin/configuration#erros-de-validacao-comuns).
 
-Enquanto o arquivo estiver inválido, o Standwise fica pausado para a organização inteira: nenhum consolidado é publicado, e o rascunho e o envio falham com `org_not_configured`. Corrija o arquivo e faça o commit para voltar.
+Se o arquivo estava válido logo antes do push inválido, a página também diz "O Standwise continua usando a última versão válida até você corrigir." O consolidado sai e o rascunho e o envio continuam funcionando, com a última versão válida. Corrija o arquivo e faça o commit para aplicar as suas mudanças. Se não há uma versão válida em uso (o arquivo nunca foi válido, ou foi apagado antes do push inválido), o Standwise não roda para a organização: nenhum consolidado é publicado, e o rascunho e o envio falham com `org_not_configured`.
 
 Em breve: um check run com falha no commit que quebra o `standwise.yml` e nos pull requests que o alteram.
 

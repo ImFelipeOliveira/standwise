@@ -11,15 +11,15 @@ Reminders are coming soon. Today Standwise does not send them, even though `remi
 The digest shows `@` and your GitHub login, as plain text, when Standwise does not know your Slack user. Your Slack user is linked when you sign in, so check:
 
 1. **You signed in after Slack was connected.** Run `standwise login` again.
-2. **`standwise.yml` was valid when you signed in.** If it was invalid or missing, run `standwise login` again after it is fixed.
+2. **`standwise.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standwise login` again after it is fixed.
 3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)), then run `standwise login` again.
 
 ## The digest did not arrive
 
 Open the setup page and check, in order:
 
-1. **The configuration state is "Configured."** If it is invalid or not configured, Standwise is paused. See [Configuration states](/admin/install#configuration-states).
-2. **Slack is connected.** Otherwise the delivery fails with `no_chat_connection`.
+1. **The configuration state.** If it is not configured, or invalid with no valid version in use, Standwise does not run. If it is invalid after a valid version, Standwise keeps using the last valid version, so a change you just pushed is not applied yet. See [Configuration states](/admin/install#configuration-states).
+2. **Slack is connected.** Otherwise the delivery fails with `no_chat_connection`. Only an admin can connect Slack.
 3. **"Latest failed deliveries"** for the team and date. The error code tells what happened; see [Delivery errors](/admin/slack#delivery-errors). A private channel needs the bot invited, or the error is `channel_not_found`.
 4. **Today is a workday** in the team's `workdays`, and `digest_at` is in the team's `timezone`. A digest is not sent more than 120 minutes after `digest_at`.
 5. **The team uses `chat.provider: slack`.** Google Chat is coming soon.
@@ -34,7 +34,7 @@ Your saved session lists the organizations from when you signed in. If the app w
 
 ## `org_not_configured`
 
-The organization has no valid `standwise.yml`. Ask your admin to check the setup page.
+The organization has no valid `standwise.yml` in use: the file is missing, or it has been invalid since it was created or since it was deleted. An invalid push right after a valid version does not cause this error, because Standwise keeps using the last valid version. Ask your admin to check the setup page.
 
 ## `not_in_team`
 
