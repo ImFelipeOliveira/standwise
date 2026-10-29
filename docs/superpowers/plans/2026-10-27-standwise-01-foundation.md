@@ -673,6 +673,7 @@
   - As `instructions` do servidor MCP dizem que os dados servem para destravar o time (impedimentos, contexto, resumos do time). Dizem também que o Standwise não oferece nem incentiva comparação, ranking ou avaliação individual.
   - Testes: um gestor de `backend` lê `backend` e recebe 403 em `platform`; um admin lê os dois; um membro comum recebe 403; a janela de 90 dias é respeitada; as tools listam e devolvem os dados da API falsa.
 - Prompt MCP `daily` com o mesmo fluxo da skill da Task 14 (rascunho → perguntar "hoje" e impedimentos → confirmar → enviar), para clientes que suportam prompts.
+- **Idioma (decisão do Felipe, 2026-10-28):** descrições de tools, `instructions` do servidor e mensagens de erro ficam em inglês, com `code` estável. As `instructions` e o prompt `daily` mandam o agente **conversar no idioma da pessoa** e **nunca traduzir nem reescrever** o texto da daily: o que a pessoa disser vai como ela disse. Teste: o texto do prompt `daily` contém essas duas regras.
 - `mcp.md`: configuração pronta para copiar em Claude Desktop, Cursor, Codex e VS Code (`{"command": "standwise", "args": ["mcp"]}`), as tools e a regra de confirmação.
 - Fase 2 (fora deste plano): MCP remoto em `/mcp` (Streamable HTTP + OAuth 2.1).
 
