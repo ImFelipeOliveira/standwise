@@ -25,7 +25,14 @@ export type OrgDaily = {
   blockers: OrgItem[];
 };
 
-export type OrgDailyQuery = { date?: string; team?: string; cursor?: string; limit?: number };
+export type OrgDailyQuery = {
+  date?: string;
+  from?: string;
+  to?: string;
+  team?: string;
+  cursor?: string;
+  limit?: number;
+};
 
 export function toOrgItem(item: Item): OrgItem {
   return {
@@ -55,12 +62,16 @@ export async function listOrgDailies(
   query: OrgDailyQuery,
 ): Promise<Page<OrgDaily>> {
   const date = parseDay(query.date, 'date');
+  const from = parseDay(query.from, 'from');
+  const to = parseDay(query.to, 'to');
   const limit = parseLimit(query.limit);
   const after = decodeCursor(query.cursor);
   const { teams } = await loadOrgTeams(deps, installationId);
   const team = requireTeam(teams, query.team);
   const rows = await listDailiesPage(deps.db, installationId, {
     date,
+    from,
+    to,
     logins: team?.memberLogins,
     after,
     limit: limit + 1,

@@ -205,14 +205,14 @@ const blockers = createRoute({
   },
 });
 
-const toPage = <T, R>(page: Page<T>, map: (row: T) => R) => ({
+export const toPage = <T, R>(page: Page<T>, map: (row: T) => R) => ({
   data: page.data.map(map),
   next_cursor: page.nextCursor,
 });
 
-const dailyJson = (d: OrgDaily) => ({ ...d, submittedAt: d.submittedAt.toISOString() });
-const digestJson = (d: OrgDigest) => ({ ...d, sentAt: d.sentAt?.toISOString() ?? null });
-const blockerJson = (b: OrgBlocker) => b;
+export const dailyJson = (d: OrgDaily) => ({ ...d, submittedAt: d.submittedAt.toISOString() });
+export const digestJson = (d: OrgDigest) => ({ ...d, sentAt: d.sentAt?.toISOString() ?? null });
+export const blockerJson = (b: OrgBlocker) => b;
 
 export function orgRoutes(deps: Deps, options: OrgOptions): OpenAPIHono<ApiKeyEnv> {
   const app = new OpenAPIHono<ApiKeyEnv>({

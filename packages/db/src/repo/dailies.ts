@@ -1,5 +1,5 @@
 import type { DailySubmission } from '@standwise/core';
-import { and, desc, eq, inArray, lt, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dailies, members } from '../schema';
 
@@ -95,6 +95,8 @@ export type DailyRecord = {
 
 export type DailyPageFilter = {
   date?: string;
+  from?: string;
+  to?: string;
   logins?: string[];
   after?: DailyCursor;
   includeAfter?: boolean;
@@ -125,6 +127,8 @@ export async function listDailiesPage(
       and(
         eq(dailies.installationId, installationId),
         f.date ? eq(dailies.date, f.date) : undefined,
+        f.from ? gte(dailies.date, f.from) : undefined,
+        f.to ? lte(dailies.date, f.to) : undefined,
         f.logins ? inArray(sql`lower(${members.login})`, f.logins) : undefined,
         f.withBlockers ? sql`jsonb_array_length(${dailies.payload}->'blockers') > 0` : undefined,
         after

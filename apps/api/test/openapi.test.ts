@@ -132,6 +132,10 @@ describe('internal openapi document', () => {
     expect(Object.keys(doc.paths).sort()).toEqual([
       '/v1/dailies',
       '/v1/draft',
+      '/v1/manage/blockers',
+      '/v1/manage/dailies',
+      '/v1/manage/digests',
+      '/v1/manage/teams',
       '/v1/meta',
       '/v1/sessions',
       '/v1/sessions/current',

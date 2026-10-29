@@ -12,7 +12,14 @@ export type OrgBlocker = {
   teams: string[];
 };
 
-export type OrgBlockerQuery = { date?: string; team?: string; cursor?: string; limit?: number };
+export type OrgBlockerQuery = {
+  date?: string;
+  from?: string;
+  to?: string;
+  team?: string;
+  cursor?: string;
+  limit?: number;
+};
 
 export async function listOrgBlockers(
   deps: Deps,
@@ -20,12 +27,16 @@ export async function listOrgBlockers(
   query: OrgBlockerQuery,
 ): Promise<Page<OrgBlocker>> {
   const date = parseDay(query.date, 'date');
+  const from = parseDay(query.from, 'from');
+  const to = parseDay(query.to, 'to');
   const limit = parseLimit(query.limit);
   const after = decodeCursor(query.cursor, 'item');
   const { teams } = await loadOrgTeams(deps, installationId);
   const team = requireTeam(teams, query.team);
   const rows = await listDailiesPage(deps.db, installationId, {
     date,
+    from,
+    to,
     logins: team?.memberLogins,
     after,
     includeAfter: after !== undefined,

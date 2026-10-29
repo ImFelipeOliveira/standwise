@@ -1,4 +1,5 @@
 export * from './authorize-installation';
+export * from './can-read-team';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
 export * from './deliver-webhook';
@@ -9,6 +10,7 @@ export * from './get-setup-status';
 export * from './handle-github-event';
 export * from './installation-api-keys';
 export * from './is-installation-admin';
+export * from './list-managed';
 export * from './list-org-blockers';
 export * from './list-org-dailies';
 export * from './list-org-digests';

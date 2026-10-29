@@ -33,6 +33,7 @@ import {
   SessionSchema,
   SubmitResultSchema,
 } from '../openapi/schemas';
+import { manageRoutes } from './manage';
 
 type Env = SessionEnv;
 
@@ -214,7 +215,7 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
 
   app.use('/v1/*', ipRateLimit(deps, options.getClientIp, 'api', IP_LIMIT));
   app.use('/v1/sessions', ipRateLimit(deps, options.getClientIp, 'sessions', SESSION_START_LIMIT));
-  for (const path of ['/v1/sessions/current', '/v1/draft', '/v1/dailies']) {
+  for (const path of ['/v1/sessions/current', '/v1/draft', '/v1/dailies', '/v1/manage/*']) {
     app.use(path, sessionAuth(deps, options.getClientIp), subjectRateLimit(deps));
   }
 
@@ -253,6 +254,8 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
       }
     },
   );
+
+  app.route('/', manageRoutes(deps, isMember));
 
   return app;
 }
