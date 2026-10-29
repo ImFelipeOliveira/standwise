@@ -16,7 +16,7 @@ export async function upsertMember(
     // Release the login if another account (e.g. a renamed user's old row) still holds it.
     await tx
       .update(members)
-      .set({ login: sql`'ghost-' || ${members.githubUserId}` })
+      .set({ login: sql`'~' || ${members.githubUserId}` })
       .where(
         and(
           sql`lower(${members.login}) = lower(${m.login})`,

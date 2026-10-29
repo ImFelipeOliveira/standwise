@@ -210,7 +210,17 @@ describe('member logins', () => {
     const b = await upsertMember(db, { githubUserId: 2, login: 'Bob', email: null });
     expect(b.login).toBe('Bob');
     const rows = await db.execute(sql`SELECT login FROM members WHERE id = ${a.id}`);
-    expect(rows[0]?.login).toBe('ghost-1');
+    expect(rows[0]?.login).toBe('~1');
+  });
+});
+
+describe('member login placeholders', () => {
+  test('a real user named ghost-<id> cannot collide with a released login', async () => {
+    const a = await upsertMember(db, { githubUserId: 123, login: 'ghost-123', email: null });
+    const b = await upsertMember(db, { githubUserId: 456, login: 'ghost-123', email: null });
+    expect(b.login).toBe('ghost-123');
+    const rows = await db.execute(sql`SELECT login FROM members WHERE id = ${a.id}`);
+    expect(rows[0]?.login).toBe('~123');
   });
 });
 
