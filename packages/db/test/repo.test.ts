@@ -17,6 +17,7 @@ import {
   listDailies,
   listFailedDeliveries,
   resolveSession,
+  revokeSession,
   saveConnection,
   setIdentity,
   setInstallationConfig,
@@ -32,6 +33,8 @@ useCleanDb();
 const INST = 100;
 const key = randomBytes(32);
 const daily = (text: string) => ({ text }) as unknown as DailySubmission;
+const backdateDeliveries = () =>
+  db.execute(sql`UPDATE deliveries SET updated_at = now() - interval '11 minutes'`);
 const dkey = {
   installationId: INST,
   teamName: 'core',
@@ -84,25 +87,26 @@ describe('deliveries', () => {
   test('claimDelivery is exclusive', async () => {
     await seed();
     const r = await Promise.all([claimDelivery(db, dkey), claimDelivery(db, dkey)]);
-    expect(r.filter((x) => x === 'claimed')).toHaveLength(1);
-    expect(r.filter((x) => x === 'in_progress')).toHaveLength(1);
+    expect(r.filter((x) => x.status === 'claimed')).toHaveLength(1);
+    expect(r.filter((x) => x.status === 'in_progress')).toHaveLength(1);
   });
 
   test('claimDelivery after sent', async () => {
     await seed();
-    expect(await claimDelivery(db, dkey)).toBe('claimed');
-    await completeDelivery(db, dkey, { channel: 'C1', id: '1.2' });
-    expect(await claimDelivery(db, dkey)).toBe('already_sent');
+    const c = await claimDelivery(db, dkey);
+    expect(c).toEqual({ status: 'claimed', token: 1 });
+    expect(await completeDelivery(db, dkey, 1, { channel: 'C1', id: '1.2' })).toBe(true);
+    expect(await claimDelivery(db, dkey)).toEqual({ status: 'already_sent' });
     expect((await getDelivery(db, dkey))?.ref).toEqual({ channel: 'C1', id: '1.2' });
   });
 
   test('claimDelivery retries failed up to 3', async () => {
     await seed();
     for (let i = 0; i < 3; i++) {
-      expect(await claimDelivery(db, dkey)).toBe('claimed');
-      await failDelivery(db, dkey, 'boom');
+      expect(await claimDelivery(db, dkey)).toEqual({ status: 'claimed', token: i + 1 });
+      expect(await failDelivery(db, dkey, i + 1, 'boom')).toBe(true);
     }
-    expect(await claimDelivery(db, dkey)).toBe('already_sent');
+    expect(await claimDelivery(db, dkey)).toEqual({ status: 'already_sent' });
     const row = await getDelivery(db, dkey);
     expect(row?.status).toBe('failed');
     expect(row?.attempts).toBe(3);
@@ -112,10 +116,37 @@ describe('deliveries', () => {
 
   test('claimDelivery reopens a stale pending row', async () => {
     await seed();
-    expect(await claimDelivery(db, dkey)).toBe('claimed');
-    expect(await claimDelivery(db, dkey)).toBe('in_progress');
-    await db.execute(sql`UPDATE deliveries SET updated_at = now() - interval '11 minutes'`);
-    expect(await claimDelivery(db, dkey)).toBe('claimed');
+    expect((await claimDelivery(db, dkey)).status).toBe('claimed');
+    expect(await claimDelivery(db, dkey)).toEqual({ status: 'in_progress' });
+    await backdateDeliveries();
+    expect(await claimDelivery(db, dkey)).toEqual({ status: 'claimed', token: 2 });
+  });
+
+  test('stale pending is capped at 3 attempts and ends failed', async () => {
+    await seed();
+    for (let i = 1; i <= 3; i++) {
+      expect(await claimDelivery(db, dkey)).toEqual({ status: 'claimed', token: i });
+      await backdateDeliveries();
+    }
+    expect(await claimDelivery(db, dkey)).toEqual({ status: 'already_sent' });
+    const row = await getDelivery(db, dkey);
+    expect(row?.status).toBe('failed');
+    expect(row?.error).toBe('worker_died: no completion after 3 attempts');
+  });
+
+  test('a stalled worker cannot overwrite a delivery completed by its successor', async () => {
+    await seed();
+    const a = await claimDelivery(db, dkey);
+    await backdateDeliveries();
+    const b = await claimDelivery(db, dkey);
+    expect(a).toEqual({ status: 'claimed', token: 1 });
+    expect(b).toEqual({ status: 'claimed', token: 2 });
+    expect(await completeDelivery(db, dkey, 2, { channel: 'C1', id: '1.2' })).toBe(true);
+    expect(await failDelivery(db, dkey, 1, 'late')).toBe(false);
+    expect(await completeDelivery(db, dkey, 1, { channel: 'C9', id: '9' })).toBe(false);
+    const row = await getDelivery(db, dkey);
+    expect(row?.status).toBe('sent');
+    expect(row?.ref).toEqual({ channel: 'C1', id: '1.2' });
   });
 });
 
@@ -173,6 +204,16 @@ describe('members and identities', () => {
   });
 });
 
+describe('member logins', () => {
+  test('upsertMember releases a login taken over case-insensitively', async () => {
+    const a = await upsertMember(db, { githubUserId: 1, login: 'bob', email: null });
+    const b = await upsertMember(db, { githubUserId: 2, login: 'Bob', email: null });
+    expect(b.login).toBe('Bob');
+    const rows = await db.execute(sql`SELECT login FROM members WHERE id = ${a.id}`);
+    expect(rows[0]?.login).toBe('ghost-1');
+  });
+});
+
 describe('sessions', () => {
   test('sessions store only hashes', async () => {
     const m = await seed();
@@ -183,6 +224,32 @@ describe('sessions', () => {
     expect((await resolveSession(db, token, 'cli'))?.id).toBe(m.id);
     expect(await resolveSession(db, token, 'web')).toBeNull();
     expect(await resolveSession(db, 'sw_nope', 'cli')).toBeNull();
+  });
+
+  test('web session expires 7 days after creation', async () => {
+    const m = await seed();
+    const token = await createSession(db, m.id, 'web');
+    await db.execute(sql`UPDATE sessions SET created_at = now() - interval '8 days'`);
+    expect(await resolveSession(db, token, 'web')).toBeNull();
+  });
+
+  test('cli session expires after 90 idle days, but use keeps it alive', async () => {
+    const m = await seed();
+    const idle = await createSession(db, m.id, 'cli');
+    await db.execute(sql`UPDATE sessions SET last_used_at = now() - interval '91 days'`);
+    expect(await resolveSession(db, idle, 'cli')).toBeNull();
+    const active = await createSession(db, m.id, 'cli');
+    await db.execute(
+      sql`UPDATE sessions SET created_at = now() - interval '200 days', last_used_at = now() - interval '30 days'`,
+    );
+    expect((await resolveSession(db, active, 'cli'))?.id).toBe(m.id);
+  });
+
+  test('revoked session resolves to null', async () => {
+    const m = await seed();
+    const token = await createSession(db, m.id, 'cli');
+    await revokeSession(db, token);
+    expect(await resolveSession(db, token, 'cli')).toBeNull();
   });
 });
 

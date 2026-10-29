@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import {
   type MemberRow,
@@ -12,16 +12,28 @@ export async function upsertMember(
   db: Db,
   m: { githubUserId: number; login: string; email: string | null },
 ): Promise<MemberRow> {
-  const [row] = await db
-    .insert(members)
-    .values(m)
-    .onConflictDoUpdate({
-      target: members.githubUserId,
-      set: { login: m.login, email: m.email },
-    })
-    .returning();
-  if (!row) throw new Error('upsertMember returned no row');
-  return row;
+  return db.transaction(async (tx) => {
+    // Release the login if another account (e.g. a renamed user's old row) still holds it.
+    await tx
+      .update(members)
+      .set({ login: sql`'ghost-' || ${members.githubUserId}` })
+      .where(
+        and(
+          sql`lower(${members.login}) = lower(${m.login})`,
+          ne(members.githubUserId, m.githubUserId),
+        ),
+      );
+    const [row] = await tx
+      .insert(members)
+      .values(m)
+      .onConflictDoUpdate({
+        target: members.githubUserId,
+        set: { login: m.login, email: m.email },
+      })
+      .returning();
+    if (!row) throw new Error('upsertMember returned no row');
+    return row;
+  });
 }
 
 /** Replaces the set of installations the member belongs to. */

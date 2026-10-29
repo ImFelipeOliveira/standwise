@@ -17,4 +17,11 @@ describe('crypto', () => {
     const key = randomBytes(32);
     expect(encryptSecret('same', key)).not.toBe(encryptSecret('same', key));
   });
+
+  test('truncated blob throws', () => {
+    const key = randomBytes(32);
+    const blob = Buffer.from(encryptSecret('x', key), 'base64');
+    expect(() => decryptSecret(blob.subarray(0, 28).toString('base64'), key)).toThrow();
+    expect(() => decryptSecret('', key)).toThrow();
+  });
 });

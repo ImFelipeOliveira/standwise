@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { migrate as drizzleMigrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -9,11 +10,11 @@ export function createDb(url: string): Db {
   return drizzle(postgres(url), { schema });
 }
 
-const migrationsFolder = new URL('../migrations', import.meta.url).pathname;
+const migrationsFolder = fileURLToPath(new URL('../migrations', import.meta.url));
 
 /** Applies pending migrations using a short-lived connection. */
 export async function migrate(url: string): Promise<void> {
-  const client = postgres(url, { max: 1 });
+  const client = postgres(url, { max: 1, onnotice: () => {} });
   try {
     await drizzleMigrate(drizzle(client), { migrationsFolder });
   } finally {

@@ -13,9 +13,10 @@ export function encryptSecret(plain: string, key: Uint8Array): string {
 
 export function decryptSecret(blob: string, key: Uint8Array): string {
   const raw = Buffer.from(blob, 'base64');
+  if (raw.length < IV_LENGTH + TAG_LENGTH + 1) throw new Error('invalid encrypted secret');
   const iv = raw.subarray(0, IV_LENGTH);
   const tag = raw.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
-  const decipher = createDecipheriv('aes-256-gcm', key, iv);
+  const decipher = createDecipheriv('aes-256-gcm', key, iv, { authTagLength: TAG_LENGTH });
   decipher.setAuthTag(tag);
   return Buffer.concat([
     decipher.update(raw.subarray(IV_LENGTH + TAG_LENGTH)),

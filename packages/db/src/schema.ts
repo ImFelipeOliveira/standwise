@@ -1,4 +1,5 @@
 import type { ConfigError, DailySubmission, MessageRef, StandwiseConfig } from '@standwise/core';
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   date,
@@ -9,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -32,12 +34,16 @@ export const installations = pgTable('installations', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const members = pgTable('members', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  githubUserId: bigint('github_user_id', { mode: 'number' }).notNull().unique(),
-  login: text('login').notNull(),
-  email: text('email'),
-});
+export const members = pgTable(
+  'members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    githubUserId: bigint('github_user_id', { mode: 'number' }).notNull().unique(),
+    login: text('login').notNull(),
+    email: text('email'),
+  },
+  (t) => [uniqueIndex('members_login_lower_idx').on(sql`lower(${t.login})`)],
+);
 
 const installationRef = () =>
   installationId()

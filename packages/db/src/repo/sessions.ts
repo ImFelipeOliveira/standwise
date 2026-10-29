@@ -3,6 +3,9 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type MemberRow, members, sessions } from '../schema';
 
+const WEB_TTL_DAYS = 7;
+const CLI_IDLE_DAYS = 90;
+
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 
 /** Returns the token ("sw_" + base64url of 32 random bytes); only its sha256 hex is stored. */
@@ -22,12 +25,21 @@ export async function resolveSession(
   kind: 'cli' | 'web',
 ): Promise<MemberRow | null> {
   const tokenHash = hash(token);
+  // web: fixed lifetime from creation; cli: expires after being idle.
+  const fresh =
+    kind === 'web'
+      ? sql`${sessions.createdAt} > now() - make_interval(days => ${WEB_TTL_DAYS})`
+      : sql`${sessions.lastUsedAt} > now() - make_interval(days => ${CLI_IDLE_DAYS})`;
   const [row] = await db
     .update(sessions)
     .set({ lastUsedAt: sql`now()` })
-    .where(and(eq(sessions.tokenHash, tokenHash), eq(sessions.kind, kind)))
+    .where(and(eq(sessions.tokenHash, tokenHash), eq(sessions.kind, kind), fresh))
     .returning({ memberId: sessions.memberId });
   if (!row) return null;
   const [member] = await db.select().from(members).where(eq(members.id, row.memberId));
   return member ?? null;
+}
+
+export async function revokeSession(db: Db, token: string): Promise<void> {
+  await db.delete(sessions).where(eq(sessions.tokenHash, hash(token)));
 }

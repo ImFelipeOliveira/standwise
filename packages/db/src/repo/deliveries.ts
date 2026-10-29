@@ -23,14 +23,20 @@ const keyFilter = (k: DeliveryKey) =>
     eq(deliveries.subject, k.subject ?? ''),
   );
 
+export type ClaimResult =
+  | { status: 'claimed'; token: number }
+  | { status: 'already_sent' }
+  | { status: 'in_progress' };
+
+const staleSql = sql`${deliveries.updatedAt} < now() - make_interval(mins => ${STALE_PENDING_MINUTES})`;
+
 /**
  * Atomically claims the right to send. Inserts a 'pending' row; on conflict it only reopens a
- * 'failed' row with attempts < 3, or a 'pending' row stale for over 10 minutes (dead worker).
+ * 'failed' row, or a 'pending' row stale for over 10 minutes (dead worker), while attempts < 3.
+ * The returned token (the new attempts value) fences completeDelivery/failDelivery. A stale
+ * pending row already at the cap is marked failed.
  */
-export async function claimDelivery(
-  db: Db,
-  k: DeliveryKey,
-): Promise<'claimed' | 'already_sent' | 'in_progress'> {
+export async function claimDelivery(db: Db, k: DeliveryKey): Promise<ClaimResult> {
   const claimed = await db
     .insert(deliveries)
     .values({
@@ -56,29 +62,61 @@ export async function claimDelivery(
         error: null,
         updatedAt: sql`now()`,
       },
-      setWhere: sql`(${deliveries.status} = 'failed' AND ${deliveries.attempts} < ${MAX_ATTEMPTS})
-        OR (${deliveries.status} = 'pending'
-          AND ${deliveries.updatedAt} < now() - make_interval(mins => ${STALE_PENDING_MINUTES}))`,
+      setWhere: sql`${deliveries.attempts} < ${MAX_ATTEMPTS}
+        AND (${deliveries.status} = 'failed'
+          OR (${deliveries.status} = 'pending' AND ${staleSql}))`,
     })
-    .returning({ id: deliveries.id });
-  if (claimed.length > 0) return 'claimed';
+    .returning({ attempts: deliveries.attempts });
+  const first = claimed[0];
+  if (first) return { status: 'claimed', token: first.attempts };
+
+  await db
+    .update(deliveries)
+    .set({
+      status: 'failed',
+      error: `worker_died: no completion after ${MAX_ATTEMPTS} attempts`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        keyFilter(k),
+        eq(deliveries.status, 'pending'),
+        sql`${deliveries.attempts} >= ${MAX_ATTEMPTS}`,
+        staleSql,
+      ),
+    );
 
   const row = await getDelivery(db, k);
-  return row?.status === 'pending' ? 'in_progress' : 'already_sent';
+  return row?.status === 'pending' ? { status: 'in_progress' } : { status: 'already_sent' };
 }
 
-export async function completeDelivery(db: Db, k: DeliveryKey, ref: MessageRef): Promise<void> {
-  await db
+/** Applies only if the caller still owns the claim (status pending and attempts = token). */
+export async function completeDelivery(
+  db: Db,
+  k: DeliveryKey,
+  token: number,
+  ref: MessageRef,
+): Promise<boolean> {
+  const rows = await db
     .update(deliveries)
     .set({ status: 'sent', ref, error: null, updatedAt: sql`now()` })
-    .where(keyFilter(k));
+    .where(and(keyFilter(k), eq(deliveries.status, 'pending'), eq(deliveries.attempts, token)))
+    .returning({ id: deliveries.id });
+  return rows.length > 0;
 }
 
-export async function failDelivery(db: Db, k: DeliveryKey, error: string): Promise<void> {
-  await db
+export async function failDelivery(
+  db: Db,
+  k: DeliveryKey,
+  token: number,
+  error: string,
+): Promise<boolean> {
+  const rows = await db
     .update(deliveries)
     .set({ status: 'failed', error, updatedAt: sql`now()` })
-    .where(keyFilter(k));
+    .where(and(keyFilter(k), eq(deliveries.status, 'pending'), eq(deliveries.attempts, token)))
+    .returning({ id: deliveries.id });
+  return rows.length > 0;
 }
 
 export async function getDelivery(db: Db, k: DeliveryKey): Promise<DeliveryRow | null> {
