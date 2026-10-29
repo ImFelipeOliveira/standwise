@@ -7,7 +7,7 @@ const later = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
 
 describe('state token', () => {
   test('round-trips within ten minutes', () => {
-    const token = signState('s', { kind: 'login', next: '/setup' }, NOW);
+    const token = signState('s', { kind: 'login', next: '/setup', nonceHash: 'h' }, NOW);
     expect(verifyState('s', token, 'login', later(9))).toMatchObject({
       kind: 'login',
       next: '/setup',
@@ -15,12 +15,12 @@ describe('state token', () => {
   });
 
   test('expires after ten minutes', () => {
-    const token = signState('s', { kind: 'login', next: '/' }, NOW);
+    const token = signState('s', { kind: 'login', next: '/', nonceHash: 'h' }, NOW);
     expect(verifyState('s', token, 'login', later(11))).toBeNull();
   });
 
   test('rejects another secret, another kind and malformed input', () => {
-    const token = signState('s', { kind: 'login', next: '/' }, NOW);
+    const token = signState('s', { kind: 'login', next: '/', nonceHash: 'h' }, NOW);
     expect(verifyState('other', token, 'login', NOW)).toBeNull();
     expect(verifyState('s', token, 'slack', NOW)).toBeNull();
     expect(verifyState('s', 'garbage', 'login', NOW)).toBeNull();

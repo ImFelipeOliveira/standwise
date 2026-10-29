@@ -9,7 +9,7 @@ export const BRAND = {
 };
 
 const css = `
-body { margin: 0; background: ${BRAND.background}; color: ${BRAND.text}; font-family: Inter, system-ui, sans-serif; line-height: 1.5; }
+body { margin: 0; background: ${BRAND.background}; color: ${BRAND.text}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; line-height: 1.5; }
 main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; font-weight: 700; font-size: 20px; }
 section { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
@@ -39,11 +39,6 @@ export function Layout(props: { lang: Language; title: string; children?: Child 
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{props.title}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-        />
         <style>{css}</style>
       </head>
       <body>

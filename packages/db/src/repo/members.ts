@@ -72,6 +72,14 @@ export async function setMemberInstallations(
   });
 }
 
+export async function addMemberInstallation(
+  db: Db,
+  memberId: string,
+  installationId: number,
+): Promise<void> {
+  await db.insert(memberInstallations).values({ memberId, installationId }).onConflictDoNothing();
+}
+
 export async function setIdentity(
   db: Db,
   installationId: number,

@@ -6,7 +6,10 @@ export type DomainErrorCode =
   | 'org_not_configured'
   | 'not_in_team'
   | 'forbidden'
-  | 'invalid_state';
+  | 'invalid_state'
+  | 'installation_pending'
+  | 'access_denied'
+  | 'slack_oauth_failed';
 
 export class DomainError extends Error {
   constructor(

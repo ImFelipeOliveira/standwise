@@ -78,6 +78,7 @@ export const connections = pgTable(
     installationId: installationRef(),
     provider: text('provider').$type<Provider>().notNull(),
     externalId: text('external_id').notNull(),
+    externalName: text('external_name'),
     secretCiphertext: text('secret_ciphertext').notNull(),
     createdAt: createdAt(),
   },

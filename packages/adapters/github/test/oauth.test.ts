@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { exchangeWebCode, githubAuthorizeUrl } from '../src/oauth';
+import { exchangeWebCode, GitHubOAuthError, githubAuthorizeUrl } from '../src/oauth';
 
 describe('github web oauth', () => {
   test('exchanges the code for a user token', async () => {
@@ -26,7 +26,18 @@ describe('github web oauth', () => {
       Response.json({ error: 'bad_verification_code' })) as unknown as typeof fetch;
     await expect(
       exchangeWebCode({ clientId: 'c', clientSecret: 's', code: 'x' }, { fetch: fakeFetch }),
-    ).rejects.toThrow('bad_verification_code');
+    ).rejects.toBeInstanceOf(GitHubOAuthError);
+  });
+
+  test('a server failure is not an oauth error', async () => {
+    const fakeFetch = (async () =>
+      new Response('oops', { status: 500 })) as unknown as typeof fetch;
+    const error = await exchangeWebCode(
+      { clientId: 'c', clientSecret: 's', code: 'x' },
+      { fetch: fakeFetch },
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(GitHubOAuthError);
   });
 
   test('builds the authorize url', () => {

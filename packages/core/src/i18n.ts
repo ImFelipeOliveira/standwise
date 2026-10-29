@@ -32,6 +32,25 @@ const ptBR = {
   'web.slack.title': 'Slack',
   'web.slack.connect': 'Conectar Slack',
   'web.slack.connected': 'Conectado ao workspace',
+  'web.template.teamName': 'Time',
+  'web.error.signIn': 'Entrar com o GitHub',
+  'web.error.refresh': 'Atualizar a página',
+  'web.error.generic.title': 'Algo deu errado',
+  'web.error.generic.body': 'Não foi possível concluir esta ação. Tente novamente em instantes.',
+  'web.error.unauthorized.title': 'Login necessário',
+  'web.error.unauthorized.body': 'Entre com o GitHub para continuar.',
+  'web.error.forbidden.title': 'Acesso negado',
+  'web.error.forbidden.body': 'Você não tem acesso a esta instalação do Standwise.',
+  'web.error.invalid_state.title': 'Link expirado ou inválido',
+  'web.error.invalid_state.body': 'O link de autorização expirou ou é inválido. Entre novamente.',
+  'web.error.access_denied.title': 'Autorização negada',
+  'web.error.access_denied.body': 'O acesso foi negado. Nada foi alterado.',
+  'web.error.installation_pending.title': 'Instalação em processamento',
+  'web.error.installation_pending.body':
+    'Esta instalação ainda está sendo processada. Atualize a página em alguns segundos.',
+  'web.error.slack_oauth_failed.title': 'Falha ao conectar o Slack',
+  'web.error.slack_oauth_failed.body':
+    'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
 } as const;
 
 const en = {
@@ -66,6 +85,25 @@ const en = {
   'web.slack.title': 'Slack',
   'web.slack.connect': 'Connect Slack',
   'web.slack.connected': 'Connected to workspace',
+  'web.template.teamName': 'Team',
+  'web.error.signIn': 'Sign in with GitHub',
+  'web.error.refresh': 'Refresh the page',
+  'web.error.generic.title': 'Something went wrong',
+  'web.error.generic.body': 'We could not complete this action. Please try again shortly.',
+  'web.error.unauthorized.title': 'Login required',
+  'web.error.unauthorized.body': 'Sign in with GitHub to continue.',
+  'web.error.forbidden.title': 'Access denied',
+  'web.error.forbidden.body': 'You do not have access to this Standwise installation.',
+  'web.error.invalid_state.title': 'Link expired or invalid',
+  'web.error.invalid_state.body': 'The authorization link expired or is invalid. Sign in again.',
+  'web.error.access_denied.title': 'Authorization denied',
+  'web.error.access_denied.body': 'Access was denied. Nothing was changed.',
+  'web.error.installation_pending.title': 'Installation in progress',
+  'web.error.installation_pending.body':
+    'This installation is still being processed. Refresh the page in a few seconds.',
+  'web.error.slack_oauth_failed.title': 'Slack connection failed',
+  'web.error.slack_oauth_failed.body':
+    'We could not complete the Slack connection. Please try connecting again.',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {

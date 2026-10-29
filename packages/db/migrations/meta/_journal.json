@@ -22,6 +22,13 @@
       "when": 1793235370742,
       "tag": "0002_installation_account_id",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793236313393,
+      "tag": "0003_connection_external_name",
+      "breakpoints": true
     }
   ]
 }

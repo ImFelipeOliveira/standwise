@@ -1,3 +1,4 @@
+export * from './authorize-installation';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
 export * from './errors';

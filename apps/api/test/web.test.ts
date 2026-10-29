@@ -5,6 +5,7 @@ import {
   createSession,
   failDelivery,
   getConnection,
+  listMemberInstallations,
   resolveSession,
   setInstallationConfig,
   setMemberInstallations,
@@ -13,6 +14,7 @@ import {
 } from '@standwise/db';
 import type { Deps } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
+import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
 
@@ -35,7 +37,7 @@ teams:
   return parsed.config;
 }
 
-function harness(opts: { hasConfigRepo?: boolean } = {}) {
+function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
@@ -53,7 +55,7 @@ function harness(opts: { hasConfigRepo?: boolean } = {}) {
               return { status: 200, data: { id: 1, login: 'alice' } };
             }
             if (route === 'GET /orgs/{org}/members/{username}') {
-              if (!orgMembers.has(String(params.username).toLowerCase())) {
+              if (params.org !== 'acme' || !orgMembers.has(String(params.username).toLowerCase())) {
                 throw Object.assign(new Error('not found'), { status: 404 });
               }
               return { status: 204 };
@@ -83,8 +85,9 @@ function harness(opts: { hasConfigRepo?: boolean } = {}) {
     },
     slack: {
       exchangeCode: async (p) => {
+        if (opts.slackFails) throw new ChatDeliveryError('invalid_code', 'bad code');
         slackCalls.push({ code: p.code, redirectUri: p.redirectUri });
-        return { teamId: 'T123', botToken: 'xoxb-secret' };
+        return { teamId: 'T123', teamName: 'Acme Workspace', botToken: 'xoxb-secret' };
       },
     },
     chatFor: async () => null,
@@ -120,6 +123,26 @@ async function seed(setup: (installationId: number) => Promise<void> = async () 
 
 const location = (res: Response) => res.headers.get('location') ?? '';
 
+async function beginLogin(app: ReturnType<typeof createApp>, next?: string) {
+  const res = await app.request(
+    `/auth/github/login${next === undefined ? '' : `?next=${encodeURIComponent(next)}`}`,
+  );
+  const state = new URL(location(res)).searchParams.get('state') ?? '';
+  const setCookie = res.headers.get('set-cookie') ?? '';
+  const nonce = /sw_login=([^;]+)/.exec(setCookie)?.[1] ?? '';
+  return { res, state, setCookie, loginCookie: `sw_login=${nonce}` };
+}
+
+const callback = (
+  app: ReturnType<typeof createApp>,
+  state: string,
+  cookie?: string,
+  code = 'abc',
+) =>
+  app.request(`/auth/github/callback?code=${code}&state=${encodeURIComponent(state)}`, {
+    headers: cookie ? { cookie } : {},
+  });
+
 describe('web login', () => {
   useCleanDb();
 
@@ -132,46 +155,75 @@ describe('web login', () => {
     );
   });
 
-  test('login redirects to github with a signed state', async () => {
+  test('login redirects to github with a signed state and sets the nonce cookie', async () => {
     const { app } = harness();
-    const res = await app.request('/auth/github/login?next=/setup%3Finstallation_id%3D11');
+    const { res, setCookie } = await beginLogin(app, '/setup?installation_id=11');
     expect(res.status).toBe(302);
     const url = new URL(location(res));
     expect(url.origin + url.pathname).toBe('https://github.com/login/oauth/authorize');
     expect(url.searchParams.get('client_id')).toBe('cid');
     expect(url.searchParams.get('redirect_uri')).toBe('https://sw.test/auth/github/callback');
     expect(url.searchParams.get('state')).toContain('.');
+    expect(setCookie).toContain('sw_login=');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('Secure');
+    expect(setCookie).toContain('SameSite=Lax');
+    expect(setCookie).toContain('Path=/auth/github');
+    expect(setCookie).toContain('Max-Age=600');
   });
 
-  test('callback creates a web session cookie and redirects to next', async () => {
+  test('callback creates a web session cookie, clears the nonce and redirects to next', async () => {
     const { app, webCodes } = harness();
     await seed();
-    const login = await app.request('/auth/github/login?next=/setup%3Finstallation_id%3D11');
-    const state = new URL(location(login)).searchParams.get('state') ?? '';
-    const res = await app.request(
-      `/auth/github/callback?code=abc&state=${encodeURIComponent(state)}`,
-    );
+    const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=11');
+    const res = await callback(app, state, loginCookie);
     expect(res.status).toBe(302);
     expect(location(res)).toBe('/setup?installation_id=11');
     expect(webCodes).toEqual(['abc']);
-    const cookie = res.headers.get('set-cookie') ?? '';
-    expect(cookie).toContain('sw_web=');
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('Secure');
-    expect(cookie).toContain('SameSite=Lax');
-    expect(cookie).toContain('Path=/');
-    expect(cookie).toContain('Max-Age=604800');
-    const token = /sw_web=([^;]+)/.exec(cookie)?.[1] ?? '';
+    const cookies = res.headers.getSetCookie();
+    const web = cookies.find((c) => c.startsWith('sw_web=')) ?? '';
+    expect(web).toContain('HttpOnly');
+    expect(web).toContain('Secure');
+    expect(web).toContain('SameSite=Lax');
+    expect(web).toContain('Path=/');
+    expect(web).toContain('Max-Age=604800');
+    const cleared = cookies.find((c) => c.startsWith('sw_login=')) ?? '';
+    expect(cleared).toContain('Max-Age=0');
+    expect(cleared).toContain('Path=/auth/github');
+    const token = /sw_web=([^;]+)/.exec(web)?.[1] ?? '';
     expect((await resolveSession(db, token, 'web'))?.login).toBe('alice');
   });
 
   test('callback rejects a tampered state', async () => {
     const { app, webCodes } = harness();
-    const login = await app.request('/auth/github/login');
-    const state = new URL(location(login)).searchParams.get('state') ?? '';
-    const res = await app.request(`/auth/github/callback?code=abc&state=${state}x`);
+    const { state, loginCookie } = await beginLogin(app);
+    const res = await callback(app, `${state}x`, loginCookie);
     expect(res.status).toBe(400);
     expect(webCodes).toEqual([]);
+  });
+
+  test('callback rejects a valid state without its cookie or with a different one', async () => {
+    const { app, webCodes } = harness();
+    await seed();
+    const { state } = await beginLogin(app);
+    const other = await beginLogin(app);
+    for (const cookie of [undefined, other.loginCookie, 'sw_login=']) {
+      const res = await callback(app, state, cookie);
+      expect(res.status).toBe(400);
+      expect(res.headers.getSetCookie().some((c) => c.startsWith('sw_web='))).toBe(false);
+    }
+    expect(webCodes).toEqual([]);
+  });
+
+  test('callback with access_denied renders a friendly page', async () => {
+    const { app } = harness();
+    const res = await app.request('/auth/github/callback?error=access_denied', {
+      headers: { 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(403);
+    const html = await res.text();
+    expect(html).toContain('<html');
+    expect(html).toContain('Access was denied');
   });
 
   for (const next of [
@@ -184,11 +236,8 @@ describe('web login', () => {
     test(`open redirect blocked: ${next}`, async () => {
       const { app } = harness();
       await seed();
-      const login = await app.request(`/auth/github/login?next=${encodeURIComponent(next)}`);
-      const state = new URL(location(login)).searchParams.get('state') ?? '';
-      const res = await app.request(
-        `/auth/github/callback?code=abc&state=${encodeURIComponent(state)}`,
-      );
+      const { state, loginCookie } = await beginLogin(app, next);
+      const res = await callback(app, state, loginCookie);
       expect(res.status).toBe(302);
       expect(location(res)).toBe('/');
     });
@@ -298,7 +347,7 @@ describe('setup page', () => {
       headers: { cookie },
     });
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
-    expect(await res.text()).toContain('T123');
+    expect(await res.text()).toContain('Acme Workspace');
   });
 });
 
@@ -404,7 +453,140 @@ describe('slack connection', () => {
     ]);
     expect(await getConnection(db, INST, 'slack', KEY)).toEqual({
       externalId: 'T123',
+      externalName: 'Acme Workspace',
       secret: 'xoxb-secret',
     });
+  });
+});
+
+describe('setup right after install', () => {
+  useCleanDb();
+
+  test('links an existing installation for a live organization member', async () => {
+    const { app } = harness();
+    const { cookie, member } = await seed();
+    await setMemberInstallations(db, member.id, []);
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect((await listMemberInstallations(db, member.id)).map((i) => i.installationId)).toEqual([
+      INST,
+    ]);
+  });
+
+  test('redirects once to a resync login when the installation row is missing', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request('/setup?installation_id=777', { headers: { cookie } });
+    expect(res.status).toBe(302);
+    expect(location(res)).toBe(
+      `/auth/github/login?next=${encodeURIComponent('/setup?installation_id=777&resynced=1')}`,
+    );
+  });
+
+  test('renders a localized pending page instead of looping after the resync', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await app.request('/setup?installation_id=777&resynced=1', {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(en.status).toBe(409);
+    expect(await en.text()).toContain('still being processed');
+    const pt = await app.request('/setup?installation_id=777&resynced=1', { headers: { cookie } });
+    expect(pt.status).toBe(409);
+    expect(await pt.text()).toContain('ainda está sendo processada');
+  });
+});
+
+describe('browser error pages', () => {
+  useCleanDb();
+
+  test('forbidden renders a localized html page in english and pt-BR', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await app.request(`/setup?installation_id=${FOREIGN}`, {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(en.status).toBe(403);
+    expect(en.headers.get('content-type')).toContain('text/html');
+    const enHtml = await en.text();
+    expect(enHtml).toContain('<html lang="en"');
+    expect(enHtml).toContain('You do not have access');
+    const pt = await app.request(`/setup?installation_id=${FOREIGN}`, { headers: { cookie } });
+    expect(pt.status).toBe(403);
+    const ptHtml = await pt.text();
+    expect(ptHtml).toContain('<html lang="pt-BR"');
+    expect(ptHtml).toContain('Você não tem acesso');
+  });
+
+  test('slack access_denied renders a friendly page', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request('/oauth/slack/callback?error=access_denied', {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(403);
+    expect(await res.text()).toContain('Access was denied');
+  });
+
+  test('missing session on the slack callback renders html', async () => {
+    const { app } = harness();
+    const res = await app.request('/oauth/slack/callback?code=c&state=x');
+    expect(res.status).toBe(401);
+    expect(res.headers.get('content-type')).toContain('text/html');
+  });
+
+  test('slack exchange failure renders a friendly page', async () => {
+    const { app } = harness({ slackFails: true });
+    const { cookie } = await seed();
+    const started = await app.request(`/connect/slack?installation_id=${INST}`, {
+      headers: { cookie },
+    });
+    const state = new URL(location(started)).searchParams.get('state') ?? '';
+    const res = await app.request(
+      `/oauth/slack/callback?code=c&state=${encodeURIComponent(state)}`,
+      {
+        headers: { cookie, 'accept-language': 'en' },
+      },
+    );
+    expect(res.status).toBe(502);
+    expect(await res.text()).toContain('Slack');
+    expect(await getConnection(db, INST, 'slack', KEY)).toBeNull();
+  });
+
+  test('the v1 api keeps json errors', async () => {
+    const { app } = harness();
+    const res = await app.request('/v1/draft');
+    expect(res.status).toBe(401);
+    expect((await res.json()).error.code).toBe('unauthorized');
+  });
+});
+
+describe('escaping', () => {
+  useCleanDb();
+
+  test('config errors are html escaped', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, {
+        status: 'invalid',
+        errors: [{ path: '"><img src=x>', message: '<script>alert(1)</script>' }],
+      });
+    });
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    const html = await res.text();
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).not.toContain('<img src=x>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).toContain('&quot;&gt;&lt;img src=x&gt;');
+  });
+
+  test('the page uses a system font stack and no external font host', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).not.toContain('fonts.googleapis.com');
+    expect(html).toContain('-apple-system');
   });
 });

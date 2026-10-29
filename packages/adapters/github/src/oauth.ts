@@ -1,3 +1,10 @@
+export class GitHubOAuthError extends Error {
+  constructor(readonly code: string) {
+    super(`github oauth exchange failed: ${code}`);
+    this.name = 'GitHubOAuthError';
+  }
+}
+
 export function githubAuthorizeUrl(p: { clientId: string; redirectUri: string; state: string }) {
   const u = new URL('https://github.com/login/oauth/authorize');
   u.searchParams.set('client_id', p.clientId);
@@ -24,8 +31,10 @@ export async function exchangeWebCode(
     access_token?: unknown;
     error?: unknown;
   } | null;
+  if (typeof body?.error === 'string') throw new GitHubOAuthError(body.error);
+  if (response.status === 401) throw new GitHubOAuthError('unauthorized');
   if (!response.ok || typeof body?.access_token !== 'string' || body.access_token === '') {
-    throw new Error(`github oauth exchange failed: ${String(body?.error ?? response.status)}`);
+    throw new Error(`github oauth exchange failed: ${response.status}`);
   }
   return body.access_token;
 }

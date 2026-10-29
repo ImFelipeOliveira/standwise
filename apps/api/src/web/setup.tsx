@@ -9,7 +9,10 @@ const REASONS: Record<string, MessageKey> = {
   no_access: 'web.setup.reason.no_access',
 };
 
-const formatDate = (date: Date) => `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+const formatDate = (lang: Language, date: Date) =>
+  new Intl.DateTimeFormat(lang, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(
+    date,
+  );
 
 export function SetupPage(props: { lang: Language; status: SetupStatus }) {
   const { status } = props;
@@ -18,7 +21,7 @@ export function SetupPage(props: { lang: Language; status: SetupStatus }) {
     const key = REASONS[reason];
     return key ? t(key) : '';
   };
-  const template = standwiseYmlTemplate(status.login);
+  const template = standwiseYmlTemplate(status.login, t('web.template.teamName'));
   return (
     <Layout lang={props.lang} title={t('web.setup.title')}>
       <h1>{t('web.setup.heading')}</h1>
@@ -50,32 +53,28 @@ export function SetupPage(props: { lang: Language; status: SetupStatus }) {
             <p>{t('web.setup.instruction')}</p>
           </>
         ) : null}
-        {
-          <>
-            <p>
-              {status.configRepo.exists ? (
-                <a
-                  class="button"
-                  href={newConfigFileUrl(status.owner, status.configRepo.defaultBranch, template)}
-                >
-                  {t('web.setup.createFile')}
-                </a>
-              ) : (
-                <a class="button" href={newConfigRepoUrl()}>
-                  {t('web.setup.createRepo')}
-                </a>
-              )}
-            </p>
-            <h2>{t('web.setup.template')}</h2>
-            <pre>{template}</pre>
-          </>
-        }
+        <p>
+          {status.configRepo.exists ? (
+            <a
+              class="button"
+              href={newConfigFileUrl(status.owner, status.configRepo.defaultBranch, template)}
+            >
+              {t('web.setup.createFile')}
+            </a>
+          ) : (
+            <a class="button" href={newConfigRepoUrl()}>
+              {t('web.setup.createRepo')}
+            </a>
+          )}
+        </p>
+        <h2>{t('web.setup.template')}</h2>
+        <pre>{template}</pre>
       </section>
       <section>
         <h2>{t('web.slack.title')}</h2>
         {status.slack.connected ? (
           <p>
-            {t('web.slack.connected')} <code>{status.slack.teamId}</code>
+            {t('web.slack.connected')} <code>{status.slack.workspace}</code>
           </p>
         ) : (
           <a class="button" href={`/connect/slack?installation_id=${status.installationId}`}>
@@ -91,8 +90,8 @@ export function SetupPage(props: { lang: Language; status: SetupStatus }) {
           <ul>
             {status.failedDeliveries.map((d) => (
               <li>
-                {t('web.setup.team')}: {d.team} | {t('web.setup.date')}: {formatDate(d.at)} |{' '}
-                {t('web.setup.error')}: <code>{d.error}</code>
+                {t('web.setup.team')}: {d.team} | {t('web.setup.date')}:{' '}
+                {formatDate(props.lang, d.at)} | {t('web.setup.error')}: <code>{d.error}</code>
               </li>
             ))}
           </ul>

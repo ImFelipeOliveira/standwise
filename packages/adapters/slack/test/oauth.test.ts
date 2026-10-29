@@ -25,7 +25,11 @@ describe('oauth', () => {
       port: 0,
       async fetch(req) {
         body = Object.fromEntries(new URLSearchParams(await req.text()));
-        return Response.json({ ok: true, access_token: 'xoxb-1', team: { id: 'T1' } });
+        return Response.json({
+          ok: true,
+          access_token: 'xoxb-1',
+          team: { id: 'T1', name: 'Acme' },
+        });
       },
     });
     const out = await exchangeSlackCode({
@@ -35,7 +39,7 @@ describe('oauth', () => {
       redirectUri: 'https://a/cb',
       slackApiUrl: `http://localhost:${server.port}/api/`,
     });
-    expect(out).toEqual({ teamId: 'T1', botToken: 'xoxb-1' });
+    expect(out).toEqual({ teamId: 'T1', teamName: 'Acme', botToken: 'xoxb-1' });
     expect(body.code).toBe('c1');
   });
 

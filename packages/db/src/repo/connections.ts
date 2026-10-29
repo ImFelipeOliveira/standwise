@@ -10,14 +10,21 @@ export async function saveConnection(
   externalId: string,
   secret: string,
   key: Uint8Array,
+  externalName?: string,
 ): Promise<void> {
   const secretCiphertext = encryptSecret(secret, key);
   await db
     .insert(connections)
-    .values({ installationId, provider, externalId, secretCiphertext })
+    .values({
+      installationId,
+      provider,
+      externalId,
+      externalName: externalName ?? null,
+      secretCiphertext,
+    })
     .onConflictDoUpdate({
       target: [connections.installationId, connections.provider],
-      set: { externalId, secretCiphertext },
+      set: { externalId, externalName: externalName ?? null, secretCiphertext },
     });
 }
 
@@ -26,12 +33,16 @@ export async function getConnection(
   installationId: number,
   provider: Provider,
   key: Uint8Array,
-): Promise<{ externalId: string; secret: string } | null> {
+): Promise<{ externalId: string; externalName: string | null; secret: string } | null> {
   const [row] = await db
     .select()
     .from(connections)
     .where(and(eq(connections.installationId, installationId), eq(connections.provider, provider)));
   return row
-    ? { externalId: row.externalId, secret: decryptSecret(row.secretCiphertext, key) }
+    ? {
+        externalId: row.externalId,
+        externalName: row.externalName,
+        secret: decryptSecret(row.secretCiphertext, key),
+      }
     : null;
 }

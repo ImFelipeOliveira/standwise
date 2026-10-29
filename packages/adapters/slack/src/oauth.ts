@@ -30,7 +30,7 @@ export async function exchangeSlackCode(p: {
   code: string;
   redirectUri: string;
   slackApiUrl?: string;
-}): Promise<{ teamId: string; botToken: string }> {
+}): Promise<{ teamId: string; teamName: string; botToken: string }> {
   const client = createWebClient(undefined, p.slackApiUrl);
   const res = await mapSlackErrors(() =>
     client.oauth.v2.access({
@@ -43,5 +43,9 @@ export async function exchangeSlackCode(p: {
   if (!res.team?.id || !res.access_token) {
     throw new ChatDeliveryError('invalid_oauth_response', 'oauth response missing team or token');
   }
-  return { teamId: res.team.id, botToken: res.access_token };
+  return {
+    teamId: res.team.id,
+    teamName: res.team.name ?? res.team.id,
+    botToken: res.access_token,
+  };
 }

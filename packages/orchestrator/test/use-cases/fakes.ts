@@ -28,6 +28,9 @@ export type FakeOptions = {
   findUserError?: Error;
   source?: Source;
   installationIds?: number[];
+  webCode?: (code: string) => Promise<string>;
+  slackExchange?: Deps['slack']['exchangeCode'];
+  configRepo?: 'missing' | 'error';
 };
 
 export function fakeDeps(opts: FakeOptions = {}) {
@@ -55,6 +58,15 @@ export function fakeDeps(opts: FakeOptions = {}) {
       const login = users.get(Number(params.account_id));
       if (!login) throw Object.assign(new Error('not found'), { status: 404 });
       return { status: 200, data: { id: Number(params.account_id), login } };
+    }
+    if (route === 'GET /repos/{owner}/{repo}') {
+      if (opts.configRepo === 'missing') {
+        throw Object.assign(new Error('not found'), { status: 404 });
+      }
+      if (opts.configRepo === 'error') {
+        throw Object.assign(new Error('boom'), { status: 500 });
+      }
+      return { status: 200, data: { default_branch: 'trunk' } };
     }
     throw new Error(route);
   };
@@ -85,14 +97,12 @@ export function fakeDeps(opts: FakeOptions = {}) {
         calls.config.push(owner);
         return opts.source ?? { found: false, reason: 'no_repo' };
       },
-      exchangeWebCode: async () => {
-        throw new Error('unused');
-      },
+      exchangeWebCode: opts.webCode ?? (async () => 'ghu_token'),
     },
     slack: {
-      exchangeCode: async () => {
-        throw new Error('unused');
-      },
+      exchangeCode:
+        opts.slackExchange ??
+        (async () => ({ teamId: 'T1', teamName: 'Acme Workspace', botToken: 'xoxb-1' })),
     },
     chatFor: async () =>
       ({

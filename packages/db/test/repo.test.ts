@@ -283,11 +283,12 @@ describe('sessions', () => {
 describe('connections', () => {
   test('connection secret encrypted', async () => {
     await seed();
-    await saveConnection(db, INST, 'slack', 'T1', 'xoxb-secret', key);
+    await saveConnection(db, INST, 'slack', 'T1', 'xoxb-secret', key, 'Acme');
     const rows = await db.execute(sql`SELECT secret_ciphertext FROM connections`);
     expect(rows[0]?.secret_ciphertext).not.toBe('xoxb-secret');
     expect(await getConnection(db, INST, 'slack', key)).toEqual({
       externalId: 'T1',
+      externalName: 'Acme',
       secret: 'xoxb-secret',
     });
   });

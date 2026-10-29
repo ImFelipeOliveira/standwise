@@ -1,6 +1,6 @@
-export function standwiseYmlTemplate(login: string): string {
+export function standwiseYmlTemplate(login: string, teamName: string): string {
   return `teams:
-  - name: Time
+  - name: ${teamName}
     timezone: America/Sao_Paulo
     remind_at: "09:00"
     digest_at: "10:00"

@@ -2,7 +2,7 @@ import { DomainError, type DomainErrorCode } from '@standwise/orchestrator';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
+export const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   unauthorized: 401,
   invalid_request: 422,
   invalid_daily: 422,
@@ -11,6 +11,9 @@ const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   not_in_team: 422,
   forbidden: 403,
   invalid_state: 400,
+  installation_pending: 409,
+  access_denied: 403,
+  slack_oauth_failed: 502,
 };
 
 export function onError(error: Error, c: Context): Response {

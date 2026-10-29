@@ -15,7 +15,7 @@ export type SetupStatus = {
     | { status: 'invalid'; errors: ConfigError[] }
     | { status: 'unconfigured'; reason: string };
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
-  slack: { connected: false } | { connected: true; teamId: string };
+  slack: { connected: false } | { connected: true; workspace: string };
   failedDeliveries: { team: string; at: Date; error: string }[];
   supportEmail: string;
 };
@@ -31,7 +31,7 @@ async function findConfigRepo(octokit: Octokit, owner: string): Promise<SetupSta
     return { exists: true, defaultBranch: response.data.default_branch || 'main' };
   } catch (error) {
     if ((error as { status?: unknown } | null)?.status === 404) return { exists: false };
-    return { exists: true, defaultBranch: 'main' };
+    throw error;
   }
 }
 
@@ -65,7 +65,9 @@ export async function getSetupStatus(
     login: current.login,
     config,
     configRepo,
-    slack: connection ? { connected: true, teamId: connection.externalId } : { connected: false },
+    slack: connection
+      ? { connected: true, workspace: connection.externalName ?? connection.externalId }
+      : { connected: false },
     failedDeliveries: failed.map((d) => ({
       team: d.teamName,
       at: d.updatedAt,
