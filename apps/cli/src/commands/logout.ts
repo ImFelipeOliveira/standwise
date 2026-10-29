@@ -8,8 +8,8 @@ export async function logout({ io, lang }: Ctx): Promise<number> {
   const credentials = await readCredentials(io.env);
   if (credentials) {
     try {
-      const origin = assertSafeUrl(credentials.apiUrl, lang).origin;
-      await revokeSession(origin, credentials.token);
+      assertSafeUrl(credentials.apiUrl, lang);
+      await revokeSession(credentials.apiUrl, credentials.token);
     } catch {}
   }
   await deleteCredentials(io.env);

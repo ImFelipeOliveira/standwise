@@ -35,6 +35,7 @@ async function request<T>(
   try {
     response = await fetch(`${apiUrl.replace(/\/+$/, '')}${path}`, {
       method: options.method ?? 'GET',
+      redirect: 'error',
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });

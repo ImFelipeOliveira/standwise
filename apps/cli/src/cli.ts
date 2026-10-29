@@ -9,6 +9,7 @@ import { submit } from './commands/submit';
 import { whoami } from './commands/whoami';
 import { type Ctx, EXIT, ExitError, type Io } from './io';
 import { cliLanguage } from './language';
+import { stripControl } from './url';
 
 const OPTIONS = {
   help: { type: 'boolean' },
@@ -75,7 +76,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
       return error.status === 401 ? EXIT.unauthenticated : EXIT.error;
     }
     if (error instanceof NetworkError) {
-      io.stderr(`${t(lang, 'cli.networkError', { url: error.url })}\n`);
+      io.stderr(`${t(lang, 'cli.networkError', { url: stripControl(error.url) })}\n`);
       return EXIT.error;
     }
     throw error;

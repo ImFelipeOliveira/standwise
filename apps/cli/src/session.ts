@@ -2,7 +2,7 @@ import { t } from '@standwise/core';
 import { DEFAULT_API_URL } from './api';
 import { type Credentials, readCredentials } from './credentials';
 import { type Ctx, EXIT, ExitError } from './io';
-import { assertSafeUrl } from './url';
+import { assertSafeUrl, stripControl } from './url';
 
 export function loginApiUrl({ io, flags, lang }: Ctx): string {
   const url = flags.apiUrl || io.env.STANDWISE_API_URL || DEFAULT_API_URL;
@@ -26,10 +26,10 @@ export async function requireBoundCredentials(
   if (effective.origin !== stored.origin) {
     throw new ExitError(
       EXIT.unauthenticated,
-      t(ctx.lang, 'cli.originMismatch', { url: effective.origin }),
+      t(ctx.lang, 'cli.originMismatch', { url: stripControl(effective.origin) }),
     );
   }
-  return { credentials, apiUrl: stored.origin };
+  return { credentials, apiUrl: credentials.apiUrl };
 }
 
 export function resolveOrg(ctx: Ctx, credentials: Credentials): string {

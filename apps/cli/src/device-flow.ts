@@ -25,6 +25,7 @@ async function postForm(
   try {
     response = await fetch(url, {
       method: 'POST',
+      redirect: 'error',
       headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(form).toString(),
     });
@@ -93,17 +94,19 @@ export function canOpen(uri: string, githubUrlOverride?: string): boolean {
   }
 }
 
+export function browserCommand(platform: string, url: string): string[] {
+  if (platform === 'darwin') return ['open', url];
+  if (platform === 'win32') return ['rundll32', 'url.dll,FileProtocolHandler', url];
+  return ['xdg-open', url];
+}
+
 export function openBrowser(url: string): void {
-  const command =
-    process.platform === 'darwin'
-      ? ['open', url]
-      : process.platform === 'win32'
-        ? ['cmd', '/c', 'start', '', url]
-        : ['xdg-open', url];
   try {
-    Bun.spawn(command, { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' }).exited.catch(
-      () => undefined,
-    );
+    Bun.spawn(browserCommand(process.platform, url), {
+      stdout: 'ignore',
+      stderr: 'ignore',
+      stdin: 'ignore',
+    }).exited.catch(() => undefined);
   } catch {
     return;
   }

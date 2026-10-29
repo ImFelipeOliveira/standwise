@@ -12,11 +12,12 @@ export function assertSafeUrl(url: string, lang: Language): URL {
   try {
     parsed = new URL(url);
   } catch {
-    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url }));
+    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripControl(url) }));
   }
   const safe =
     parsed.protocol === 'https:' || (parsed.protocol === 'http:' && isLocalHost(parsed.hostname));
-  if (!safe) throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url }));
+  if (!safe)
+    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripControl(url) }));
   return parsed;
 }
 
@@ -24,7 +25,9 @@ export function stripControl(text: string): string {
   return Array.from(text)
     .filter((char) => {
       const code = char.charCodeAt(0);
-      return code > 0x1f && (code < 0x7f || code > 0x9f);
+      const control = code <= 0x1f || (code >= 0x7f && code <= 0x9f);
+      const bidi = (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
+      return !control && !bidi;
     })
     .join('');
 }

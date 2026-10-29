@@ -3,13 +3,17 @@ import { DailySubmissionSchema, t } from '@standwise/core';
 import { postDaily } from '../api';
 import { type Ctx, EXIT, ExitError } from '../io';
 import { requireBoundCredentials, resolveOrg } from '../session';
+import { stripControl } from '../url';
 
 async function readInput(ctx: Ctx): Promise<string> {
   if (!ctx.flags.file) return ctx.io.readStdin();
   try {
     return await readFile(ctx.flags.file, 'utf8');
   } catch {
-    throw new ExitError(EXIT.error, t(ctx.lang, 'cli.fileReadFailed', { path: ctx.flags.file }));
+    throw new ExitError(
+      EXIT.error,
+      t(ctx.lang, 'cli.fileReadFailed', { path: stripControl(ctx.flags.file) }),
+    );
   }
 }
 

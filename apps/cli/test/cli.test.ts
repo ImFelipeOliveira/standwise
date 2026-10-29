@@ -421,6 +421,51 @@ describe('device flow hardening', () => {
   });
 });
 
+describe('api path and redirects', () => {
+  test('a stored api path prefix is preserved', async () => {
+    const api = serve(() => json({ org: 'acme' }));
+    const ctx = await loggedIn(`${api.url}/api`, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['draft'], ctx.io)).toBe(0);
+    expect(api.seen[0]?.path).toBe('/api/v1/draft?org=acme');
+  });
+
+  test('a redirect is a network error and the body is never re-sent', async () => {
+    const target = serve(() => json({}));
+    const api = serve(
+      () => new Response(null, { status: 307, headers: { location: `${target.url}/steal` } }),
+    );
+    const ctx = await loggedIn(api.url, ORGS, JSON.stringify(DAILY));
+    expect(await run(['submit'], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain(api.url);
+    expect(target.seen).toHaveLength(0);
+    const draft = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['draft'], draft.io)).toBe(1);
+    expect(target.seen).toHaveLength(0);
+  });
+
+  test('a redirect from github is a network error', async () => {
+    const target = serve(() => json({}));
+    const github = serve(
+      () => new Response(null, { status: 307, headers: { location: `${target.url}/x` } }),
+    );
+    const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
+    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    expect(await run(['login'], ctx.io)).toBe(1);
+    expect(target.seen).toHaveLength(0);
+  });
+});
+
+describe('message sanitising', () => {
+  test('urls in messages lose control and bidi characters', async () => {
+    const ctx = await makeIo({ STANDWISE_API_URL: 'http://evil.example/\u001b[31m\u202e' });
+    expect(await run(['login'], ctx.io)).toBe(1);
+    const text = ctx.err.join('');
+    expect(text).toContain('http://evil.example/[31m');
+    expect(text).not.toContain('\u001b');
+    expect(text).not.toContain('\u202e');
+  });
+});
+
 describe('global flags', () => {
   test('--help prints usage, --version prints the root version', async () => {
     const help = await makeIo();
