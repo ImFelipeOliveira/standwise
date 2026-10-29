@@ -1,6 +1,6 @@
 import { parseConfig } from '@standwise/core';
 import { setInstallationConfig } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import type { Deps } from '../deps';
 
 export type ConfigStatus = 'configured' | 'invalid' | 'unconfigured';
 
