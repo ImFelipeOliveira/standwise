@@ -45,7 +45,7 @@ export async function setInstallationConfig(
       ? { status: r.status, config: r.config, configErrors: null, unconfiguredReason: null }
       : r.status === 'invalid'
         ? { status: r.status, configErrors: r.errors }
-        : { status: r.status, configErrors: null, unconfiguredReason: r.reason };
+        : { status: r.status, config: null, configErrors: null, unconfiguredReason: r.reason };
   await db
     .update(installations)
     .set({ ...set, updatedAt: sql`now()` })

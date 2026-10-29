@@ -167,6 +167,22 @@ describe('installations', () => {
     ]);
   });
 
+  test('removing the file drops the config so a later invalid push has nothing in use', async () => {
+    await seed();
+    const config = { teams: [], members: {} };
+    const errors = [{ path: 'teams', message: 'bad' }];
+    await setInstallationConfig(db, INST, { status: 'configured', config });
+    await setInstallationConfig(db, INST, { status: 'unconfigured', reason: 'no_file' });
+    const removed = await getInstallation(db, INST);
+    expect(removed?.config).toBeNull();
+    expect(removed?.configErrors).toBeNull();
+    await setInstallationConfig(db, INST, { status: 'invalid', errors });
+    const row = await getInstallation(db, INST);
+    expect(row?.status).toBe('invalid');
+    expect(row?.config).toBeNull();
+    expect(await listOperationalInstallations(db)).toEqual([]);
+  });
+
   test('listOperationalInstallations returns configured installations', async () => {
     await seed();
     const config = { teams: [], members: {} };

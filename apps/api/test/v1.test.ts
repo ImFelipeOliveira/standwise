@@ -415,6 +415,22 @@ describe('draft', () => {
     expect(await res.json()).toEqual({ date: '2026-10-28', teams: ['Alpha'], late: false });
   });
 
+  test('draft is not configured when an invalid push follows a removed file', async () => {
+    await seed();
+    await setInstallationConfig(db, INST, { status: 'unconfigured', reason: 'no_file' });
+    await setInstallationConfig(db, INST, {
+      status: 'invalid',
+      errors: [{ path: 'teams', message: 'bad' }],
+    });
+    const h = harness();
+    const token = await login(h);
+    const res = await get(h, token, '/v1/draft?org=acme');
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'org_not_configured',
+    );
+  });
+
   test('draft is not configured when standwise.yml was never valid', async () => {
     await seed(null);
     await setInstallationConfig(db, INST, {
