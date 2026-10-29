@@ -200,9 +200,36 @@ Sem prazo: o projeto anda no ritmo do autor. A fase 1a é construída por comple
 
 - **1a (MVP):** GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento, sugestões e check run de validação do config. Deploy no Railway, README com e-mail de suporte. Inscrição no Developer Program.
 - **1b:** Google Chat + Jira (completa a v1 prometida).
-- **2:** Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
+- **2:** **Análise com IA por organização** *(pedido do Felipe, 2026-10-28; detalhado na §8.1)*. Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
 
 **UI (decisão do Felipe, 2026-10-28):** no plano 1, as poucas páginas web (login, setup, erros) continuam em Hono JSX com estilos simples. A biblioteca de componentes é decidida na fase 2, junto com o painel Next.js. Candidata preferida: shadcn/ui (Radix + Tailwind), com os tokens do protótipo do painel.
+
+
+### 8.1 Fase 2: análise com IA por organização (pedido do Felipe, 2026-10-28)
+
+**O que é:** o admin configura uma chave de API de LLM da própria organização (Anthropic, OpenAI…, BYOK). A chave fica criptografada como as demais conexões. A partir dela, o Standwise analisa o conteúdo das dailies **confirmadas**, junto com os sinais do GitHub e do gerenciador, e publica relatórios nos canais configurados (Slack, Google Chat, comentários em cards do Linear e do Jira…).
+
+**O que a IA classifica e reporta (exemplos):**
+- impedimentos escritos em texto livre que não foram ligados a um PR ou card, para encaminhar a quem pode ajudar;
+- PRs que precisam de revisão, branches paradas ou divergentes da principal e PRs com conflito;
+- dependências entre pessoas ou times citadas nas dailies ("esperando o X do time Y");
+- riscos ao prazo de um card ou épico, com base no que o próprio time escreveu;
+- resumo do consolidado quando ele for longo.
+
+**Regras (herdam os anti-objetivos da §3):**
+- A IA classifica **trabalho** (PRs, branches, cards, impedimentos, dependências), nunca pessoas. Não há nota, ranking, "produtividade", sentimento ou comparação individual, e o prompt do sistema proíbe isso explicitamente.
+- Entrada: só o que cada pessoa confirmou, mais sinais objetivos do GitHub e do gerenciador. Nunca as sugestões não confirmadas.
+- O que fala de uma pessoa específica (por exemplo, "seu PR está parado") vai **primeiro para ela**, como os impedimentos sugeridos. O canal do time recebe só o que é do time ou já foi confirmado.
+- **Opt-in** por organização e por time, com escolha dos tipos de relatório e dos canais. O admin pode desligar a qualquer momento.
+- Transparência: cada relatório indica que foi gerado por IA, com qual provedor e modelo, e traz links para as fontes (PR, card, daily).
+- Privacidade: o conteúdo vai para o provedor que a organização escolheu, com a chave dela. A página de privacidade e o DPA documentam isso. Sem chave configurada, nada é enviado a LLM nenhum.
+- Custo: é da organização (BYOK). O Standwise mostra uso estimado e limite mensal configurável.
+
+**Perguntas em aberto:**
+- Quais provedores suportar no lançamento.
+- Se haverá também uma opção sem BYOK (chave do Standwise, no plano pago).
+- Frequência dos relatórios: junto do consolidado, contínuo por evento, ou os dois.
+- Como o membro corrige uma classificação errada ("isso não é impedimento").
 
 ## 9. Deixado para o builder
 - Formato visual exato das mensagens (dentro das regras: impedimentos no topo, uma mensagem por consolidado).
