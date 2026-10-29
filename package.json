@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "test": "bun test",
+    "db:migrate": "bun packages/db/src/migrate-cli.ts",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
