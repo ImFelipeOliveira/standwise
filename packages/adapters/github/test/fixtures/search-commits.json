@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "html_url": "https://github.com/acme/api/commit/a1",
+      "commit": { "message": "one\n\nbody", "committer": { "date": "2026-10-27T10:00:00Z" } },
+      "repository": { "full_name": "acme/api" }
+    },
+    {
+      "html_url": "https://github.com/acme/api/commit/a2",
+      "commit": { "message": "two", "committer": { "date": "2026-10-27T11:00:00Z" } },
+      "repository": { "full_name": "acme/api" }
+    },
+    {
+      "html_url": "https://github.com/acme/api/commit/a3",
+      "commit": { "message": "three", "committer": { "date": "2026-10-27T09:00:00Z" } },
+      "repository": { "full_name": "acme/api" }
+    }
+  ]
+}

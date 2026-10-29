@@ -1,0 +1,12 @@
+{
+  "items": [
+    {
+      "title": "Refactor db",
+      "html_url": "https://github.com/acme/web/pull/9",
+      "repository_url": "https://api.github.com/repos/acme/web",
+      "created_at": "2026-10-25T12:00:00Z",
+      "updated_at": "2026-10-27T18:00:00Z",
+      "pull_request": { "merged_at": null }
+    }
+  ]
+}
