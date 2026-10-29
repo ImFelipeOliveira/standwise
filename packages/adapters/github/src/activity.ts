@@ -1,5 +1,5 @@
 import type { Octokit } from '@octokit/core';
-import type { ActivityItem } from '@standwise/core';
+import { type ActivityItem, clampTitle } from '@standwise/core';
 import { httpStatus } from './errors';
 
 const MAX_ITEMS = 50;
@@ -59,7 +59,13 @@ async function searchCommits(octokit: Octokit, q: string): Promise<CommitHit[]> 
 }
 
 function pullItem(kind: ActivityItem['kind'], hit: IssueHit, at: string): ActivityItem {
-  return { kind, title: hit.title, url: hit.html_url, repo: repoOf(hit), at: new Date(at) };
+  return {
+    kind,
+    title: clampTitle(hit.title),
+    url: hit.html_url,
+    repo: repoOf(hit),
+    at: new Date(at),
+  };
 }
 
 function groupCommits(hits: CommitHit[]): ActivityItem[] {
@@ -76,7 +82,7 @@ function groupCommits(hits: CommitHit[]): ActivityItem[] {
     const latest = group.hits.reduce((a, b) => (b.at > a.at ? b : a));
     items.push({
       kind: 'commits',
-      title: latest.hit.commit.message.split('\n')[0] ?? '',
+      title: clampTitle(latest.hit.commit.message.split('\n')[0] ?? ''),
       url: latest.hit.html_url,
       repo,
       at: latest.at,

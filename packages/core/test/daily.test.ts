@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { activitySince } from '../src/activity';
 import type { Calendar } from '../src/calendar';
 import type { TeamConfig } from '../src/config';
-import { DailySubmissionSchema, type ResolvedTeam, teamsForMember } from '../src/daily';
+import { clampTitle, DailySubmissionSchema, type ResolvedTeam, teamsForMember } from '../src/daily';
 
 const valid = {
   org: 'acme',
@@ -75,6 +75,34 @@ describe('DailySubmissionSchema', () => {
       expect(DailySubmissionSchema.safeParse({ ...valid, today: inText }).success).toBe(false);
       expect(DailySubmissionSchema.safeParse({ ...valid, blockers: inTitle }).success).toBe(false);
     }
+  });
+
+  test('rejects unsafe characters and non-http schemes in ref urls', () => {
+    const urls = [
+      'https://github.com/a/b/pull/1\u202e',
+      'https://github.com/a/\u2066b/pull/1',
+      'https://github.com/a/b\u0085/pull/1',
+      'https://github.com/a/b/pull/1\u2028',
+      'javascript:alert(1)',
+      'ftp://github.com/a/b',
+      'data:text/html,hi',
+    ];
+    for (const url of urls) {
+      const today = [{ text: 'a', ref: { kind: 'pull_request', url } }];
+      expect(DailySubmissionSchema.safeParse({ ...valid, today }).success).toBe(false);
+    }
+    for (const url of ['https://github.com/a/b/pull/1', 'http://localhost:3000/x']) {
+      const today = [{ text: 'a', ref: { kind: 'pull_request', url } }];
+      expect(DailySubmissionSchema.safeParse({ ...valid, today }).success).toBe(true);
+    }
+  });
+
+  test('clampTitle strips unsafe characters and truncates to 200 characters', () => {
+    expect(clampTitle('Fix\u202e bug\nnow\u2028')).toBe('Fix bugnow');
+    const long = clampTitle('🙂'.repeat(250));
+    expect(Array.from(long)).toHaveLength(200);
+    expect(long.endsWith('🙂…')).toBe(true);
+    expect(clampTitle('a'.repeat(200))).toBe('a'.repeat(200));
   });
 
   test('accepts plain spaces, accents and emoji', () => {

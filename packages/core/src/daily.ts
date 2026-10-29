@@ -14,15 +14,29 @@ export function hasUnsafeChars(text: string): boolean {
   return false;
 }
 
-const safe = (schema: z.ZodString) =>
+export const TITLE_MAX = 200;
+
+export function stripUnsafeChars(text: string): string {
+  return Array.from(text)
+    .filter((char) => !isUnsafeChar(char.charCodeAt(0)))
+    .join('');
+}
+
+export function clampTitle(text: string): string {
+  const chars = Array.from(stripUnsafeChars(text));
+  if (chars.length <= TITLE_MAX) return chars.join('');
+  return `${chars.slice(0, TITLE_MAX - 1).join('')}…`;
+}
+
+const safe = <T extends z.ZodType<string>>(schema: T) =>
   schema.refine((value) => !hasUnsafeChars(value), {
     message: 'must not contain control, bidi or line separator characters',
   });
 
 const RefSchema = z.object({
   kind: z.enum(['pull_request', 'issue', 'commit', 'card']),
-  url: z.url(),
-  title: safe(z.string().max(200)).optional(),
+  url: safe(z.string()).pipe(z.url({ protocol: /^https?$/ })),
+  title: safe(z.string().max(TITLE_MAX)).optional(),
 });
 
 const ItemSchema = z.object({

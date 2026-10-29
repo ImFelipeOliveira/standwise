@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { hasUnsafeChars } from '@standwise/core';
 import { listActivity } from '../src/activity';
 import { type Call, fixture, octokitWith } from './helpers';
 
@@ -89,5 +90,40 @@ describe('listActivity', () => {
       'GET /search/commits': { body: '{"items":[]}' },
     });
     expect(await listActivity(octokit, 'acme', 'alice', since)).toHaveLength(50);
+  });
+
+  test('titles are stripped of unsafe characters and capped at 200 characters', async () => {
+    const hit = {
+      title: `Fix\u202e login\n${'x'.repeat(300)}`,
+      html_url: 'https://github.com/acme/api/pull/9',
+      repository_url: 'https://api.github.com/repos/acme/api',
+      created_at: '2026-10-27T12:00:00Z',
+      pull_request: { merged_at: null },
+    };
+    const commit = {
+      html_url: 'https://github.com/acme/api/commit/abc',
+      commit: {
+        message: `Commit\u2066 ${'y'.repeat(300)}\nbody`,
+        committer: { date: '2026-10-27T12:00:00Z' },
+        author: null,
+      },
+      repository: { full_name: 'acme/api' },
+    };
+    const { octokit } = octokitWith({
+      ...routes({ commits: JSON.stringify({ items: [commit] }) }),
+      'GET /search/issues': { body: JSON.stringify({ items: [hit] }) },
+    });
+    const items = await listActivity(octokit, 'acme', 'alice', since);
+    for (const item of items) {
+      expect(Array.from(item.title).length).toBeLessThanOrEqual(200);
+      expect(hasUnsafeChars(item.title)).toBe(false);
+    }
+    const pr = items.find((i) => i.kind === 'pr_opened');
+    expect(pr?.title.startsWith('Fix login')).toBe(true);
+    expect(pr?.title.endsWith('…')).toBe(true);
+    expect(Array.from(pr?.title ?? '')).toHaveLength(200);
+    const commits = items.find((i) => i.kind === 'commits');
+    expect(commits?.title.startsWith('Commit y')).toBe(true);
+    expect(commits?.title.endsWith('…')).toBe(true);
   });
 });

@@ -154,9 +154,11 @@ async function respond(
 }
 
 function itemLine(item: DailySubmission['today'][number]): string {
-  if (!item.ref) return `- ${item.text}`;
-  const label = item.ref.title ? `${item.ref.kind}: ${item.ref.title}` : item.ref.kind;
-  return `- ${item.text} [${label}] (${item.ref.url})`;
+  const text = stripControl(item.text);
+  if (!item.ref) return `- ${text}`;
+  const kind = stripControl(item.ref.kind);
+  const label = item.ref.title ? `${kind}: ${stripControl(item.ref.title)}` : kind;
+  return `- ${text} [${label}] (${stripControl(item.ref.url)})`;
 }
 
 function itemLines(items: DailySubmission['today']): string {
@@ -165,7 +167,7 @@ function itemLines(items: DailySubmission['today']): string {
 
 export function dailySummary(daily: DailySubmission, date: string): string {
   return [
-    `Send this daily to ${daily.org}? Date: ${date}.`,
+    `Send this daily to ${stripControl(daily.org)}? Date: ${stripControl(date)}.`,
     `Yesterday:\n${itemLines(daily.yesterday)}`,
     `Today:\n${itemLines(daily.today)}`,
     `Blockers:\n${itemLines(daily.blockers)}`,
@@ -194,10 +196,10 @@ async function confirmSubmission(
   s: Session,
   daily: DailySubmission,
   confirmed: true | undefined,
-): Promise<DailyConfirmation> {
+): Promise<{ confirmation: DailyConfirmation; shownDate?: string }> {
   if (!server.server.getClientCapabilities()?.elicitation?.form) {
     if (confirmed !== true) throw new ToolError('confirmation_required', CONFIRMATION_RULE);
-    return 'agent';
+    return { confirmation: 'agent' };
   }
   const today = await getToday(s.apiUrl, s.token, s.org);
   const answer = await server.server.elicitInput(
@@ -222,7 +224,12 @@ async function confirmSubmission(
   if (answer.action !== 'accept' || answer.content?.confirm !== true) {
     throw new ToolError('not_confirmed', 'the person did not confirm the daily. Nothing was sent.');
   }
-  return 'human';
+  return { confirmation: 'human', shownDate: today.date };
+}
+
+function dateMismatchNote(shown: string | undefined, posted: unknown): string | undefined {
+  if (shown === undefined || typeof posted !== 'string' || posted === shown) return undefined;
+  return `The daily was posted for ${stripControl(posted)}, which differs from the date shown to the person (${stripControl(shown)}). Tell the person.`;
 }
 
 const AGENT_CONFIRMATION_NOTE =
@@ -319,15 +326,21 @@ export function registerTools(server: McpServer, io: Io): void {
           today: input.today,
           blockers: input.blockers,
         });
-        const confirmation = await confirmSubmission(server, s, daily, input.confirmed);
+        const { confirmation, shownDate } = await confirmSubmission(
+          server,
+          s,
+          daily,
+          input.confirmed,
+        );
         const result = (await postDaily(s.apiUrl, s.token, daily, confirmation)) as Record<
           string,
           unknown
         >;
-        return success(
-          { ...result, confirmation },
-          confirmation === 'agent' ? { note: AGENT_CONFIRMATION_NOTE } : {},
-        );
+        const note =
+          confirmation === 'agent'
+            ? AGENT_CONFIRMATION_NOTE
+            : dateMismatchNote(shownDate, result.date);
+        return success({ ...result, confirmation }, note ? { note } : {});
       } catch (error) {
         return toolError(error);
       }

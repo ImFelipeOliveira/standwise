@@ -1,4 +1,4 @@
-import { type Language, t } from '@standwise/core';
+import { type Language, stripUnsafeChars, t } from '@standwise/core';
 import { EXIT, ExitError } from './io';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -22,12 +22,5 @@ export function assertSafeUrl(url: string, lang: Language): URL {
 }
 
 export function stripControl(text: string): string {
-  return Array.from(text)
-    .filter((char) => {
-      const code = char.charCodeAt(0);
-      const control = code <= 0x1f || (code >= 0x7f && code <= 0x9f);
-      const bidi = (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
-      return !control && !bidi;
-    })
-    .join('');
+  return stripUnsafeChars(text);
 }

@@ -194,7 +194,7 @@ const dailies = createRoute({
   tags: ['Daily'],
   summary: 'Submit the daily',
   description:
-    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply. The optional `X-Standwise-Confirmation` header (`human` or `agent`) records who confirmed it; other values are ignored.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread. O cabeçalho opcional `X-Standwise-Confirmation` (`human` ou `agent`) registra quem confirmou; outros valores são ignorados.',
+    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply. The optional `X-Standwise-Confirmation` header (`human` or `agent`) records who confirmed it; other values are ignored. It is self-reported by the client and informational only, not a security control.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread. O cabeçalho opcional `X-Standwise-Confirmation` (`human` ou `agent`) registra quem confirmou; outros valores são ignorados. Ele é informado pelo próprio cliente e serve só como informação, não como controle de segurança.',
   security: [{ session: [] }],
   request: {
     body: {
