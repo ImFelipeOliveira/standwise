@@ -62,7 +62,17 @@ describe('daily skill', () => {
     expect(skill).toContain('mktemp');
     expect(skill).toContain('trap \'rm -f "$f"\' EXIT');
     expect(skill).toContain("<<'STANDWISE_JSON'");
-    expect(skill).toContain('127');
+    expect(skill).toContain('exit code 127');
+  });
+
+  test('heredoc closing delimiter is unindented inside the code block', () => {
+    const block = skill.match(/```\n(f="\$\(mktemp\)"[\s\S]*?)\n```/);
+    expect(block).not.toBeNull();
+    const closing = (block?.[1] ?? '')
+      .split('\n')
+      .filter((line) => line.trim() === 'STANDWISE_JSON');
+    expect(closing.length).toBe(1);
+    expect(closing[0]).toBe('STANDWISE_JSON');
   });
 
   test('body handles exit codes 2, 3 and 4', () => {

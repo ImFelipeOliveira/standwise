@@ -48,14 +48,16 @@ Use this when the MCP tools are not available.
 3. Build "yesterday" from `activity`, show it, and let the person correct it. Ask for today and blockers in their language, keeping their answers verbatim.
 4. Build the final JSON and show it in a readable form (a short list per section, plus the raw JSON). Items are `{ "text": "...", "ref": { "kind": "...", "url": "https://...", "title": "..." } }`, where `ref` is optional, `url` must be http or https, and `title` is at most 200 characters.
 5. Ask for explicit confirmation. Only an unambiguous yes counts. If they want changes, go back and revise.
-6. Once confirmed, submit with ONE Bash command that creates the temp file, writes the payload, submits and always cleans up:
-   ```
-   f="$(mktemp)"; trap 'rm -f "$f"' EXIT; cat > "$f" <<'STANDWISE_JSON'
-   {...the confirmed JSON...}
-   STANDWISE_JSON
-   standwise submit --file "$f"
-   ```
-   Add `--org <org>` to the submit if one was chosen. The heredoc delimiter must stay quoted (`'STANDWISE_JSON'`) so apostrophes, quotes, `$` and backticks in the person's words reach the file untouched. All steps must run in a single command, because shell variables do not persist between Bash calls. The trap removes the temp file on every exit and keeps the exit status of `standwise submit`; report that exit code, not the cleanup's.
+6. Once confirmed, submit with ONE Bash command that creates the temp file, writes the payload, submits and always cleans up. Run this snippet with every line at column 0:
+
+```
+f="$(mktemp)"; trap 'rm -f "$f"' EXIT; cat > "$f" <<'STANDWISE_JSON'
+{...the confirmed JSON...}
+STANDWISE_JSON
+standwise submit --file "$f"
+```
+
+   Add `--org <org>` to the submit if one was chosen. The heredoc delimiter must stay quoted (`'STANDWISE_JSON'`) so apostrophes, quotes, `$` and backticks in the person's words reach the file untouched. The closing `STANDWISE_JSON` line must have no leading spaces, or bash will not end the heredoc. All steps must run in a single command, because shell variables do not persist between Bash calls. The trap removes the temp file on every exit and keeps the exit status of `standwise submit`; report that exit code, not the cleanup's.
 7. Report the result. If the response says `late`, tell the person the daily was posted in the thread of the team's digest because the digest had already been sent.
 
 ## Exit codes of the CLI
