@@ -3,3 +3,4 @@ dist
 .env
 .superpowers/
 *.bun-build
+docs/site/.vitepress/cache

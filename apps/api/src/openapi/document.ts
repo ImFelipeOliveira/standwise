@@ -9,7 +9,9 @@ import webhooks from '../../../../docs/api/guides/webhooks.md' with { type: 'tex
 
 export const API_VERSION = '1.2.0';
 
-const OVERVIEW = `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.`;
+const OVERVIEW = `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.
+
+Product documentation, guides and the standwise.yml reference: [Standwise docs](/docs/).`;
 
 export const GUIDES = [
   authentication,

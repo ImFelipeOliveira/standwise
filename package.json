@@ -14,13 +14,17 @@
     "worker": "bun run apps/worker/src/main.ts",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build:cli": "bun scripts/build-cli.ts"
+    "build:cli": "bun scripts/build-cli.ts",
+    "docs:dev": "vitepress dev docs/site",
+    "docs:build": "vitepress build docs/site",
+    "check-docs": "bun scripts/check-docs.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
     "@seriousme/openapi-schema-validator": "^2.11.0",
     "@types/bun": "^1.4.4",
     "ajv": "^8.20.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitepress": "1.6.4"
   }
 }

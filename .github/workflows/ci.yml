@@ -44,3 +44,8 @@ jobs:
       - run: bun run lint
       - run: bun run typecheck
       - run: bun test
+      - name: Build docs site
+        env:
+          SUPPORT_EMAIL: support@example.com
+        run: bun run docs:build
+      - run: bun run check-docs

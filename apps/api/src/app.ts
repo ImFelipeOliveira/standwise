@@ -8,7 +8,7 @@ import { v1Routes } from './routes/v1';
 import { webRoutes } from './routes/web';
 import { webhookRoutes } from './routes/webhooks';
 
-export type AppOptions = { getClientIp: GetClientIp };
+export type AppOptions = { getClientIp: GetClientIp; docsDir?: string };
 
 export function createApp(deps: Deps, options: AppOptions): Hono {
   const app = new Hono();
@@ -19,7 +19,12 @@ export function createApp(deps: Deps, options: AppOptions): Hono {
   app.route('/', publicApi);
   app.route(
     '/',
-    docsRoutes(deps, { public: publicApi, internal: internalApi }, options.getClientIp),
+    docsRoutes(
+      deps,
+      { public: publicApi, internal: internalApi },
+      options.getClientIp,
+      options.docsDir,
+    ),
   );
   app.route('/webhooks', webhookRoutes(deps));
   app.route('/', webRoutes(deps));

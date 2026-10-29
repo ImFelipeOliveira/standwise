@@ -11,7 +11,7 @@ export const headerIp = (c: Context) => c.req.header('x-test-ip') ?? TEST_IP;
 export type FakeRequest = (route: string, params: Record<string, unknown>) => Promise<unknown>;
 
 export function createTestApp(
-  options: { getClientIp?: (c: Context) => string; request?: FakeRequest } = {},
+  options: { getClientIp?: (c: Context) => string; request?: FakeRequest; docsDir?: string } = {},
 ) {
   let now = new Date('2026-10-28T15:00:05Z');
   const queue = createMemoryQueue();
@@ -59,7 +59,10 @@ export function createTestApp(
     },
   };
   return {
-    app: createApp(deps, { getClientIp: options.getClientIp ?? headerIp }),
+    app: createApp(deps, {
+      getClientIp: options.getClientIp ?? headerIp,
+      ...(options.docsDir ? { docsDir: options.docsDir } : {}),
+    }),
     queue,
     setNow: (d: Date) => (now = d),
   };

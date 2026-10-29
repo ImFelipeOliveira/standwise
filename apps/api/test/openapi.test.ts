@@ -177,16 +177,13 @@ describe('internal openapi document', () => {
 });
 
 describe('docs page', () => {
-  test('serves the reference and redirects /docs', async () => {
+  test('serves the reference', async () => {
     const res = await load('/docs/api');
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
     const html = await res.text();
     expect(html).toContain('/openapi.json');
     expect(html).toContain('Standwise API');
-    const redirect = await createTestApp().app.request('/docs');
-    expect(redirect.status).toBe(302);
-    expect(redirect.headers.get('location')).toBe('/docs/api');
   });
 });
 
