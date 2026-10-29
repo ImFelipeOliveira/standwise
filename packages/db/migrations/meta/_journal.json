@@ -29,6 +29,13 @@
       "when": 1793236313393,
       "tag": "0003_connection_external_name",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793237228500,
+      "tag": "0004_rate_limits",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,8 @@ export type DomainErrorCode =
   | 'invalid_state'
   | 'installation_pending'
   | 'access_denied'
-  | 'slack_oauth_failed';
+  | 'slack_oauth_failed'
+  | 'rate_limited';
 
 export class DomainError extends Error {
   constructor(

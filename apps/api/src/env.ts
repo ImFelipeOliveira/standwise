@@ -5,6 +5,10 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   PUBLIC_URL: z.url(),
   SUPPORT_EMAIL: z.string().min(1),
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   STANDWISE_ENCRYPTION_KEY: z
     .string()
     .transform((v) => Buffer.from(v, 'base64'))

@@ -5,5 +5,6 @@ export * from './repo/dailies';
 export * from './repo/deliveries';
 export * from './repo/installations';
 export * from './repo/members';
+export * from './repo/rate-limits';
 export * from './repo/sessions';
 export type { DeliveryRow, InstallationRow, MemberRow, Provider } from './schema';

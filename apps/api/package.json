@@ -6,7 +6,9 @@
   "main": "src/app.ts",
   "types": "src/app.ts",
   "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
     "@octokit/webhooks": "^14.2.0",
+    "@scalar/hono-api-reference": "^0.12.16",
     "@standwise/core": "workspace:*",
     "@standwise/db": "workspace:*",
     "@standwise/github": "workspace:*",

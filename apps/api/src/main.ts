@@ -63,4 +63,6 @@ const deps: Deps = {
 
 await queue.start();
 
-Bun.serve({ port: env.PORT, fetch: createApp(deps).fetch });
+const api = createApp(deps, { trustProxy: env.TRUST_PROXY });
+
+Bun.serve({ port: env.PORT, fetch: (request, server) => api.fetch(request, { server }) });

@@ -127,3 +127,13 @@ export const deliveries = pgTable(
 export type InstallationRow = typeof installations.$inferSelect;
 export type MemberRow = typeof members.$inferSelect;
 export type DeliveryRow = typeof deliveries.$inferSelect;
+
+export const rateLimits = pgTable(
+  'rate_limits',
+  {
+    key: text('key').notNull(),
+    windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
+);

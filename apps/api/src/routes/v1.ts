@@ -1,5 +1,5 @@
-import { DailySubmissionSchema } from '@standwise/core';
-import { type MemberRow, resolveSession } from '@standwise/db';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import type { MemberRow } from '@standwise/db';
 import {
   createMembershipCheck,
   type Deps,
@@ -8,49 +8,240 @@ import {
   startSession,
   submitDaily,
 } from '@standwise/orchestrator';
-import { Hono } from 'hono';
-import { z } from 'zod';
+import {
+  bearerToken,
+  ipKey,
+  rateLimit,
+  SESSION_START_LIMIT,
+  tokenLimit,
+  tokenOrIpKey,
+} from '../middleware/rate-limit';
+import { sessionAuth } from '../middleware/session-auth';
+import { sessionScheme } from '../openapi/document';
+import {
+  DAILY_EXAMPLE,
+  DailySubmissionSchema,
+  DRAFT_EXAMPLE,
+  DraftSchema,
+  errorResponse,
+  MetaSchema,
+  SESSION_EXAMPLE,
+  SessionRequestSchema,
+  SessionSchema,
+  SubmitResultSchema,
+} from '../openapi/schemas';
 
 type Env = { Variables: { member: MemberRow } };
 
-const SessionRequest = z.object({ githubToken: z.string().min(1) });
+export type V1Options = { trustProxy: boolean };
 
-export function v1Routes(deps: Deps): Hono<Env> {
-  const app = new Hono<Env>();
+const RATE_LIMITED = errorResponse('Rate limit exceeded. Wait `Retry-After` seconds.', {
+  rate_limited: 'rate limit exceeded',
+});
+const UNAUTHORIZED = errorResponse('Missing, invalid or expired session.', {
+  unauthorized: 'missing or invalid session',
+});
+const ORG_ERRORS = {
+  404: errorResponse('The organization was not found.', {
+    org_not_found: 'organization not found',
+  }),
+  409: errorResponse('The organization is not ready to use.', {
+    org_not_configured: 'organization has no valid standwise.yml',
+    installation_pending: 'installation is still being processed',
+  }),
+};
+
+const rateHeaders = {
+  'RateLimit-Limit': { description: 'Requests allowed per window.', schema: { type: 'integer' } },
+  'RateLimit-Remaining': {
+    description: 'Requests left in the window.',
+    schema: { type: 'integer' },
+  },
+  'RateLimit-Reset': {
+    description: 'Seconds until the window resets.',
+    schema: { type: 'integer' },
+  },
+} as const;
+
+const meta = createRoute({
+  method: 'get',
+  path: '/v1/meta',
+  tags: ['Meta'],
+  summary: 'Public client metadata',
+  description:
+    'Returns the GitHub OAuth client id and the support email, so the CLI can start a login.\n\nRetorna o client id do OAuth do GitHub e o e-mail de suporte, para a CLI iniciar o login.',
+  responses: {
+    200: {
+      description: 'Client metadata.',
+      content: {
+        'application/json': {
+          schema: MetaSchema,
+          example: {
+            githubClientId: 'Iv1.0123456789abcdef',
+            supportEmail: 'support@standwise.dev',
+          },
+        },
+      },
+    },
+  },
+});
+
+const sessions = createRoute({
+  method: 'post',
+  path: '/v1/sessions',
+  tags: ['Session'],
+  summary: 'Start a CLI session',
+  description:
+    'Exchanges a GitHub user token for a Standwise session token (`sw_`). Limited to 10 requests per minute per IP address.\n\nTroca um token de usuário do GitHub por um token de sessão do Standwise (`sw_`). Limitado a 10 requisições por minuto por IP.',
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: SessionRequestSchema,
+          example: { githubToken: 'gho_16C7e42F292c6912E7710c838347Ae178B4a' },
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Session created.',
+      headers: rateHeaders,
+      content: { 'application/json': { schema: SessionSchema, example: SESSION_EXAMPLE } },
+    },
+    401: errorResponse('The GitHub token is invalid or expired.', {
+      unauthorized: 'GitHub token invalid or expired',
+    }),
+    422: errorResponse('The body is not valid.', { invalid_request: 'githubToken is required' }),
+    429: RATE_LIMITED,
+  },
+});
+
+const draft = createRoute({
+  method: 'get',
+  path: '/v1/draft',
+  tags: ['Daily'],
+  summary: 'Get the draft for today',
+  description:
+    "Builds the draft of yesterday's work from the person's GitHub activity. `org` is optional when the person belongs to a single organization.\n\nMonta o rascunho do que a pessoa fez ontem a partir da atividade no GitHub. `org` é opcional quando a pessoa pertence a uma única organização.",
+  security: [{ session: [] }],
+  request: { query: z.object({ org: z.string().optional().openapi({ example: 'acme' }) }) },
+  responses: {
+    200: {
+      description: 'The draft.',
+      headers: rateHeaders,
+      content: { 'application/json': { schema: DraftSchema, example: DRAFT_EXAMPLE } },
+    },
+    401: UNAUTHORIZED,
+    403: errorResponse('The person has no access to the organization.', {
+      forbidden: 'not a member of this organization',
+    }),
+    404: ORG_ERRORS[404],
+    409: ORG_ERRORS[409],
+    422: errorResponse('The request or the person is not valid for this organization.', {
+      invalid_request: 'org is required',
+      not_in_team: 'you are not in any team of this organization',
+    }),
+    429: RATE_LIMITED,
+  },
+});
+
+const dailies = createRoute({
+  method: 'post',
+  path: '/v1/dailies',
+  tags: ['Daily'],
+  summary: 'Submit the daily',
+  description:
+    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread.',
+  security: [{ session: [] }],
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: DailySubmissionSchema,
+          example: DAILY_EXAMPLE,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The daily was stored.',
+      headers: rateHeaders,
+      content: {
+        'application/json': {
+          schema: SubmitResultSchema,
+          example: { date: '2026-10-28', teams: ['Alpha'], late: false },
+        },
+      },
+    },
+    401: UNAUTHORIZED,
+    403: errorResponse('The person has no access to the organization.', {
+      forbidden: 'not a member of this organization',
+    }),
+    404: ORG_ERRORS[404],
+    409: ORG_ERRORS[409],
+    422: errorResponse('The daily is not valid, or the person is in no team.', {
+      invalid_daily: 'invalid daily',
+      not_in_team: 'you are not in any team of this organization',
+    }),
+    429: RATE_LIMITED,
+  },
+});
+
+export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
+  const app = new OpenAPIHono<Env>();
   const isMember = createMembershipCheck(deps);
+  app.openAPIRegistry.registerComponent('securitySchemes', 'session', sessionScheme());
 
-  app.get('/meta', (c) =>
-    c.json({ githubClientId: deps.env.githubClientId, supportEmail: deps.env.supportEmail }),
+  app.use(
+    '/v1/sessions',
+    rateLimit(deps, {
+      key: ipKey('sessions', options.trustProxy),
+      limit: SESSION_START_LIMIT,
+    }),
+  );
+  for (const path of ['/v1/draft', '/v1/dailies']) {
+    app.use(
+      path,
+      rateLimit(deps, {
+        key: tokenOrIpKey(options.trustProxy),
+        limit: (c) => tokenLimit(bearerToken(c)),
+      }),
+      sessionAuth(deps),
+    );
+  }
+
+  app.openapi(meta, (c) =>
+    c.json({ githubClientId: deps.env.githubClientId, supportEmail: deps.env.supportEmail }, 200),
   );
 
-  app.post('/sessions', async (c) => {
-    const body = SessionRequest.safeParse(await c.req.json().catch(() => null));
-    if (!body.success) {
-      throw new DomainError('invalid_request', 'githubToken is required', body.error.issues);
-    }
-    return c.json(await startSession(deps, body.data));
-  });
-
-  app.use('*', async (c, next) => {
-    const header = c.req.header('authorization') ?? '';
-    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-    const member = token ? await resolveSession(deps.db, token, 'cli') : null;
-    if (!member) throw new DomainError('unauthorized', 'missing or invalid session');
-    c.set('member', member);
-    await next();
-  });
-
-  app.get('/draft', async (c) =>
-    c.json(await getDraft(deps, isMember, c.get('member'), c.req.query('org'))),
+  app.openapi(
+    sessions,
+    async (c) => c.json(await startSession(deps, c.req.valid('json')), 200),
+    (result) => {
+      if (!result.success) {
+        throw new DomainError('invalid_request', 'githubToken is required', result.error.issues);
+      }
+    },
   );
 
-  app.post('/dailies', async (c) => {
-    const parsed = DailySubmissionSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      throw new DomainError('invalid_daily', 'invalid daily', parsed.error.issues);
-    }
-    return c.json(await submitDaily(deps, isMember, c.get('member'), parsed.data));
-  });
+  app.openapi(draft, async (c) =>
+    c.json(await getDraft(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+  );
+
+  app.openapi(
+    dailies,
+    async (c) =>
+      c.json(await submitDaily(deps, isMember, c.get('member'), c.req.valid('json')), 200),
+    (result) => {
+      if (!result.success) {
+        throw new DomainError('invalid_daily', 'invalid daily', result.error.issues);
+      }
+    },
+  );
 
   return app;
 }
