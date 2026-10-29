@@ -25,6 +25,17 @@
         "zod": "^4.6.7",
       },
     },
+    "apps/worker": {
+      "name": "@standwise/worker",
+      "version": "0.0.0",
+      "dependencies": {
+        "@standwise/db": "workspace:*",
+        "@standwise/github": "workspace:*",
+        "@standwise/orchestrator": "workspace:*",
+        "@standwise/queue": "workspace:*",
+        "zod": "^4.6.7",
+      },
+    },
     "packages/adapters/github": {
       "name": "@standwise/github",
       "version": "0.0.0",
@@ -229,6 +240,8 @@
     "@standwise/queue": ["@standwise/queue@workspace:packages/queue"],
 
     "@standwise/slack": ["@standwise/slack@workspace:packages/adapters/slack"],
+
+    "@standwise/worker": ["@standwise/worker@workspace:apps/worker"],
 
     "@types/aws-lambda": ["@types/aws-lambda@8.10.164", "", {}, "sha512-XOnrazWcOd6yWPnR7DxqCBPPYciDjHq+NN8LPwwqBCJNXLyPJgKo47fZpJ113+oyAn9Zti0Cf6H4k6yPcE3WFg=="],
 

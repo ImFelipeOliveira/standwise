@@ -10,6 +10,7 @@
     "test": "bun test",
     "db:migrate": "bun packages/db/src/migrate-cli.ts",
     "api": "bun run apps/api/src/main.ts",
+    "worker": "bun run apps/worker/src/main.ts",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

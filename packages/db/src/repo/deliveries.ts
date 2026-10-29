@@ -11,7 +11,7 @@ export type DeliveryKey = {
   subject?: string;
 };
 
-const MAX_ATTEMPTS = 3;
+export const MAX_DELIVERY_ATTEMPTS = 3;
 const STALE_PENDING_MINUTES = 10;
 
 const keyFilter = (k: DeliveryKey) =>
@@ -56,7 +56,7 @@ export async function claimDelivery(db: Db, k: DeliveryKey): Promise<ClaimResult
         error: null,
         updatedAt: sql`now()`,
       },
-      setWhere: sql`${deliveries.attempts} < ${MAX_ATTEMPTS}
+      setWhere: sql`${deliveries.attempts} < ${MAX_DELIVERY_ATTEMPTS}
         AND (${deliveries.status} = 'failed'
           OR (${deliveries.status} = 'pending' AND ${staleSql}))`,
     })
@@ -68,14 +68,14 @@ export async function claimDelivery(db: Db, k: DeliveryKey): Promise<ClaimResult
     .update(deliveries)
     .set({
       status: 'failed',
-      error: `worker_died: no completion after ${MAX_ATTEMPTS} attempts`,
+      error: `worker_died: no completion after ${MAX_DELIVERY_ATTEMPTS} attempts`,
       updatedAt: sql`now()`,
     })
     .where(
       and(
         keyFilter(k),
         eq(deliveries.status, 'pending'),
-        sql`${deliveries.attempts} >= ${MAX_ATTEMPTS}`,
+        sql`${deliveries.attempts} >= ${MAX_DELIVERY_ATTEMPTS}`,
         staleSql,
       ),
     );

@@ -1,4 +1,10 @@
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import {
+  type ChatChannel,
+  type Message,
+  type MessageRef,
+  parseConfig,
+  type StandwiseConfig,
+} from '@standwise/core';
 import { setInstallationConfig, upsertInstallation, upsertMember } from '@standwise/db';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
@@ -165,3 +171,36 @@ export const daily = {
   today: [{ text: 'do another' }],
   blockers: [],
 };
+
+export function fakeChat() {
+  const posted: { channel: string; msg: Message }[] = [];
+  const replies: { ref: MessageRef; msg: Message }[] = [];
+  let failure: Error | null = null;
+  let counter = 0;
+  const chat: ChatChannel = {
+    postToChannel: async (channel, msg) => {
+      if (failure) throw failure;
+      posted.push({ channel, msg });
+      counter++;
+      return { channel: 'C1', id: `${counter}.0` };
+    },
+    replyInThread: async (ref, msg) => {
+      if (failure) throw failure;
+      replies.push({ ref, msg });
+      counter++;
+      return { channel: ref.channel, id: `${counter}.1` };
+    },
+    sendDirect: async () => {
+      throw new Error('unexpected sendDirect');
+    },
+    findUserByEmail: async () => null,
+  };
+  return {
+    chat,
+    posted,
+    replies,
+    failWith: (error: Error | null) => {
+      failure = error;
+    },
+  };
+}

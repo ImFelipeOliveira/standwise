@@ -2,7 +2,7 @@ import type { ResolvedTeam, StandwiseConfig } from '@standwise/core';
 import type { Deps } from './deps';
 
 export async function resolveTeams(
-  deps: Deps,
+  deps: Pick<Deps, 'github'>,
   installationId: number,
   owner: string,
   config: StandwiseConfig,

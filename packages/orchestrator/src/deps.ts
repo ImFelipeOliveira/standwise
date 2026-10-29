@@ -41,3 +41,8 @@ export type Deps = {
     slackClientSecret: string;
   };
 };
+
+export type WorkerDeps = Pick<
+  Deps,
+  'db' | 'queue' | 'now' | 'chatFor' | 'github' | 'encryptionKey'
+>;

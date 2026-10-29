@@ -55,4 +55,11 @@ describe('calendar', () => {
     expect(isDue(at('12:01'), '2026-10-28', '10:00', tz)).toBe(false);
     expect(isDue(at('10:30'), '2026-10-29', '10:00', tz)).toBe(false);
   });
+
+  test('isDue grace crosses midnight', () => {
+    const tz = 'America/Sao_Paulo';
+    expect(isDue(new Date('2026-10-29T00:15:00-03:00'), '2026-10-28', '23:30', tz)).toBe(true);
+    expect(isDue(new Date('2026-10-29T01:31:00-03:00'), '2026-10-28', '23:30', tz)).toBe(false);
+    expect(isDue(new Date('2026-10-29T00:15:00-03:00'), '2026-10-29', '23:30', tz)).toBe(false);
+  });
 });

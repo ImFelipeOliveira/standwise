@@ -62,10 +62,9 @@ export function isDue(
   tz: string,
   graceMinutes = 120,
 ): boolean {
-  if (localDate(now, tz) !== date) return false;
+  const [y, m, d] = parseDate(date);
   const [h, min] = hhmm.split(':').map(Number);
-  const local = new TZDate(now, tz);
-  const nowMin = local.getHours() * 60 + local.getMinutes();
-  const startMin = (h as number) * 60 + (min as number);
-  return nowMin >= startMin && nowMin <= startMin + graceMinutes;
+  const start = new TZDate(y, m - 1, d, h as number, min as number, 0, 0, tz).getTime();
+  const elapsed = Math.floor((now.getTime() - start) / 60_000);
+  return elapsed >= 0 && elapsed <= graceMinutes;
 }
