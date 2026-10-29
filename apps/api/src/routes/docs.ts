@@ -23,6 +23,8 @@ const SCALAR_CDN = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.74.0';
 export const DOCS_SITE_DIR = join(import.meta.dir, '../../../../docs/site/.vitepress/dist');
 
 const SITE_PREFIX = /^\/docs/;
+const ASSETS_PREFIX = '/docs/assets/';
+const IMMUTABLE = 'public, max-age=31536000, immutable';
 const INLINE_SCRIPT = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
 
 function inlineScriptHashes(html: string): string[] {
@@ -53,10 +55,13 @@ function siteRoutes(siteDir: string): Hono {
   const app = new Hono();
   const hashes = new Map<string, string[]>();
   const headers = async (path: string, c: Context) => {
+    c.header('X-Content-Type-Options', 'nosniff');
+    if (c.req.path.startsWith(ASSETS_PREFIX)) c.header('Cache-Control', IMMUTABLE);
     if (!path.endsWith('.html')) {
       c.header('Content-Security-Policy', siteCsp([]));
       return;
     }
+    c.header('Cache-Control', 'no-cache');
     let pageHashes = hashes.get(path);
     if (!pageHashes) {
       pageHashes = inlineScriptHashes(await Bun.file(path).text());
@@ -119,6 +124,7 @@ export function docsRoutes(
   );
   app.get('/docs/api/', (c) => c.redirect('/docs/api', 301));
   app.get('/docs', (c) => c.redirect('/docs/'));
+  app.get('/docs/pt-BR', (c) => c.redirect('/docs/pt-BR/', 301));
   app.route('/', siteRoutes(siteDir));
   return app;
 }

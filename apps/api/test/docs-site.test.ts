@@ -105,6 +105,29 @@ describe('served site', () => {
     expect(await res.text()).toContain('<html lang="pt-BR"');
   });
 
+  test('redirects /docs/pt-BR to /docs/pt-BR/ permanently', async () => {
+    const res = await app().request('/docs/pt-BR');
+    expect(res.status).toBe(301);
+    expect(res.headers.get('location')).toBe('/docs/pt-BR/');
+  });
+
+  test('pages are not sniffed and revalidated on every visit', async () => {
+    for (const path of ['/docs/', '/docs/pt-BR/', '/docs/admin/configuration']) {
+      const res = await app().request(path);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(res.headers.get('cache-control')).toBe('no-cache');
+    }
+  });
+
+  test('hashed assets are not sniffed and cached for a year', async () => {
+    const [asset] = (await readdir(join(outDir, 'assets'))).filter((f) => f.endsWith('.js'));
+    const res = await app().request(`/docs/assets/${asset}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+  });
+
   test('serves pages with and without the html extension', async () => {
     expect((await app().request('/docs/privacy.html')).status).toBe(200);
     expect((await app().request('/docs/admin/configuration')).status).toBe(200);

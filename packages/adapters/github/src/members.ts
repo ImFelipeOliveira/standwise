@@ -1,5 +1,6 @@
 import type { Octokit } from '@octokit/core';
 
+const PER_PAGE = 100;
 const TEAM_REFERENCE = /^@([^/]+)\/(.+)$/;
 
 export async function resolveTeamMembers(
@@ -16,12 +17,17 @@ export async function resolveTeamMembers(
     }
     const org = team[1] ?? owner;
     const slug = team[2] ?? '';
-    const response = await octokit.request('GET /orgs/{org}/teams/{team_slug}/members', {
-      org,
-      team_slug: slug,
-      per_page: 100,
-    });
-    for (const user of response.data as { login: string }[]) logins.add(user.login.toLowerCase());
+    for (let page = 1; ; page++) {
+      const response = await octokit.request('GET /orgs/{org}/teams/{team_slug}/members', {
+        org,
+        team_slug: slug,
+        per_page: PER_PAGE,
+        page,
+      });
+      const users = response.data as { login: string }[];
+      for (const user of users) logins.add(user.login.toLowerCase());
+      if (users.length < PER_PAGE) break;
+    }
   }
   return [...logins].sort();
 }
