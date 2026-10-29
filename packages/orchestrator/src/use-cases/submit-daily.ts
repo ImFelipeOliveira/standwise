@@ -27,7 +27,7 @@ export async function submitDaily(
   const ctx = await resolveOrgContext(deps, isMember, member, payload.org);
   await upsertDaily(deps.db, {
     installationId: ctx.installationId,
-    memberId: member.id,
+    memberId: ctx.member.id,
     date: ctx.date,
     payload,
     submittedAt: deps.now(),
@@ -36,7 +36,7 @@ export async function submitDaily(
   if (late) {
     await deps.queue.enqueue('send-late-daily', {
       installationId: ctx.installationId,
-      memberId: member.id,
+      memberId: ctx.member.id,
       date: ctx.date,
     });
   }

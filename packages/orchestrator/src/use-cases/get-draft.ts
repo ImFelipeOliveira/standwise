@@ -20,10 +20,10 @@ export async function getDraft(
 ): Promise<Draft> {
   const ctx = await resolveOrgContext(deps, isMember, member, org);
   const cal = ctx.mine[0];
-  const lastDaily = await getLastDaily(deps.db, ctx.installationId, member.id, ctx.date);
+  const lastDaily = await getLastDaily(deps.db, ctx.installationId, ctx.member.id, ctx.date);
   const since = activitySince({ date: ctx.date, cal, ...(lastDaily ? { lastDaily } : {}) });
   const octokit = await deps.github.installationOctokit(ctx.installationId);
-  const activity = await deps.github.listActivity(octokit, ctx.owner, member.login, since);
+  const activity = await deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
   return {
     org: ctx.owner,
     date: ctx.date,

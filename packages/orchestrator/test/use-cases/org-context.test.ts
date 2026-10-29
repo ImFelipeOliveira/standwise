@@ -29,6 +29,16 @@ describe('resolveOrgContext', () => {
     expect(ctx.date).toBe('2026-10-28');
   });
 
+  test('renamed member resolves teams with the new login on the first request', async () => {
+    const { deps, isMember, member, users, orgMembers } = await setup(config('[alice-new, bob]'));
+    users.set(1, 'alice-new');
+    orgMembers.add('alice-new');
+    const ctx = await resolveOrgContext(deps, isMember, member, 'acme');
+    expect(ctx.mine.map((t) => t.name)).toEqual(['Alpha']);
+    expect(ctx.member.login).toBe('alice-new');
+    expect(ctx.member.id).toBe(member.id);
+  });
+
   test('missing org is invalid_request', async () => {
     const { deps, isMember, member } = await setup();
     expect(await codeOf(resolveOrgContext(deps, isMember, member, undefined))).toBe(

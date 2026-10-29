@@ -36,6 +36,27 @@ export async function upsertMember(
   });
 }
 
+export async function updateMemberLogin(
+  db: Db,
+  githubUserId: number,
+  login: string,
+): Promise<MemberRow | null> {
+  return db.transaction(async (tx) => {
+    await tx
+      .update(members)
+      .set({ login: sql`'~' || ${members.githubUserId}` })
+      .where(
+        and(sql`lower(${members.login}) = lower(${login})`, ne(members.githubUserId, githubUserId)),
+      );
+    const [row] = await tx
+      .update(members)
+      .set({ login })
+      .where(eq(members.githubUserId, githubUserId))
+      .returning();
+    return row ?? null;
+  });
+}
+
 export async function setMemberInstallations(
   db: Db,
   memberId: string,

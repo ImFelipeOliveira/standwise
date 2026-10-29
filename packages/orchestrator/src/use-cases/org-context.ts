@@ -11,6 +11,7 @@ import { resolveTeams } from '../teams';
 import { DomainError } from './errors';
 
 export type OrgContext = {
+  member: MemberRow;
   installationId: number;
   owner: string;
   mine: [ResolvedTeam, ...ResolvedTeam[]];
@@ -32,7 +33,8 @@ export async function resolveOrgContext(
   );
   if (!entry) throw new DomainError('org_not_found', `organization ${org} not found`);
   const installation = await getInstallation(deps.db, entry.installationId);
-  if (!installation || !(await isMember(installation, member))) {
+  const current = installation ? await isMember(installation, member) : null;
+  if (!installation || !current) {
     await removeMemberInstallation(deps.db, member.id, entry.installationId);
     throw new DomainError('org_not_found', `organization ${org} not found`);
   }
@@ -48,11 +50,12 @@ export async function resolveOrgContext(
     installation.accountLogin,
     installation.config,
   );
-  const [first, ...rest] = teamsForMember(member.login, teams);
+  const [first, ...rest] = teamsForMember(current.login, teams);
   if (!first) {
     throw new DomainError('not_in_team', 'you are not in any team of this organization');
   }
   return {
+    member: current,
     installationId: installation.id,
     owner: installation.accountLogin,
     mine: [first, ...rest],

@@ -22,6 +22,7 @@ import {
   setIdentity,
   setInstallationConfig,
   setMemberInstallations,
+  updateMemberLogin,
   upsertDaily,
   upsertInstallation,
   upsertMember,
@@ -211,6 +212,22 @@ describe('member logins', () => {
     expect(b.login).toBe('Bob');
     const rows = await db.execute(sql`SELECT login FROM members WHERE id = ${a.id}`);
     expect(rows[0]?.login).toBe('~1');
+  });
+
+  test('updateMemberLogin keeps email and tombstones the other holder', async () => {
+    const a = await upsertMember(db, { githubUserId: 1, login: 'alice-new', email: 'a@x.com' });
+    const b = await upsertMember(db, { githubUserId: 2, login: 'alice', email: 'b@x.com' });
+    const renamed = await updateMemberLogin(db, 2, 'Alice-New');
+    expect(renamed?.id).toBe(b.id);
+    expect(renamed?.login).toBe('Alice-New');
+    expect(renamed?.email).toBe('b@x.com');
+    const rows = await db.execute(sql`SELECT login, email FROM members WHERE id = ${a.id}`);
+    expect(rows[0]?.login).toBe('~1');
+    expect(rows[0]?.email).toBe('a@x.com');
+  });
+
+  test('updateMemberLogin returns null for an unknown github id', async () => {
+    expect(await updateMemberLogin(db, 99, 'nobody')).toBeNull();
   });
 });
 

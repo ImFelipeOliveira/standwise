@@ -32,10 +32,16 @@ export type FakeOptions = {
 
 export function fakeDeps(opts: FakeOptions = {}) {
   const queue = createMemoryQueue();
-  const calls = { activity: [] as Date[], membership: [] as string[], config: [] as string[] };
+  const calls = {
+    activity: [] as Date[],
+    activityLogins: [] as string[],
+    membership: [] as string[],
+    config: [] as string[],
+  };
   const orgMembers = new Set(['alice']);
   const users = new Map<number, string>([[1, 'Alice']]);
   let now = new Date('2026-10-28T15:00:00Z');
+  let userLookupError: unknown = null;
   const request = async (route: string, params: Record<string, unknown>) => {
     if (route === 'GET /orgs/{org}/members/{username}') {
       calls.membership.push(`${params.org}/${params.username}`);
@@ -45,6 +51,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
       return { status: 204 };
     }
     if (route === 'GET /user/{account_id}') {
+      if (userLookupError) throw userLookupError;
       const login = users.get(Number(params.account_id));
       if (!login) throw Object.assign(new Error('not found'), { status: 404 });
       return { status: 200, data: { id: Number(params.account_id), login } };
@@ -68,8 +75,9 @@ export function fakeDeps(opts: FakeOptions = {}) {
           installationIds: opts.installationIds ?? [INST, 999],
         };
       },
-      listActivity: async (_o, _owner, _login, since) => {
+      listActivity: async (_o, _owner, login, since) => {
         calls.activity.push(since);
+        calls.activityLogins.push(login);
         return [];
       },
       resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
@@ -105,6 +113,9 @@ export function fakeDeps(opts: FakeOptions = {}) {
     users,
     setNow: (d: Date) => {
       now = d;
+    },
+    failUserLookup: (error: unknown) => {
+      userLookupError = error;
     },
   };
 }

@@ -1,10 +1,9 @@
-import { type InstallationRow, type MemberRow, upsertMember } from '@standwise/db';
+import { type InstallationRow, type MemberRow, updateMemberLogin } from '@standwise/db';
 import type { Deps } from './deps';
 
 const TTL_MS = 10 * 60 * 1000;
 
 type Account = Pick<InstallationRow, 'id' | 'accountLogin' | 'accountType' | 'accountId'>;
-type Person = Pick<MemberRow, 'id' | 'githubUserId' | 'login' | 'email'>;
 type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
 
 function statusOf(error: unknown): number | undefined {
@@ -12,7 +11,7 @@ function statusOf(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined;
 }
 
-function isUserAccountOwner(account: Account, member: Person): boolean {
+function isUserAccountOwner(account: Account, member: MemberRow): boolean {
   if (account.accountId !== null) return account.accountId === member.githubUserId;
   return account.accountLogin.toLowerCase() === member.login.toLowerCase();
 }
@@ -42,32 +41,29 @@ async function isOrgMember(octokit: Octokit, org: string, username: string): Pro
 
 export function createMembershipCheck(
   deps: Deps,
-): (account: Account, member: Person) => Promise<boolean> {
+): (account: Account, member: MemberRow) => Promise<MemberRow | null> {
   const cache = new Map<string, number>();
   return async (account, member) => {
-    if (account.accountType === 'User') return isUserAccountOwner(account, member);
+    if (account.accountType === 'User') return isUserAccountOwner(account, member) ? member : null;
     const key = `${account.id}:${member.id}`;
     const now = deps.now().getTime();
     const cached = cache.get(key);
-    if (cached !== undefined && now - cached < TTL_MS) return true;
+    if (cached !== undefined && now - cached < TTL_MS) return member;
     const octokit = await deps.github.installationOctokit(account.id);
     const login = await currentLogin(octokit, member.githubUserId);
     if (login === null) {
       cache.delete(key);
-      return false;
+      return null;
     }
-    if (login !== member.login) {
-      await upsertMember(deps.db, {
-        githubUserId: member.githubUserId,
-        login,
-        email: member.email,
-      });
-    }
+    const current =
+      login === member.login
+        ? member
+        : ((await updateMemberLogin(deps.db, member.githubUserId, login)) ?? { ...member, login });
     if (!(await isOrgMember(octokit, account.accountLogin, login))) {
       cache.delete(key);
-      return false;
+      return null;
     }
     cache.set(key, now);
-    return true;
+    return current;
   };
 }

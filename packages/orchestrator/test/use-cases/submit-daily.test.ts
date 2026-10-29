@@ -7,12 +7,12 @@ import {
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, submitDaily } from '../../src';
-import { daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
+import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
-async function setup() {
-  await seedOrg();
+async function setup(cfg = config()) {
+  await seedOrg(cfg);
   const member = await seedMember();
   await setMemberInstallations(db, member.id, [INST]);
   const fake = fakeDeps();
@@ -29,6 +29,16 @@ describe('submitDaily', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.payload.today[0]?.text).toBe('changed');
     expect(queue.enqueued).toHaveLength(0);
+  });
+
+  test('renamed member submits with the new login on the first request', async () => {
+    const { deps, isMember, member, users, orgMembers } = await setup(config('[alice-new, bob]'));
+    users.set(1, 'alice-new');
+    orgMembers.add('alice-new');
+    const result = await submitDaily(deps, isMember, member, daily);
+    expect(result.teams).toEqual(['Alpha']);
+    const rows = await listDailies(db, INST, '2026-10-28');
+    expect(rows.map((r) => r.memberId)).toEqual([member.id]);
   });
 
   test('after the digest is sent the daily is late and enqueued', async () => {
