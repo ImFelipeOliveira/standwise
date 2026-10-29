@@ -1,6 +1,7 @@
 import { and, eq, ne, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import {
+  installations,
   type MemberRow,
   memberIdentities,
   memberInstallations,
@@ -86,4 +87,21 @@ export async function getIdentities(
       ),
     );
   return new Map(rows.map((r) => [r.login.toLowerCase(), r.externalId]));
+}
+
+export async function getMemberById(db: Db, id: string): Promise<MemberRow | null> {
+  const [row] = await db.select().from(members).where(eq(members.id, id));
+  return row ?? null;
+}
+
+export async function listMemberInstallations(
+  db: Db,
+  memberId: string,
+): Promise<{ installationId: number; accountLogin: string }[]> {
+  return db
+    .select({ installationId: installations.id, accountLogin: installations.accountLogin })
+    .from(memberInstallations)
+    .innerJoin(installations, eq(installations.id, memberInstallations.installationId))
+    .where(eq(memberInstallations.memberId, memberId))
+    .orderBy(installations.id);
 }
