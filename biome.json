@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!.superpowers", "!.remember", "!docs", "!packages/plugin/skills"]
+    "includes": ["**", "!.superpowers", "!.remember", "!docs", "!packages/plugin/skills/**/*.md"]
   },
   "formatter": {
     "enabled": true,

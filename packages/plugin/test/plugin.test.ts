@@ -60,6 +60,19 @@ describe('daily skill', () => {
     expect(skill).toContain('standwise submit');
     expect(skill).toContain('standwise whoami');
     expect(skill).toContain('mktemp');
+    expect(skill).toContain('trap \'rm -f "$f"\' EXIT');
+    expect(skill).toContain("<<'STANDWISE_JSON'");
+    expect(skill).toContain('127');
+  });
+
+  test('body handles exit codes 2, 3 and 4', () => {
+    for (const code of ['- 2:', '- 3:', '- 4:']) expect(skill).toContain(code);
+  });
+
+  test('confirmed: true is only tied to explicit confirmation', () => {
+    const lines = skill.split('\n').filter((line) => line.includes('confirmed: true'));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line).toContain('only after');
   });
 
   test('body states the safety rules', () => {
