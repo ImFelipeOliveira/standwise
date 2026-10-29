@@ -21,6 +21,7 @@ import {
 import { type Context, Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
+import installScript from '../../../../scripts/install.sh' with { type: 'text' };
 import { STATUS } from '../http/errors';
 import { ErrorPage } from '../web/error';
 import {
@@ -168,6 +169,14 @@ export function webRoutes(deps: Deps): Hono {
       );
     }
   };
+
+  app.get('/install.sh', (c) =>
+    c.body(installScript, 200, {
+      'Content-Type': 'text/x-shellscript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    }),
+  );
 
   app.get('/auth/github/login', (c) => {
     const { url, nonce } = startWebLogin(deps, { next: c.req.query('next') });

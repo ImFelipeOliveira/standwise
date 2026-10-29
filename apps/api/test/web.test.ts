@@ -702,3 +702,15 @@ describe('escaping', () => {
     expect(html).toContain('-apple-system');
   });
 });
+
+describe('install script', () => {
+  test('is served as a shell script', async () => {
+    const { app } = harness();
+    const res = await app.request('/install.sh');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/x-shellscript');
+    const body = await res.text();
+    expect(body).toBe(await Bun.file(`${import.meta.dir}/../../../scripts/install.sh`).text());
+    expect(body.startsWith('#!/bin/sh\n')).toBe(true);
+  });
+});
