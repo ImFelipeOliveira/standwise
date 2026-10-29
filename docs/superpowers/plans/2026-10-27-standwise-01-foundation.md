@@ -26,6 +26,8 @@
 - Uma `/daily` aparece no consolidado de **todos** os times da pessoa.
 - Consolidado: **uma** mensagem por time por dia, impedimentos no topo, lista de quem não enviou no fim; daily enviada depois do consolidado vai como **resposta na thread**.
 - Nada é enviado em nome da pessoa sem confirmação explícita dela (anti-vigilância).
+- **Camadas (regra do Felipe, 2026-10-28):** as regras de negócio vivem em casos de uso em `packages/orchestrator/src/use-cases/`, que recebem `Deps` e entradas já validadas, devolvem resultados tipados e lançam `DomainError(code, message, details?)`, sem importar Hono nem conhecer HTTP. Rotas (`apps/api/src/routes/*`), jobs do worker e comandos da CLI/MCP são **finos**: autenticam, validam a entrada (Zod), chamam o caso de uso e traduzem o resultado. O mapeamento `DomainError.code` → status HTTP fica numa tabela única em `apps/api/src/http/errors.ts`. Casos de uso têm testes próprios, sem HTTP.
+- **Sem comentários no código** (regra do Felipe).
 - Testes: `bun test`. Testes de `db`, `api` e `worker` usam Postgres real via `TEST_DATABASE_URL` (docker compose). APIs externas (GitHub, Slack) são substituídas por fakes injetados, nunca chamadas reais.
 
 ## Review Focus
