@@ -5,14 +5,21 @@ import errors from '../../../../docs/api/guides/errors.md' with { type: 'text' }
 import pagination from '../../../../docs/api/guides/pagination.md' with { type: 'text' };
 import rateLimits from '../../../../docs/api/guides/rate-limits.md' with { type: 'text' };
 import versioning from '../../../../docs/api/guides/versioning.md' with { type: 'text' };
+import webhooks from '../../../../docs/api/guides/webhooks.md' with { type: 'text' };
 
-export const API_VERSION = '1.1.0';
+export const API_VERSION = '1.2.0';
 
 const OVERVIEW = `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.`;
 
-export const GUIDES = [authentication, aiAgents, errors, pagination, rateLimits, versioning].map(
-  (guide) => guide.trim(),
-);
+export const GUIDES = [
+  authentication,
+  aiAgents,
+  errors,
+  pagination,
+  rateLimits,
+  webhooks,
+  versioning,
+].map((guide) => guide.trim());
 
 export type DocumentEnv = { publicUrl: string; supportEmail: string };
 
@@ -49,7 +56,10 @@ export function publicDocument(app: DocumentSource, env: DocumentEnv) {
     servers: [{ url: env.publicUrl }],
     tags: [
       { name: 'Organization', description: 'Organization data. Authenticated with an API key.' },
-      { name: 'Webhooks', description: 'Outbound webhook subscriptions.' },
+      {
+        name: 'Webhooks',
+        description: 'Signed events Standwise sends to the endpoints an admin registers.',
+      },
       { name: 'Meta', description: 'Service metadata and health.' },
     ],
   });

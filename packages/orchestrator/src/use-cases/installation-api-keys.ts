@@ -6,33 +6,14 @@ import {
   revokeApiKey,
 } from '@standwise/db';
 import type { Deps } from '../deps';
-import { authorizeInstallation } from './authorize-installation';
 import { DomainError } from './errors';
-import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
 import { isUuid } from './pagination';
+import { requireAdmin } from './require-admin';
 
 const MAX_NAME_LENGTH = 80;
 
 export type CreateApiKeyInput = { installationId: number; name: string; scopes: ApiKeyScope[] };
-
-async function requireAdmin(
-  deps: Deps,
-  isMember: MembershipCheck,
-  member: MemberRow,
-  installationId: number,
-): Promise<MemberRow> {
-  const { member: current, installation } = await authorizeInstallation(
-    deps,
-    isMember,
-    member,
-    installationId,
-  );
-  if (!(await isInstallationAdmin(deps, installation.id, current, { fresh: true }))) {
-    throw new DomainError('forbidden', 'only an organization admin can manage api keys');
-  }
-  return current;
-}
 
 export async function createInstallationApiKey(
   deps: Deps,

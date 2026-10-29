@@ -18,6 +18,7 @@ import {
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
+import { emitEventSafely } from './emit-event';
 
 export type SendDigestJob = { installationId: number; teamName: string; date: string };
 
@@ -63,6 +64,8 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
   let team: ResolvedTeam;
   let snapshot: Daily[];
   let ref: MessageRef;
+  let entries: DigestEntry[];
+  let missing: Person[];
   try {
     const chat = await deps.chatFor(job.installationId, 'slack');
     if (!chat) {
@@ -85,8 +88,8 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
       const chatUserId = identities.get(lower);
       return chatUserId ? { login: display, chatUserId } : { login: display };
     };
-    const entries: DigestEntry[] = [];
-    const missing: Person[] = [];
+    entries = [];
+    missing = [];
     for (const login of team.memberLogins) {
       const found = snapshot.find((d) => d.login.toLowerCase() === login);
       if (found) entries.push({ ...person(found.login), daily: found.payload });
@@ -102,6 +105,15 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
   }
 
   if (await completeDelivery(deps.db, key, claim.token, ref)) {
+    await emitEventSafely(deps, job.installationId, {
+      type: 'digest.sent',
+      data: {
+        team: job.teamName,
+        date: job.date,
+        submitted: entries.map((e) => e.login),
+        missing: missing.map((p) => p.login),
+      },
+    });
     await enqueueLateDailies(deps, job, team, snapshot);
   }
 }

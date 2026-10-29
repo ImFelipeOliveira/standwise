@@ -1,6 +1,8 @@
 export * from './authorize-installation';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
+export * from './deliver-webhook';
+export * from './emit-event';
 export * from './errors';
 export * from './get-draft';
 export * from './get-setup-status';
@@ -21,3 +23,4 @@ export * from './start-session';
 export * from './start-slack-connect';
 export * from './start-web-login';
 export * from './submit-daily';
+export * from './webhook-endpoints';

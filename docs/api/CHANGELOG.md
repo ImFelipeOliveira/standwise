@@ -2,6 +2,12 @@
 
 Breaking changes are announced here at least 90 days before they take effect. See the versioning guide.
 
+## 1.2.0
+
+- Outbound webhooks: an organization admin registers HTTPS endpoints on the setup page and picks the events `daily.submitted`, `blocker.opened` and `digest.sent`. A `ping` test event can be sent from the setup page.
+- Every delivery is a signed `POST` with the headers `Standwise-Signature` (`t=<unix seconds>,v1=<hex HMAC-SHA256>`), `Standwise-Event`, `Standwise-Delivery` and `User-Agent: Standwise-Webhooks/1`. Failed deliveries are retried up to 8 attempts; an endpoint with 20 failed deliveries in a row is disabled.
+- The OpenAPI document has a `webhooks` section with the payload of each event. See the webhooks guide.
+
 ## 1.1.0
 
 - API keys (`swk_`) created by an organization admin on the setup page, with the scopes `teams:read`, `dailies:read`, `digests:read` and `blockers:read`.

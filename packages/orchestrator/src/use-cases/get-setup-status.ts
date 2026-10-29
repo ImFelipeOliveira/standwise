@@ -10,6 +10,7 @@ import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
 import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
+import { loadWebhookOverview, type WebhookOverview } from './webhook-endpoints';
 
 const FAILED_LIMIT = 5;
 
@@ -25,6 +26,7 @@ export type SetupStatus = {
   slack: { connected: false } | { connected: true; workspace: string };
   failedDeliveries: { team: string; at: Date; error: string }[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
+  webhooks: { manage: false } | ({ manage: true } & WebhookOverview);
   supportEmail: string;
 };
 
@@ -62,9 +64,15 @@ export async function getSetupStatus(
     listFailedDeliveries(deps.db, installation.id, FAILED_LIMIT),
     isInstallationAdmin(deps, installation.id, current).catch(() => false),
   ]);
-  const apiKeys: SetupStatus['apiKeys'] = admin
-    ? { manage: true, keys: await listApiKeys(deps.db, installation.id) }
-    : { manage: false };
+  const [apiKeys, webhooks]: [SetupStatus['apiKeys'], SetupStatus['webhooks']] = admin
+    ? await Promise.all([
+        listApiKeys(deps.db, installation.id).then((keys) => ({ manage: true as const, keys })),
+        loadWebhookOverview(deps.db, installation.id).then((overview) => ({
+          manage: true as const,
+          ...overview,
+        })),
+      ])
+    : [{ manage: false }, { manage: false }];
   const config: SetupStatus['config'] =
     installation.status === 'configured'
       ? { status: 'configured' }
@@ -86,6 +94,7 @@ export async function getSetupStatus(
       error: d.error ?? '',
     })),
     apiKeys,
+    webhooks,
     supportEmail: deps.env.supportEmail,
   };
 }

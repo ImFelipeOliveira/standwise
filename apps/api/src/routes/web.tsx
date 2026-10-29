@@ -1,16 +1,19 @@
 import { negotiateLanguage } from '@standwise/core';
-import { API_KEY_SCOPES, type MemberRow, resolveSession } from '@standwise/db';
+import { API_KEY_SCOPES, type MemberRow, resolveSession, WEBHOOK_EVENTS } from '@standwise/db';
 import {
   completeSlackConnect,
   completeWebLogin,
   createInstallationApiKey,
   createMembershipCheck,
+  createWebhookEndpoint,
   csrfToken,
   type Deps,
   DomainError,
+  disableWebhookEndpoint,
   getSetupStatus,
   revokeInstallationApiKey,
   type SetupStatus,
+  sendTestEvent,
   startSlackConnect,
   startWebLogin,
   verifyCsrf,
@@ -20,8 +23,15 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import { STATUS } from '../http/errors';
 import { ErrorPage } from '../web/error';
-import { FLASH_COOKIE, FLASH_PATH, FLASH_SECONDS, openFlash, sealFlash } from '../web/flash';
-import { type NewApiKey, SetupPage } from '../web/setup';
+import {
+  FLASH_COOKIE,
+  FLASH_PATH,
+  FLASH_SECONDS,
+  type FlashValue,
+  openFlash,
+  sealFlash,
+} from '../web/flash';
+import { SetupPage } from '../web/setup';
 
 const COOKIE = 'sw_web';
 const LOGIN_COOKIE = 'sw_login';
@@ -43,7 +53,16 @@ const createKeyForm = z.object({
     .transform((scopes) => (scopes === undefined ? [] : [scopes].flat())),
 });
 
-const revokeKeyForm = z.object({ installation_id: installationField });
+const installationForm = z.object({ installation_id: installationField });
+
+const createWebhookForm = z.object({
+  installation_id: installationField,
+  url: z.string(),
+  events: z
+    .union([z.enum(WEBHOOK_EVENTS), z.array(z.enum(WEBHOOK_EVENTS))])
+    .optional()
+    .transform((events) => (events === undefined ? [] : [events].flat())),
+});
 
 export function webRoutes(deps: Deps): Hono {
   const app = new Hono();
@@ -69,14 +88,45 @@ export function webRoutes(deps: Deps): Hono {
     return form;
   };
 
-  const setupPage = (c: Context, session: Session, status: SetupStatus, newKey?: NewApiKey) => (
+  const setupPage = (c: Context, session: Session, status: SetupStatus, flash?: FlashValue) => (
     <SetupPage
       lang={negotiateLanguage(c.req.header('accept-language'))}
       status={status}
       csrf={csrfToken(deps.env.sessionSecret, session.token)}
-      newKey={newKey}
+      newKey={flash?.kind === 'apiKey' ? flash : undefined}
+      newWebhook={flash?.kind === 'webhook' ? flash : undefined}
     />
   );
+
+  const parseForm = async <T extends z.ZodType>(c: Context, session: Session, schema: T) => {
+    const parsed = schema.safeParse(await readForm(c, session));
+    if (!parsed.success) {
+      throw new DomainError('invalid_request', 'invalid form', parsed.error.issues);
+    }
+    return parsed.data as z.output<T>;
+  };
+
+  const flashAndRedirect = (
+    c: Context,
+    session: Session,
+    installationId: number,
+    value: FlashValue,
+  ) => {
+    setCookie(
+      c,
+      FLASH_COOKIE,
+      sealFlash(deps.encryptionKey, session.token, installationId, value),
+      {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Lax',
+        path: FLASH_PATH,
+        maxAge: FLASH_SECONDS,
+      },
+    );
+    c.header('Cache-Control', 'no-store');
+    return c.redirect(`/setup?installation_id=${installationId}`, 303);
+  };
 
   const loginRedirect = (c: Context) => {
     const url = new URL(c.req.url);
@@ -160,44 +210,29 @@ export function webRoutes(deps: Deps): Hono {
     if (!raw) return c.html(setupPage(c, session, result));
     deleteCookie(c, FLASH_COOKIE, { path: FLASH_PATH, secure: true });
     c.header('Cache-Control', 'no-store');
-    const newKey = openFlash(deps.encryptionKey, session.token, result.installationId, raw);
-    return c.html(setupPage(c, session, result, newKey));
+    const flash = openFlash(deps.encryptionKey, session.token, result.installationId, raw);
+    return c.html(setupPage(c, session, result, flash));
   });
 
   app.post('/setup/api-keys', async (c) => {
     const session = await requireSession(c);
-    const form = await readForm(c, session);
-    const parsed = createKeyForm.safeParse(form);
-    if (!parsed.success) {
-      throw new DomainError('invalid_request', 'invalid form', parsed.error.issues);
-    }
-    const { installation_id: installationId, name, scopes } = parsed.data;
+    const form = await parseForm(c, session, createKeyForm);
+    const { installation_id: installationId, name, scopes } = form;
     const created = await createInstallationApiKey(deps, isMember, session.member, {
       installationId,
       name,
       scopes,
     });
-    setCookie(
-      c,
-      FLASH_COOKIE,
-      sealFlash(deps.encryptionKey, session.token, installationId, {
-        name: name.trim(),
-        key: created.key,
-      }),
-      { httpOnly: true, secure: true, sameSite: 'Lax', path: FLASH_PATH, maxAge: FLASH_SECONDS },
-    );
-    c.header('Cache-Control', 'no-store');
-    return c.redirect(`/setup?installation_id=${installationId}`, 303);
+    return flashAndRedirect(c, session, installationId, {
+      kind: 'apiKey',
+      name: name.trim(),
+      key: created.key,
+    });
   });
 
   app.post('/setup/api-keys/:id/revoke', async (c) => {
     const session = await requireSession(c);
-    const form = await readForm(c, session);
-    const parsed = revokeKeyForm.safeParse(form);
-    if (!parsed.success) {
-      throw new DomainError('invalid_request', 'invalid form', parsed.error.issues);
-    }
-    const installationId = parsed.data.installation_id;
+    const { installation_id: installationId } = await parseForm(c, session, installationForm);
     await revokeInstallationApiKey(
       deps,
       isMember,
@@ -205,6 +240,36 @@ export function webRoutes(deps: Deps): Hono {
       installationId,
       c.req.param('id'),
     );
+    return c.redirect(`/setup?installation_id=${installationId}`, 303);
+  });
+
+  app.post('/setup/webhooks', async (c) => {
+    const session = await requireSession(c);
+    const form = await parseForm(c, session, createWebhookForm);
+    const { installation_id: installationId, url, events } = form;
+    const created = await createWebhookEndpoint(deps, isMember, session.member, {
+      installationId,
+      url,
+      events,
+    });
+    return flashAndRedirect(c, session, installationId, {
+      kind: 'webhook',
+      url: url.trim(),
+      secret: created.secret,
+    });
+  });
+
+  app.post('/setup/webhooks/:id/disable', async (c) => {
+    const session = await requireSession(c);
+    const { installation_id: installationId } = await parseForm(c, session, installationForm);
+    await disableWebhookEndpoint(deps, isMember, session.member, installationId, c.req.param('id'));
+    return c.redirect(`/setup?installation_id=${installationId}`, 303);
+  });
+
+  app.post('/setup/webhooks/:id/test', async (c) => {
+    const session = await requireSession(c);
+    const { installation_id: installationId } = await parseForm(c, session, installationForm);
+    await sendTestEvent(deps, isMember, session.member, installationId, c.req.param('id'));
     return c.redirect(`/setup?installation_id=${installationId}`, 303);
   });
 

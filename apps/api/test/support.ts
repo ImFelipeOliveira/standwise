@@ -14,9 +14,10 @@ export function createTestApp(
   options: { getClientIp?: (c: Context) => string; request?: FakeRequest } = {},
 ) {
   let now = new Date('2026-10-28T15:00:05Z');
+  const queue = createMemoryQueue();
   const deps: Deps = {
     db,
-    queue: createMemoryQueue(),
+    queue,
     now: () => now,
     encryptionKey: new Uint8Array(32).fill(7),
     github: {
@@ -59,6 +60,7 @@ export function createTestApp(
   };
   return {
     app: createApp(deps, { getClientIp: options.getClientIp ?? headerIp }),
+    queue,
     setNow: (d: Date) => (now = d),
   };
 }

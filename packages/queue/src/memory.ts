@@ -3,9 +3,11 @@ import { DEFAULT_RETRY_LIMIT, type EnqueueOptions, type JobQueue } from './index
 type Handler = (data: object) => Promise<void>;
 type Job = { name: string; data: object; retryLimit: number; attempts: number; key?: string };
 
+type Enqueued = { name: string; data: object; startAfter?: Date };
+
 export type MemoryQueue = JobQueue & {
   drain(): Promise<void>;
-  enqueued: { name: string; data: object }[];
+  enqueued: Enqueued[];
   scheduled: { name: string; cron: string }[];
 };
 
@@ -13,7 +15,7 @@ export function createMemoryQueue(): MemoryQueue {
   const handlers = new Map<string, Handler>();
   const pending: Job[] = [];
   const inFlightKeys = new Set<string>();
-  const enqueued: { name: string; data: object }[] = [];
+  const enqueued: Enqueued[] = [];
   const scheduled: { name: string; cron: string }[] = [];
 
   return {
@@ -27,7 +29,11 @@ export function createMemoryQueue(): MemoryQueue {
         if (inFlightKeys.has(key)) return;
         inFlightKeys.add(key);
       }
-      enqueued.push({ name, data });
+      enqueued.push(
+        opts.startAfter === undefined
+          ? { name, data }
+          : { name, data, startAfter: opts.startAfter },
+      );
       pending.push({
         name,
         data,

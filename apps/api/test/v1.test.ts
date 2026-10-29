@@ -4,6 +4,8 @@ import {
   claimDelivery,
   completeDelivery,
   getIdentities,
+  getWebhookDelivery,
+  insertWebhookEndpoint,
   listDailies,
   listMemberInstallations,
   resolveSession,
@@ -386,6 +388,41 @@ describe('draft', () => {
 });
 
 describe('dailies', () => {
+  test('events emitted', async () => {
+    await seed();
+    const h = harness();
+    await insertWebhookEndpoint(
+      db,
+      {
+        installationId: INST,
+        url: 'https://hooks.example.com/',
+        events: ['daily.submitted', 'blocker.opened'],
+        secret: 'whsec_x',
+      },
+      KEY,
+    );
+    const token = await login(h);
+    const events = async () => {
+      const out: { type: string; data: Record<string, unknown> }[] = [];
+      for (const job of h.queue.enqueued.filter((j) => j.name === 'deliver-webhook')) {
+        const row = await getWebhookDelivery(db, (job.data as { deliveryId: string }).deliveryId);
+        out.push(row?.payload as { type: string; data: Record<string, unknown> });
+      }
+      h.queue.enqueued.length = 0;
+      return out;
+    };
+    const withBlocker = { ...daily, blockers: [{ text: 'Waiting for the DB' }] };
+    expect((await post(h, token, withBlocker)).status).toBe(200);
+    const first = await events();
+    expect(first.map((e) => e.type)).toEqual(['daily.submitted', 'blocker.opened']);
+    expect(first[0]?.data.replaced).toBe(false);
+    expect(first[1]?.data.text).toBe('Waiting for the DB');
+    expect((await post(h, token, withBlocker)).status).toBe(200);
+    const second = await events();
+    expect(second.map((e) => e.type)).toEqual(['daily.submitted']);
+    expect(second[0]?.data.replaced).toBe(true);
+  });
+
   test('submit not in team', async () => {
     await seed(outsider());
     const h = harness();

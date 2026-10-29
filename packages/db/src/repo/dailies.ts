@@ -12,14 +12,36 @@ export async function upsertDaily(
     payload: DailySubmission;
     submittedAt: Date;
   },
-): Promise<void> {
-  await db
+): Promise<{ id: string }> {
+  const [row] = await db
     .insert(dailies)
     .values(d)
     .onConflictDoUpdate({
       target: [dailies.installationId, dailies.memberId, dailies.date],
       set: { payload: d.payload, submittedAt: d.submittedAt },
-    });
+    })
+    .returning({ id: dailies.id });
+  if (!row) throw new Error('upsertDaily returned no row');
+  return row;
+}
+
+export async function getMemberDaily(
+  db: Db,
+  installationId: number,
+  memberId: string,
+  date: string,
+): Promise<{ id: string; payload: DailySubmission } | null> {
+  const [row] = await db
+    .select({ id: dailies.id, payload: dailies.payload })
+    .from(dailies)
+    .where(
+      and(
+        eq(dailies.installationId, installationId),
+        eq(dailies.memberId, memberId),
+        eq(dailies.date, date),
+      ),
+    );
+  return row ?? null;
 }
 
 export async function getLastDaily(

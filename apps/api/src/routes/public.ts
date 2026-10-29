@@ -3,6 +3,7 @@ import type { Deps } from '@standwise/orchestrator';
 import type { GetClientIp } from '../middleware/rate-limit';
 import { apiKeyScheme } from '../openapi/document';
 import { HealthSchema } from '../openapi/schemas';
+import { registerWebhooks } from '../openapi/webhooks';
 import { orgRoutes } from './org';
 
 const health = createRoute({
@@ -27,6 +28,7 @@ export type PublicOptions = { getClientIp: GetClientIp };
 export function publicRoutes(deps: Deps, options: PublicOptions): OpenAPIHono {
   const app = new OpenAPIHono();
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', apiKeyScheme());
+  registerWebhooks(app);
   app.openapi(health, (c) => c.json({ ok: true }, 200));
   app.route('/', orgRoutes(deps, options));
   return app;

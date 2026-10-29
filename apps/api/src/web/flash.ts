@@ -1,21 +1,37 @@
 import { decryptSecret, encryptSecret } from '@standwise/db';
 import { hashSessionToken } from '@standwise/orchestrator';
-import type { NewApiKey } from './setup';
+import type { NewApiKey, NewWebhook } from './setup';
 
 export const FLASH_COOKIE = 'sw_flash';
 export const FLASH_PATH = '/setup';
 export const FLASH_SECONDS = 60;
 
-type Flash = NewApiKey & { installationId: number; session: string };
+export type FlashValue = ({ kind: 'apiKey' } & NewApiKey) | ({ kind: 'webhook' } & NewWebhook);
+
+type Flash = FlashValue & { installationId: number; session: string };
 
 export function sealFlash(
   encryptionKey: Uint8Array,
   sessionToken: string,
   installationId: number,
-  newKey: NewApiKey,
+  value: FlashValue,
 ): string {
-  const flash: Flash = { ...newKey, installationId, session: hashSessionToken(sessionToken) };
+  const flash: Flash = { ...value, installationId, session: hashSessionToken(sessionToken) };
   return encryptSecret(JSON.stringify(flash), encryptionKey);
+}
+
+function toValue(value: Partial<Record<string, unknown>>): FlashValue | undefined {
+  if (value.kind === 'apiKey' && typeof value.name === 'string' && typeof value.key === 'string') {
+    return { kind: 'apiKey', name: value.name, key: value.key };
+  }
+  if (
+    value.kind === 'webhook' &&
+    typeof value.url === 'string' &&
+    typeof value.secret === 'string'
+  ) {
+    return { kind: 'webhook', url: value.url, secret: value.secret };
+  }
+  return undefined;
 }
 
 export function openFlash(
@@ -23,15 +39,12 @@ export function openFlash(
   sessionToken: string,
   installationId: number,
   raw: string,
-): NewApiKey | undefined {
+): FlashValue | undefined {
   try {
     const value = JSON.parse(decryptSecret(raw, encryptionKey)) as Partial<Flash>;
-    const valid =
-      typeof value.name === 'string' &&
-      typeof value.key === 'string' &&
-      value.installationId === installationId &&
-      value.session === hashSessionToken(sessionToken);
-    return valid ? { name: value.name as string, key: value.key as string } : undefined;
+    const bound =
+      value.installationId === installationId && value.session === hashSessionToken(sessionToken);
+    return bound ? toValue(value) : undefined;
   } catch {
     return undefined;
   }

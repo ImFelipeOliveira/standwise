@@ -7,9 +7,10 @@ import {
   listActivity,
   resolveTeamMembers,
 } from '@standwise/github';
-import { createChatFor, type WorkerDeps } from '@standwise/orchestrator';
+import { createChatFor, DELIVER_WEBHOOK_JOB, type WorkerDeps } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
+import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { sendDigestJob } from './jobs/send-digest';
 import { sendLateDailyJob } from './jobs/send-late-daily';
 import { tickJob } from './jobs/tick';
@@ -54,7 +55,10 @@ await queue.start();
 await queue.work('tick', tickJob(deps));
 await queue.work('send-digest', sendDigestJob(deps));
 await queue.work('send-late-daily', sendLateDailyJob(deps));
+await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
+await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
 await queue.schedule('tick', '* * * * *');
+await queue.schedule('requeue-webhooks', '*/5 * * * *');
 
 async function shutdown(): Promise<void> {
   await queue.stop();

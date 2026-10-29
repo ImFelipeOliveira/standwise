@@ -2,6 +2,7 @@ import type { ConfigError, DailySubmission, MessageRef, StandwiseConfig } from '
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   date,
   index,
   integer,
@@ -151,7 +152,55 @@ export const apiKeys = pgTable(
   (t) => [index('api_keys_installation_idx').on(t.installationId)],
 );
 
+export const WEBHOOK_EVENTS = ['daily.submitted', 'blocker.opened', 'digest.sent'] as const;
+
+export type WebhookEventType = (typeof WEBHOOK_EVENTS)[number];
+export type WebhookDeliveryEvent = WebhookEventType | 'ping';
+export type WebhookDeliveryStatus = 'pending' | 'delivered' | 'failed';
+export type WebhookDisabledReason = 'manual' | 'failures';
+
+export const webhookEndpoints = pgTable(
+  'webhook_endpoints',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    installationId: installationRef(),
+    url: text('url').notNull(),
+    secretCiphertext: text('secret_ciphertext').notNull(),
+    events: text('events').array().$type<WebhookEventType[]>().notNull(),
+    active: boolean('active').notNull().default(true),
+    disabledReason: text('disabled_reason').$type<WebhookDisabledReason>(),
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index('webhook_endpoints_installation_idx').on(t.installationId)],
+);
+
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    endpointId: uuid('endpoint_id')
+      .notNull()
+      .references(() => webhookEndpoints.id, { onDelete: 'cascade' }),
+    event: text('event').$type<WebhookDeliveryEvent>().notNull(),
+    eventId: uuid('event_id').notNull(),
+    payload: jsonb('payload').$type<unknown>().notNull(),
+    status: text('status').$type<WebhookDeliveryStatus>().notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull(),
+    lastStatusCode: integer('last_status_code'),
+    lastError: text('last_error'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique().on(t.endpointId, t.eventId),
+    index('webhook_deliveries_endpoint_created_idx').on(t.endpointId, t.createdAt),
+    index('webhook_deliveries_pending_idx').on(t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+  ],
+);
+
 export type InstallationRow = typeof installations.$inferSelect;
+export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
 export type MemberRow = typeof members.$inferSelect;
 export type DeliveryRow = typeof deliveries.$inferSelect;
 
