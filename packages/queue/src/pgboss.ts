@@ -15,8 +15,6 @@ export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptio
   boss.on('error', (error) => console.error('pg-boss error', error));
   const created = new Set<string>();
 
-  // pg-boss only dedupes by singletonKey on queues with a uniqueness policy, and such a policy
-  // would also collapse keyless jobs. Keyed jobs therefore live in a sibling queue.
   const keyedName = (name: string) => `${name}.keyed`;
 
   async function ensureQueue(name: string, policy?: 'exclusive'): Promise<void> {

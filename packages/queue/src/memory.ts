@@ -4,7 +4,6 @@ type Handler = (data: object) => Promise<void>;
 type Job = { name: string; data: object; retryLimit: number; attempts: number; key?: string };
 
 export type MemoryQueue = JobQueue & {
-  /** Runs every pending job, including retries, until none remain. */
   drain(): Promise<void>;
   enqueued: { name: string; data: object }[];
   scheduled: { name: string; cron: string }[];
@@ -13,7 +12,7 @@ export type MemoryQueue = JobQueue & {
 export function createMemoryQueue(): MemoryQueue {
   const handlers = new Map<string, Handler>();
   const pending: Job[] = [];
-  const claimedKeys = new Set<string>();
+  const inFlightKeys = new Set<string>();
   const enqueued: { name: string; data: object }[] = [];
   const scheduled: { name: string; cron: string }[] = [];
 
@@ -25,8 +24,8 @@ export function createMemoryQueue(): MemoryQueue {
     async enqueue<T extends object>(name: string, data: T, opts: EnqueueOptions = {}) {
       const key = opts.singletonKey === undefined ? undefined : `${name}:${opts.singletonKey}`;
       if (key !== undefined) {
-        if (claimedKeys.has(key)) return;
-        claimedKeys.add(key);
+        if (inFlightKeys.has(key)) return;
+        inFlightKeys.add(key);
       }
       enqueued.push({ name, data });
       pending.push({
@@ -44,7 +43,6 @@ export function createMemoryQueue(): MemoryQueue {
       handlers.set(name, handler as Handler);
     },
     async drain() {
-      // Jobs without a registered handler stay pending until one is registered.
       const waiting: Job[] = [];
       for (let job = pending.shift(); job; job = pending.shift()) {
         const handler = handlers.get(job.name);
@@ -53,16 +51,16 @@ export function createMemoryQueue(): MemoryQueue {
           continue;
         }
         job.attempts++;
+        let retrying = false;
         try {
           await handler(job.data);
         } catch {
-          if (job.attempts <= job.retryLimit) pending.push(job);
+          retrying = job.attempts <= job.retryLimit;
+          if (retrying) pending.push(job);
         }
+        if (!retrying && job.key) inFlightKeys.delete(job.key);
       }
       pending.push(...waiting);
-      // Keys stay claimed only for jobs that are still queued.
-      claimedKeys.clear();
-      for (const job of pending) if (job.key) claimedKeys.add(job.key);
     },
   };
 }

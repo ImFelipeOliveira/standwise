@@ -31,7 +31,6 @@ const implementations: [string, () => Harness][] = [
       settle: async (done) => {
         const deadline = Date.now() + 10_000;
         while (!done() && Date.now() < deadline) await Bun.sleep(50);
-        // Grace period so unexpected extra runs would be observed.
         await Bun.sleep(1_200);
       },
     }),
@@ -78,5 +77,28 @@ describe.each(implementations)('JobQueue (%s)', (_label, make) => {
     await h.queue.enqueue('flaky', {}, { retryLimit: 2 });
     await h.settle(() => calls >= 3);
     expect(calls).toBe(3);
+  });
+
+  test('singletonKey does not dedupe across completion', async () => {
+    let calls = 0;
+    await h.queue.work('rerun', async () => {
+      calls++;
+    });
+    await h.queue.enqueue('rerun', {}, { singletonKey: 'K' });
+    await h.settle(() => calls >= 1);
+    await h.queue.enqueue('rerun', {}, { singletonKey: 'K' });
+    await h.settle(() => calls >= 2);
+    expect(calls).toBe(2);
+  });
+
+  test('enqueue of own key from a running handler is dropped', async () => {
+    let calls = 0;
+    await h.queue.work('self', async () => {
+      calls++;
+      await h.queue.enqueue('self', {}, { singletonKey: 'K' });
+    });
+    await h.queue.enqueue('self', {}, { singletonKey: 'K' });
+    await h.settle(() => calls >= 1);
+    expect(calls).toBe(1);
   });
 });

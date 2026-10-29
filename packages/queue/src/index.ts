@@ -1,7 +1,6 @@
 export type EnqueueOptions = {
   singletonKey?: string;
   startAfter?: Date;
-  /** Retries after the first attempt. Defaults to 3. */
   retryLimit?: number;
 };
 
