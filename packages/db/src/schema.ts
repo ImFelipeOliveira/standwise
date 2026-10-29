@@ -33,6 +33,7 @@ export const installations = pgTable('installations', {
   config: jsonb('config').$type<StandwiseConfig>(),
   configErrors: jsonb('config_errors').$type<ConfigError[]>(),
   unconfiguredReason: text('unconfigured_reason'),
+  accessWarning: text('access_warning'),
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

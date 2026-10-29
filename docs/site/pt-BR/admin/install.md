@@ -36,7 +36,7 @@ A página mostra:
 
 ## 3. Conecte o Slack
 
-Um admin clica em **Conectar Slack** e aprova o app no workspace do Slack. A página passa a mostrar "Conectado ao workspace" e o nome do workspace, e um botão **Reconectar Slack** para conectar de novo. Os outros membros veem a conexão só para leitura, com "Peça a um admin para conectar o Slack." enquanto não estiver conectado. Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
+Um admin clica em **Conectar Slack** e aprova o app no workspace do Slack. A página passa a mostrar "Conectado ao workspace" e o nome do workspace, e um botão **Reconectar Slack** para conectar de novo. Os outros membros veem a conexão só para leitura, com "Só um admin pode conectar ou reconectar o Slack." Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
 
 ## 4. Crie o `standwise.yml`
 
@@ -72,13 +72,15 @@ A página de setup mostra um de três estados.
 
 ### Não configurado
 
-"Ainda não configurado." O Standwise não encontrou o arquivo. Apagar o arquivo desliga o Standwise para a organização: a configuração anterior é descartada, então um arquivo inválido depois não a traz de volta. A página mostra o motivo:
+"Ainda não configurado." O Standwise não encontrou o arquivo. Apagar o arquivo, ou apagar o repositório `.github`, desliga o Standwise para a organização: a configuração anterior é descartada, então um arquivo inválido depois não a traz de volta. A página mostra o motivo:
 
 | Motivo | Significado | Como resolver |
 | --- | --- | --- |
 | `no_repo` | O repositório `.github` não existe. | Crie o repositório, adicione o `standwise.yml` e confira se o app tem acesso a ele. |
 | `no_file` | O `standwise.yml` não está na raiz do `.github`, na branch padrão. | Crie o arquivo lá. Um arquivo numa subpasta ou em outra branch não é lido. |
-| `no_access` | O Standwise não tem acesso ao repositório `.github`. | Nas configurações da instalação do app no GitHub, adicione o `.github` aos repositórios selecionados, ou escolha todos os repositórios. |
+| `no_access` | O Standwise não tem acesso ao repositório `.github`, e ainda não havia configuração. | Nas configurações da instalação do app no GitHub, adicione o `.github` aos repositórios selecionados, ou escolha todos os repositórios. |
+
+`no_access` é um aviso quando já há uma configuração em uso. O GitHub pode negar o acesso por um momento, por exemplo por limite de requisições, ou porque o `.github` saiu dos repositórios selecionados. O Standwise então mantém a configuração e o estado atuais, e a página de setup mostra "O Standwise não tem acesso ao repositório .github. O Standwise continua usando a configuração atual." junto de qualquer estado. O aviso some na próxima leitura bem-sucedida do `standwise.yml`, válida ou inválida. Dê de novo ao app acesso ao `.github` para limpar o aviso.
 
 ### Inválido
 

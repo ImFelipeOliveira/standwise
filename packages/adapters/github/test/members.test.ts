@@ -37,4 +37,24 @@ describe('resolveTeamMembers', () => {
       ['100', '2'],
     ]);
   });
+
+  test('stops after 50 pages', async () => {
+    const { octokit, calls } = octokitWith({
+      'GET /orgs/acme/teams/huge/members': (url) => ({
+        body: JSON.stringify(
+          Array.from({ length: 100 }, (_, i) => ({
+            login: `u${url.searchParams.get('page')}-${i}`,
+          })),
+        ),
+      }),
+    });
+    const logins = await resolveTeamMembers(octokit, 'acme', ['@acme/huge']);
+    expect(calls).toHaveLength(50);
+    expect(logins).toHaveLength(5000);
+  });
+
+  test('a missing team resolves to no members', async () => {
+    const { octokit } = octokitWith({});
+    expect(await resolveTeamMembers(octokit, 'acme', ['@acme/gone', 'Bob'])).toEqual(['bob']);
+  });
 });

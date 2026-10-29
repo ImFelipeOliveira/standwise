@@ -7,6 +7,8 @@ import {
   getConnection,
   listMemberInstallations,
   resolveSession,
+  saveConnection,
+  setInstallationAccessWarning,
   setInstallationConfig,
   setMemberInstallations,
   upsertInstallation,
@@ -390,7 +392,36 @@ describe('setup page', () => {
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = await res.text();
     expect(html).not.toContain('/connect/slack');
-    expect(html).toContain('Ask an admin to connect Slack');
+    expect(html).toContain('Only an admin can connect or reconnect Slack.');
+  });
+
+  test('a member who is not an admin sees the admin note when slack is connected', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed(async (id) => {
+      await saveConnection(db, id, 'slack', 'T123', 'xoxb-secret', KEY, 'Acme Workspace');
+    });
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(html).toContain('Acme Workspace');
+    expect(html).not.toContain('/connect/slack');
+    expect(html).toContain('Só um admin pode conectar ou reconectar o Slack.');
+  });
+
+  test('setup shows the access warning while keeping the configuration', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationAccessWarning(db, id, 'no_access');
+    });
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain('Configured.');
+    expect(html).toContain('Standwise has no access to the .github repository.');
+    expect(html).toContain('Standwise keeps using the current configuration.');
   });
 
   test('the admin sees reconnect when slack is connected', async () => {

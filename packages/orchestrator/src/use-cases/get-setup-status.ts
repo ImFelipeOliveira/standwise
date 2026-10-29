@@ -24,6 +24,7 @@ export type SetupStatus = {
     | { status: 'configured' }
     | { status: 'invalid'; errors: ConfigError[]; lastValid: boolean }
     | { status: 'unconfigured'; reason: string };
+  accessWarning: string | null;
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
   slack: { connected: false } | { connected: true; workspace: string };
   failedDeliveries: { team: string; at: Date; error: string }[];
@@ -91,6 +92,7 @@ export async function getSetupStatus(
     login: current.login,
     admin,
     config,
+    accessWarning: installation.accessWarning,
     configRepo,
     slack: connection
       ? { connected: true, workspace: connection.externalName ?? connection.externalId }

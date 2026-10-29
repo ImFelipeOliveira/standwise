@@ -66,6 +66,11 @@ export function SetupPage(props: {
       <section>
         <h2>{t('web.setup.configTitle')}</h2>
         {status.config.status === 'configured' ? <p>{t('web.setup.configOk')}</p> : null}
+        {status.accessWarning ? (
+          <p role="alert">
+            {reasonText(status.accessWarning)} {t('web.setup.accessWarning')}
+          </p>
+        ) : null}
         {status.config.status === 'invalid' ? (
           <>
             <p>{t('web.setup.configInvalid')}</p>
@@ -117,8 +122,8 @@ export function SetupPage(props: {
           <a class="button" href={`/connect/slack?installation_id=${status.installationId}`}>
             {t(status.slack.connected ? 'web.slack.reconnect' : 'web.slack.connect')}
           </a>
-        ) : status.slack.connected ? null : (
-          <p>{t('web.slack.askAdmin')}</p>
+        ) : (
+          <p>{t('web.slack.adminOnly')}</p>
         )}
       </section>
       {status.apiKeys.manage ? (

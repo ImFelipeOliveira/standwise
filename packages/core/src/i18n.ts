@@ -20,6 +20,7 @@ const ptBR = {
   'web.setup.reason.no_repo': 'O repositório .github não existe.',
   'web.setup.reason.no_file': 'O arquivo standwise.yml não existe na raiz do repositório .github.',
   'web.setup.reason.no_access': 'O Standwise não tem acesso ao repositório .github.',
+  'web.setup.accessWarning': 'O Standwise continua usando a configuração atual.',
   'web.setup.instruction':
     'Crie o arquivo standwise.yml na raiz do repositório .github da organização, na branch padrão.',
   'web.setup.createFile': 'Criar standwise.yml com o modelo',
@@ -35,7 +36,7 @@ const ptBR = {
   'web.slack.connect': 'Conectar Slack',
   'web.slack.connected': 'Conectado ao workspace',
   'web.slack.reconnect': 'Reconectar Slack',
-  'web.slack.askAdmin': 'Peça a um admin para conectar o Slack.',
+  'web.slack.adminOnly': 'Só um admin pode conectar ou reconectar o Slack.',
   'web.template.teamName': 'Time',
   'web.apiKeys.title': 'API keys',
   'web.apiKeys.description':
@@ -155,6 +156,7 @@ const en = {
   'web.setup.reason.no_repo': 'The .github repository does not exist.',
   'web.setup.reason.no_file': 'standwise.yml does not exist at the root of the .github repository.',
   'web.setup.reason.no_access': 'Standwise has no access to the .github repository.',
+  'web.setup.accessWarning': 'Standwise keeps using the current configuration.',
   'web.setup.instruction':
     "Create standwise.yml at the root of the organization's .github repository, on the default branch.",
   'web.setup.createFile': 'Create standwise.yml from the template',
@@ -170,7 +172,7 @@ const en = {
   'web.slack.connect': 'Connect Slack',
   'web.slack.connected': 'Connected to workspace',
   'web.slack.reconnect': 'Reconnect Slack',
-  'web.slack.askAdmin': 'Ask an admin to connect Slack.',
+  'web.slack.adminOnly': 'Only an admin can connect or reconnect Slack.',
   'web.template.teamName': 'Team',
   'web.apiKeys.title': 'API keys',
   'web.apiKeys.description':

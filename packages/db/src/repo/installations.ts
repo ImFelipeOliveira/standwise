@@ -48,7 +48,18 @@ export async function setInstallationConfig(
         : { status: r.status, config: null, configErrors: null, unconfiguredReason: r.reason };
   await db
     .update(installations)
-    .set({ ...set, updatedAt: sql`now()` })
+    .set({ ...set, accessWarning: null, updatedAt: sql`now()` })
+    .where(eq(installations.id, id));
+}
+
+export async function setInstallationAccessWarning(
+  db: Db,
+  id: number,
+  reason: string | null,
+): Promise<void> {
+  await db
+    .update(installations)
+    .set({ accessWarning: reason, updatedAt: sql`now()` })
     .where(eq(installations.id, id));
 }
 

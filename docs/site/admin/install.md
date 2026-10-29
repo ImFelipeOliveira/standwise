@@ -36,7 +36,7 @@ The page shows:
 
 ## 3. Connect Slack
 
-An admin clicks **Connect Slack** and approves the app in the Slack workspace. The page then shows "Connected to workspace" and the workspace name, and a **Reconnect Slack** button to connect again. Other members see the connection read-only, with "Ask an admin to connect Slack." while it is not connected. See [Slack](/admin/slack) for the permissions and for private channels.
+An admin clicks **Connect Slack** and approves the app in the Slack workspace. The page then shows "Connected to workspace" and the workspace name, and a **Reconnect Slack** button to connect again. Other members see the connection read-only, with "Only an admin can connect or reconnect Slack." See [Slack](/admin/slack) for the permissions and for private channels.
 
 ## 4. Create `standwise.yml`
 
@@ -72,13 +72,15 @@ The setup page shows one of three states.
 
 ### Not configured
 
-"Not configured yet." Standwise could not find the file. Deleting the file switches Standwise off for the organization: the previous configuration is dropped, so a later invalid file does not bring it back. The page shows the reason:
+"Not configured yet." Standwise could not find the file. Deleting the file, or deleting the `.github` repository, switches Standwise off for the organization: the previous configuration is dropped, so a later invalid file does not bring it back. The page shows the reason:
 
 | Reason | Meaning | Fix |
 | --- | --- | --- |
 | `no_repo` | The `.github` repository does not exist. | Create it, add `standwise.yml`, and make sure the app can access it. |
 | `no_file` | `standwise.yml` is not at the root of `.github`, on the default branch. | Create the file there. A file in a subfolder or on another branch is not read. |
-| `no_access` | Standwise cannot access the `.github` repository. | In the app installation settings on GitHub, add `.github` to the selected repositories, or choose all repositories. |
+| `no_access` | Standwise cannot access the `.github` repository, and there was no configuration yet. | In the app installation settings on GitHub, add `.github` to the selected repositories, or choose all repositories. |
+
+`no_access` is a warning when a configuration is already in use. GitHub can deny access for a moment, for example under a rate limit, or because `.github` was removed from the selected repositories. Standwise then keeps the current configuration and state, and the setup page shows "Standwise has no access to the .github repository. Standwise keeps using the current configuration." next to any state. The warning goes away on the next successful read of `standwise.yml`, valid or invalid. Give the app access to `.github` again to clear it.
 
 ### Invalid
 
