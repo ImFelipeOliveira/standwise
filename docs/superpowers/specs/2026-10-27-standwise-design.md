@@ -109,6 +109,19 @@ members:                        # opcional: mapeamento manual de identidades
 ```
 Mudanças no arquivo chegam por webhook `push` e são validadas. Se a configuração for inválida, o app cria um **check run** com falha no commit, mostrando os erros, e mantém a última versão válida. O mesmo check roda em PRs que alteram o arquivo.
 
+### 4.5 API pública (adicionado em 2026-10-28)
+A API é um produto para integradores, com documentação de primeira classe. Ela tem três tipos de integrador:
+
+1. **Agentes de IA** (Cursor, Codex, Copilot…) que escrevem a daily em nome da pessoa. Eles usam as mesmas rotas da CLI (`/v1/draft`, `/v1/dailies`) com token de sessão `sw_…`, obtido pelo GitHub device flow + `POST /v1/sessions`. A regra anti-vigilância vale igual: nada é enviado sem confirmação da pessoa.
+2. **Sistemas da organização (leitura)** com **API key da instalação** (`swk_…`), criada e revogada por um admin na página de setup. As keys têm escopos (`teams:read`, `dailies:read`, `digests:read`, `blockers:read`). Elas leem só o que já aparece no consolidado: dailies e impedimentos confirmados. Nunca há sugestões, métricas por pessoa, ranking ou agregados por pessoa.
+3. **Webhooks de saída** configurados pelo admin, com URL https e eventos `daily.submitted`, `blocker.opened` e `digest.sent`. A assinatura é HMAC-SHA256 no header `Standwise-Signature: t=<unix>,v1=<hex>`. As entregas são feitas com retentativa e backoff. Há proteção contra SSRF (só https; IPs privados, de loopback e link-local são bloqueados depois da resolução de DNS).
+
+**MCP:** `standwise mcp` (servidor MCP local por stdio, no mesmo binário da CLI) expõe as tools `standwise_whoami`, `standwise_get_draft` e `standwise_submit_daily`. Esta última exige `confirmed: true`, que só pode ser passado depois de a pessoa confirmar. Assim qualquer cliente MCP (Cursor, Codex, Claude Desktop…) escreve a daily sem uma skill própria. O MCP remoto (HTTP + OAuth) fica para a fase 2.
+
+**Admin da instalação** = dono da conta (conta pessoal) ou membro com papel `admin` na organização do GitHub.
+
+**Documentação:** OpenAPI 3.1 gerado a partir dos schemas Zod das rotas, servido em `GET /openapi.json`, e referência navegável em `GET /docs`. Cada rota tem descrição, exemplos de request e response e todos os códigos de erro. A documentação inclui os guias: autenticação (sessão vs API key), integração de um agente de IA passo a passo, erros (envelope `{ error: { code, message } }`), paginação por cursor, limites de taxa (headers `RateLimit-*`), verificação de assinatura de webhook (com exemplo em TypeScript e Python), versionamento (`/v1`, mudanças incompatíveis só em `/v2`) e changelog.
+
 ## 5. Arquitetura
 
 ```
