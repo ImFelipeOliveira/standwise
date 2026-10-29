@@ -1,9 +1,14 @@
 import type { Deps } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
+import type { Context } from 'hono';
 import { db } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
 
-export function createTestApp(options: { trustProxy?: boolean } = {}) {
+export const TEST_IP = '192.0.2.1';
+
+export const headerIp = (c: Context) => c.req.header('x-test-ip') ?? TEST_IP;
+
+export function createTestApp(options: { getClientIp?: (c: Context) => string } = {}) {
   let now = new Date('2026-10-28T15:00:05Z');
   const deps: Deps = {
     db,
@@ -13,12 +18,15 @@ export function createTestApp(options: { trustProxy?: boolean } = {}) {
     github: {
       app: {} as Deps['github']['app'],
       installationOctokit: async () => ({}) as never,
-      getUserProfile: async () => ({
-        githubUserId: 1,
-        login: 'Alice',
-        email: 'alice@acme.com',
-        installationIds: [],
-      }),
+      getUserProfile: async (githubToken: string) => {
+        const id = Number(githubToken.slice(4)) || 1;
+        return {
+          githubUserId: id,
+          login: `user${id}`,
+          email: `user${id}@acme.com`,
+          installationIds: [],
+        };
+      },
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
@@ -44,5 +52,8 @@ export function createTestApp(options: { trustProxy?: boolean } = {}) {
       webhookSecret: 'whsec',
     },
   };
-  return { app: createApp(deps, options), setNow: (d: Date) => (now = d) };
+  return {
+    app: createApp(deps, { getClientIp: options.getClientIp ?? headerIp }),
+    setNow: (d: Date) => (now = d),
+  };
 }

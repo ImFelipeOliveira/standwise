@@ -36,6 +36,13 @@
       "when": 1793237228500,
       "tag": "0004_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793237677368,
+      "tag": "0005_rate_limits_window_index",
+      "breakpoints": true
     }
   ]
 }

@@ -65,7 +65,7 @@ function harness(source: Source) {
       slackClientSecret: 'ssecret',
     },
   };
-  return { app: createApp(deps), calls };
+  return { app: createApp(deps, { getClientIp: () => '192.0.2.1' }), calls };
 }
 
 async function send(

@@ -1,5 +1,4 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { MemberRow } from '@standwise/db';
 import {
   createMembershipCheck,
   type Deps,
@@ -8,15 +7,16 @@ import {
   startSession,
   submitDaily,
 } from '@standwise/orchestrator';
+import { HTTPException } from 'hono/http-exception';
+import { onError } from '../http/errors';
 import {
-  bearerToken,
-  ipKey,
-  rateLimit,
+  type GetClientIp,
+  IP_LIMIT,
+  ipRateLimit,
   SESSION_START_LIMIT,
-  tokenLimit,
-  tokenOrIpKey,
+  subjectRateLimit,
 } from '../middleware/rate-limit';
-import { sessionAuth } from '../middleware/session-auth';
+import { type SessionEnv, sessionAuth } from '../middleware/session-auth';
 import { sessionScheme } from '../openapi/document';
 import {
   DAILY_EXAMPLE,
@@ -31,9 +31,9 @@ import {
   SubmitResultSchema,
 } from '../openapi/schemas';
 
-type Env = { Variables: { member: MemberRow } };
+type Env = SessionEnv;
 
-export type V1Options = { trustProxy: boolean };
+export type V1Options = { getClientIp: GetClientIp };
 
 const RATE_LIMITED = errorResponse('Rate limit exceeded. Wait `Retry-After` seconds.', {
   rate_limited: 'rate limit exceeded',
@@ -191,28 +191,31 @@ const dailies = createRoute({
   },
 });
 
+const BODY_ERRORS: Record<string, DomainError> = {
+  '/v1/sessions': new DomainError('invalid_request', 'githubToken is required'),
+  '/v1/dailies': new DomainError('invalid_daily', 'invalid daily'),
+};
+
+function bodyError(error: Error, path: string): Error {
+  const mapped = BODY_ERRORS[path];
+  if (error instanceof HTTPException && (error.status === 400 || error.status === 415) && mapped) {
+    return new DomainError(mapped.code, mapped.message);
+  }
+  return error;
+}
+
 export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
   const app = new OpenAPIHono<Env>();
   const isMember = createMembershipCheck(deps);
   app.openAPIRegistry.registerComponent('securitySchemes', 'session', sessionScheme());
 
-  app.use(
-    '/v1/sessions',
-    rateLimit(deps, {
-      key: ipKey('sessions', options.trustProxy),
-      limit: SESSION_START_LIMIT,
-    }),
-  );
+  app.use('/v1/*', ipRateLimit(deps, options.getClientIp, 'api', IP_LIMIT));
+  app.use('/v1/sessions', ipRateLimit(deps, options.getClientIp, 'sessions', SESSION_START_LIMIT));
   for (const path of ['/v1/draft', '/v1/dailies']) {
-    app.use(
-      path,
-      rateLimit(deps, {
-        key: tokenOrIpKey(options.trustProxy),
-        limit: (c) => tokenLimit(bearerToken(c)),
-      }),
-      sessionAuth(deps),
-    );
+    app.use(path, sessionAuth(deps, options.getClientIp), subjectRateLimit(deps));
   }
+
+  app.onError((error, c) => onError(bodyError(error, c.req.path), c));
 
   app.openapi(meta, (c) =>
     c.json({ githubClientId: deps.env.githubClientId, supportEmail: deps.env.supportEmail }, 200),

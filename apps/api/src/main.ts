@@ -12,6 +12,7 @@ import { createPgBossQueue } from '@standwise/queue';
 import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
 import { parseEnv } from './env';
+import { clientIpResolver } from './middleware/rate-limit';
 
 const env = parseEnv();
 const db = createDb(env.DATABASE_URL);
@@ -63,6 +64,8 @@ const deps: Deps = {
 
 await queue.start();
 
-const api = createApp(deps, { trustProxy: env.TRUST_PROXY });
+const api = createApp(deps, {
+  getClientIp: clientIpResolver({ trustProxy: env.TRUST_PROXY, hops: env.TRUSTED_PROXY_HOPS }),
+});
 
 Bun.serve({ port: env.PORT, fetch: (request, server) => api.fetch(request, { server }) });

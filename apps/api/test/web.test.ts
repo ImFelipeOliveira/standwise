@@ -103,7 +103,12 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
       slackClientSecret: 'ssecret',
     },
   };
-  return { app: createApp(deps), slackCalls, webCodes, orgMembers };
+  return {
+    app: createApp(deps, { getClientIp: () => '192.0.2.1' }),
+    slackCalls,
+    webCodes,
+    orgMembers,
+  };
 }
 
 async function seed(setup: (installationId: number) => Promise<void> = async () => {}) {

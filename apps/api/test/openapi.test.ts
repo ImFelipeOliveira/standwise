@@ -168,3 +168,20 @@ describe('docs page', () => {
     expect(redirect.headers.get('location')).toBe('/docs/api');
   });
 });
+
+describe('docs page security', () => {
+  test('pins the scalar cdn and sends a content security policy', async () => {
+    const res = await load('/docs/api');
+    const csp = res.headers.get('content-security-policy') ?? '';
+    const html = await res.text();
+    const cdn = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.74.0';
+    expect(html).toContain(cdn);
+    expect(csp).toContain(`script-src`);
+    expect(csp).toContain(cdn);
+    expect(csp).toContain('https://fonts.scalar.com');
+    expect(csp).not.toContain("script-src 'unsafe-inline'");
+    const nonce = /nonce-([A-Za-z0-9+/=_-]+)/.exec(csp)?.[1];
+    expect(nonce).toBeTruthy();
+    expect(html).toContain(`nonce="${nonce}"`);
+  });
+});

@@ -9,6 +9,7 @@ const schema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).default(1),
   STANDWISE_ENCRYPTION_KEY: z
     .string()
     .transform((v) => Buffer.from(v, 'base64'))

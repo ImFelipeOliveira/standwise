@@ -131,7 +131,7 @@ function harness(
     },
   };
   return {
-    app: createApp(deps),
+    app: createApp(deps, { getClientIp: () => '192.0.2.1' }),
     queue,
     activityCalls,
     membershipCalls,

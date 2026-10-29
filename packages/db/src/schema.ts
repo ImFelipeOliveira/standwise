@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   date,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -135,5 +136,8 @@ export const rateLimits = pgTable(
     windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
     count: integer('count').notNull().default(0),
   },
-  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
+  (t) => [
+    primaryKey({ columns: [t.key, t.windowStart] }),
+    index('rate_limits_window_start_idx').on(t.windowStart),
+  ],
 );
