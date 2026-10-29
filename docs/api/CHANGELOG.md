@@ -5,6 +5,8 @@ Breaking changes are announced here at least 90 days before they take effect. Se
 ## Unreleased
 
 - Default language is now English when none is specified.
+- `standwise mcp`: local MCP server over stdio with the tools `standwise_whoami`, `standwise_get_draft` and `standwise_submit_daily` (requires `confirmed: true`), plus the manager tools `standwise_list_teams`, `standwise_get_digest`, `standwise_list_dailies` and `standwise_list_blockers`. See the MCP guide.
+- Internal session routes `GET /v1/manage/teams`, `/v1/manage/digests`, `/v1/manage/dailies` and `/v1/manage/blockers` back the manager tools. They are readable by team managers and organization admins, limited to the last 90 days, and listed only in `/openapi.internal.json`.
 
 ## 1.2.0
 

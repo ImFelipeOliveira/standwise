@@ -67,3 +67,18 @@ export const postDaily = (apiUrl: string, token: string, daily: DailySubmission)
 
 export const revokeSession = (apiUrl: string, token: string) =>
   request<unknown>(apiUrl, '/v1/sessions/current', { method: 'DELETE', token });
+
+export type ManageResource = 'teams' | 'digests' | 'dailies' | 'blockers';
+
+export function getManage(
+  apiUrl: string,
+  token: string,
+  resource: ManageResource,
+  query: Record<string, string | undefined>,
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, value);
+  }
+  return request<unknown>(apiUrl, `/v1/manage/${resource}?${params}`, { token });
+}

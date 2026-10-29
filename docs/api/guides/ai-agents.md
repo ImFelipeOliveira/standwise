@@ -28,7 +28,7 @@ command = "standwise"
 args = ["mcp"]
 ```
 
-Full MCP reference: `mcp.md`, published with the docs site.
+Full MCP reference, with the tools, the manager tools and the confirmation rule: [MCP server](mcp.md).
 
 ### Claude Code skill
 

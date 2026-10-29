@@ -106,7 +106,7 @@ const ptBR = {
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
   'cli.usage':
-    'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
+    'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n  mcp       Inicia o servidor MCP (stdio) para agentes de IA\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
   'cli.invalidArgs': 'Argumentos inválidos: {message}',
   'cli.unknownCommand': 'Comando desconhecido: {command}',
   'cli.notLoggedIn': 'Você não está autenticado. Execute: standwise login',
@@ -237,7 +237,7 @@ const en = {
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',
   'cli.usage':
-    'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
+    'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n  mcp       Start the MCP server (stdio) for AI agents\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
   'cli.invalidArgs': 'Invalid arguments: {message}',
   'cli.unknownCommand': 'Unknown command: {command}',
   'cli.notLoggedIn': 'You are not signed in. Run: standwise login',

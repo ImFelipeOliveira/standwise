@@ -5,6 +5,7 @@ import { ApiError, NetworkError } from './api';
 import { draft } from './commands/draft';
 import { login } from './commands/login';
 import { logout } from './commands/logout';
+import { mcp } from './commands/mcp';
 import { submit } from './commands/submit';
 import { whoami } from './commands/whoami';
 import { type Ctx, EXIT, ExitError, type Io } from './io';
@@ -25,6 +26,7 @@ const COMMANDS: Record<string, (ctx: Ctx) => Promise<number>> = {
   whoami,
   draft,
   submit,
+  mcp,
 };
 
 function apiErrorLine(ctx: Ctx, error: ApiError): string {
