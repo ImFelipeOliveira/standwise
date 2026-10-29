@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        ports:
+          - 5433:5432
+        env:
+          POSTGRES_USER: standwise
+          POSTGRES_PASSWORD: standwise
+          POSTGRES_DB: standwise
+        options: >-
+          --health-cmd "pg_isready -U standwise"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://standwise:standwise@localhost:5433/standwise
+      TEST_DATABASE_URL: postgres://standwise:standwise@localhost:5433/standwise_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Create test database
+        run: psql "$DATABASE_URL" -c "CREATE DATABASE standwise_test"
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test

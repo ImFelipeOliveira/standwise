@@ -1,5 +1,6 @@
 {
   "name": "standwise",
+  "version": "0.0.0",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -12,7 +13,8 @@
     "api": "bun run apps/api/src/main.ts",
     "worker": "bun run apps/worker/src/main.ts",
     "lint": "biome check .",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build:cli": "bun scripts/build-cli.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
