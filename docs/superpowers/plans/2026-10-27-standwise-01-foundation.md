@@ -537,7 +537,7 @@
 
 ## Extensão: API pública (adicionada em 2026-10-28, spec §4.5)
 
-**Ordem de execução:** 9 → 10 → 11 → 12 → **16 → 17 → 18** → 13 → **19** → 14 → 15. Os webhooks de saída dependem do worker, e o deploy (15) sai com a API documentada.
+**Ordem de execução:** 9 → 10 → 11 → 12 → **16 → 17 → 18** → 13 → **19** → 14 → **20** → 15. Os webhooks de saída dependem do worker, e o deploy (15) sai com a API documentada.
 **Regra do usuário que vale para todas as tasks:** não há comentários no código. A documentação vive no OpenAPI e nos guias em markdown, nunca em comentários.
 
 ### Task 16: OpenAPI 3.1, `/docs` e guias para integradores
@@ -551,7 +551,7 @@
 **Interfaces:**
 - **Rotas internas vs públicas (decisão do Felipe):** `/v1/meta`, `/v1/sessions`, `/v1/draft` e `/v1/dailies` são **internas** (CLI, skill, MCP). Elas também usam `createRoute` e schemas Zod (tipagem e validação), mas ficam **fora** do `/openapi.json` público, registradas com `hide: true` ou equivalente. Um segundo documento, `GET /openapi.internal.json`, exige sessão `sw_` e serve à CLI e aos testes. O documento público contém só `Organization` (Task 17), `Webhooks` (Task 18) e `GET /health`.
 - `GET /openapi.json` → documento OpenAPI 3.1 com `info` (título "Standwise API", versão `1.0.0`, `contact.email` = `SUPPORT_EMAIL`, descrição que inclui o conteúdo dos guias), `servers: [{ url: PUBLIC_URL }]`, `securitySchemes`: `apiKey` (bearer `swk_…`, Task 17), e as tags `Organization` (Task 17), `Webhooks` (Task 18) e `Meta` (`/health`).
-- `GET /docs` → página HTML com a referência Scalar (`@scalar/hono-api-reference`) apontando para `/openapi.json`, título "Standwise API".
+- `GET /docs/api` → página HTML com a referência Scalar (`@scalar/hono-api-reference`) apontando para `/openapi.json`, título "Standwise API". Até a Task 20 existir, `GET /docs` redireciona para `/docs/api`.
 - Toda rota documentada tem: `summary`, `description` (pt-BR e en no mesmo texto, en primeiro), schema de request e response com `example`, e **todas** as respostas de erro possíveis (`401`, `404`, `409`, `422`, `429`) com o schema `Error` e um exemplo de cada `code`.
 - Os guias em `docs/api/guides/*.md` são importados como texto e montados na `description` do documento (seções `## Authentication`, `## Integrating an AI agent` etc.), para aparecerem no `/docs`. Conteúdo mínimo:
   - `authentication.md`: API key `swk_` (Task 17): criação pelo admin, escopos, revogação e boas práticas de armazenamento.
@@ -567,7 +567,7 @@
   - `every public route documented` → cada rota pública registrada aparece em `paths`, e cada operação tem `summary`, `description`, ao menos um `example` de resposta 2xx e as respostas de erro listadas acima.
   - `guides embedded` → `info.description` contém `## AI agents` e aponta para o MCP.
   - `internal routes hidden` → `/openapi.json` não contém `/v1/sessions`, `/v1/draft` nem `/v1/dailies`; `/openapi.internal.json` sem sessão dá 401 e, com sessão, contém as três.
-  - `docs page` → `GET /docs` responde 200 HTML e referencia `/openapi.json`.
+  - `docs page` → `GET /docs/api` responde 200 HTML e referencia `/openapi.json`.
   - `rate limit` → a 11ª chamada a `POST /v1/sessions` do mesmo IP em 60 s dá 429 com `Retry-After`; os headers `RateLimit-*` aparecem nas respostas 2xx.
   - Todos os testes existentes de `v1` e `webhooks` continuam passando sem mudar as asserções de comportamento.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
@@ -675,3 +675,52 @@
   - `daily prompt` → `prompts/get daily` devolve mensagens que citam a confirmação explícita.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
 - [ ] **Step 5: Commit** `feat(cli): local mcp server with draft and confirmed submit tools`
+
+### Task 20: Site de documentação completo (`/docs`)
+
+**Files:**
+- Create: `docs/site/` (VitePress): `.vitepress/config.ts` (pt-BR como padrão e en via i18n do VitePress, sidebar, busca local, logo SVG da marca, cores `#3B4BC8`/`#15171C`), e as páginas em pt-BR e en (`docs/site/<página>.md` e `docs/site/en/<página>.md`):
+  - `index.md`: **Overview**.
+    - O que é o Standwise e o problema que resolve: dailies soltas, gestor sem visão consolidada, ninguém orquestrando.
+    - Para quem é: membro, gestor e admin.
+    - Como funciona, em diagrama: agente/skill/MCP → API → consolidado no Slack, com lembrete, encaminhamento e sugestões.
+    - O que **não** é (vigilância, métricas de produtividade).
+    - Links de "comece aqui" por perfil.
+  - `concepts.md`: glossário com instalação, organização, time, membro, gestor, admin, daily, "ontem/hoje/impedimentos", rascunho, consolidado, daily atrasada (thread), lembrete, impedimento sugerido, encaminhamento, entrega, API key e webhook.
+  - `how-it-works.md`: o ciclo de um dia com horários de exemplo:
+    - rascunho a partir do GitHub;
+    - lembrete no `remind_at`;
+    - consolidado no `digest_at`;
+    - atrasadas na thread;
+    - encaminhamento de impedimentos (PR → revisores/CODEOWNERS; card → bloqueador; senão gestor);
+    - fuso, dias úteis e pessoa em vários times.
+  - `privacy.md`: o que é lido no GitHub, Slack e Linear, o que é guardado (com criptografia), o que **nunca** é feito, quem vê o quê, retenção, remoção de dados ao desinstalar e o e-mail de suporte.
+  - `admin/install.md`: passo a passo para instalar o GitHub App, abrir a página de setup, conectar o Slack, criar o `standwise.yml` (link pré-preenchido) e resolver os estados "não configurado" e "inválido".
+  - `admin/configuration.md`: referência **completa** do `standwise.yml`. Cada chave com tipo, padrão, exemplo e erros de validação comuns (com a mensagem real do check run). Inclui o exemplo da spec §4.4, times do GitHub (`@org/slug`) e mapeamento manual de identidades.
+  - `admin/slack.md`: permissões do bot, canais privados (convidar o bot) e a tabela dos erros de entrega com a solução de cada um.
+  - `admin/api-keys.md` e `admin/webhooks.md`: criação, escopos, rotação e revogação.
+  - `members/getting-started.md`: instalar a CLI, `standwise login`, `/daily` no Claude Code e o que acontece depois de enviar.
+  - `members/cli.md`: todos os comandos, flags, códigos de saída e o local das credenciais.
+  - `members/claude-code.md`: a skill `/daily`, com o fluxo, a regra de confirmação e exemplos de conversa.
+  - `members/mcp.md`: a configuração do `standwise mcp` em Claude Desktop, Cursor, Codex e VS Code, as tools e a confirmação explícita.
+  - `api/overview.md`: o que a API pública oferece (leitura e webhooks) e o que não oferece (escrita de daily: use MCP/skill, com o porquê). Inclui os guias da Task 16 (autenticação, erros, paginação, limites, versionamento) e um link para a referência em `/docs/api`.
+  - `api/webhooks.md`: o guia da Task 18.
+  - `faq.md`, `troubleshooting.md` (problemas mais prováveis: "não recebi lembrete", "meu nome aparece como @login", "consolidado não chegou", "org ambígua", "token expirado") e `changelog.md` (inclui o `docs/api/CHANGELOG.md`).
+- Modify: os guias `docs/api/guides/*.md` da Task 16 passam a ser a fonte única. O site os inclui com o `<!--@include: ...-->` do VitePress, e o `/openapi.json` continua montando a `description` a partir deles. O `/docs/api` ganha um link de volta para o site.
+- Modify: `apps/api/src/routes/docs.ts` passa a servir o build estático do VitePress em `/docs/*` (com `serveStatic`), e `/docs/api` continua com o Scalar. Mudam também `package.json` (scripts `docs:dev`, `docs:build`) e o `Dockerfile` da Task 15 (o build do site entra na imagem da api). O `README.md` resume o produto e linka o site.
+- Test: `apps/api/test/docs-site.test.ts`, mais um script `scripts/check-docs.ts` rodado no CI.
+
+**Regras de conteúdo:**
+- Tudo em **pt-BR e en**, com o mesmo conteúdo.
+- Exemplos reais e copiáveis (YAML, `curl`, JSON de webhook, config do MCP) que batem com o código. Os exemplos de `standwise.yml` da documentação passam pelo `parseConfig` num teste.
+- Sem placeholders vazios. O e-mail de suporte vem de `SUPPORT_EMAIL` no build.
+- Tom direto, "você", frases curtas e sem marketing.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `site builds` → `bun run docs:build` termina sem erro e sem links quebrados (o `ignoreDeadLinks` do VitePress fica desligado).
+  - `served` → `GET /docs/` responde 200 com o título "Standwise"; `GET /docs/en/` responde 200; `GET /docs/api` continua com o Scalar.
+  - `config examples valid` → `scripts/check-docs.ts` extrai todo bloco ```yaml de `admin/configuration.md` (pt e en) e todos passam no `parseConfig`.
+  - `parity` → cada página em pt-BR tem a equivalente em en, e vice-versa.
+  - `overview present` → `index.md` contém as seções "O que é", "Para quem é", "Como funciona" e "O que o Standwise não faz".
+- [ ] **Step 2: Run** → FAIL. **Step 3: Write the site.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `docs: complete documentation site with overview, guides and api reference`

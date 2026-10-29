@@ -120,7 +120,9 @@ A API é um produto para integradores, com documentação de primeira classe. El
 
 **Admin da instalação** = dono da conta (conta pessoal) ou membro com papel `admin` na organização do GitHub.
 
-**Documentação:** OpenAPI 3.1 gerado a partir dos schemas Zod das rotas, servido em `GET /openapi.json`, e referência navegável em `GET /docs`. Cada rota tem descrição, exemplos de request e response e todos os códigos de erro. A documentação pública cobre só as rotas de leitura (API key) e os webhooks. Ela inclui os guias: autenticação por API key, "agentes de IA: use o MCP ou a skill" (com a configuração do MCP), erros (envelope `{ error: { code, message } }`), paginação por cursor, limites de taxa (headers `RateLimit-*`), verificação de assinatura de webhook (com exemplo em TypeScript e Python), versionamento (`/v1`, mudanças incompatíveis só em `/v2`) e changelog.
+**Documentação do produto:** um site completo em `/docs` (pt-BR e en). Ele traz o overview do que é o Standwise e para que serve, conceitos, como funciona, privacidade, guias para admin e membro, a referência completa do `standwise.yml`, CLI, skill, MCP, API, webhooks, FAQ, solução de problemas e changelog.
+
+**Documentação da API:** OpenAPI 3.1 gerado a partir dos schemas Zod das rotas, servido em `GET /openapi.json`, com a referência navegável em `GET /docs/api`. Cada rota tem descrição, exemplos de request e response e todos os códigos de erro. A documentação pública cobre só as rotas de leitura (API key) e os webhooks. Ela inclui os guias: autenticação por API key, "agentes de IA: use o MCP ou a skill" (com a configuração do MCP), erros (envelope `{ error: { code, message } }`), paginação por cursor, limites de taxa (headers `RateLimit-*`), verificação de assinatura de webhook (com exemplo em TypeScript e Python), versionamento (`/v1`, mudanças incompatíveis só em `/v2`) e changelog.
 
 ## 5. Arquitetura
 
