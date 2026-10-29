@@ -105,6 +105,25 @@ const ptBR = {
   'web.error.slack_oauth_failed.title': 'Falha ao conectar o Slack',
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
+  'cli.usage':
+    'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
+  'cli.invalidArgs': 'Argumentos inválidos: {message}',
+  'cli.unknownCommand': 'Comando desconhecido: {command}',
+  'cli.notLoggedIn': 'Você não está autenticado. Execute: standwise login',
+  'cli.loggedIn': 'Autenticado como {login}.',
+  'cli.loggedOut': 'Credenciais removidas.',
+  'cli.deviceCode': 'Abra {uri} e informe o código: {code}',
+  'cli.waitingAuth': 'Aguardando a autorização no GitHub...',
+  'cli.deviceExpired': 'O código expirou. Execute standwise login novamente.',
+  'cli.deviceDenied': 'A autorização foi negada no GitHub.',
+  'cli.deviceFailed': 'Falha no login com o GitHub: {reason}',
+  'cli.networkError': 'Não foi possível conectar a {url}.',
+  'cli.retryAfter': 'tente novamente em {seconds}s',
+  'cli.ambiguousOrg': 'Mais de uma organização. Use --org com uma de: {orgs}',
+  'cli.noOrgs': 'Nenhuma organização com o Standwise instalado para este usuário.',
+  'cli.invalidJson': 'O JSON da daily é inválido.',
+  'cli.validationFailed': 'A daily é inválida:',
+  'cli.fileReadFailed': 'Não foi possível ler o arquivo {path}.',
 } as const;
 
 const en = {
@@ -212,6 +231,25 @@ const en = {
   'web.error.slack_oauth_failed.title': 'Slack connection failed',
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',
+  'cli.usage':
+    'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
+  'cli.invalidArgs': 'Invalid arguments: {message}',
+  'cli.unknownCommand': 'Unknown command: {command}',
+  'cli.notLoggedIn': 'You are not signed in. Run: standwise login',
+  'cli.loggedIn': 'Signed in as {login}.',
+  'cli.loggedOut': 'Credentials removed.',
+  'cli.deviceCode': 'Open {uri} and enter the code: {code}',
+  'cli.waitingAuth': 'Waiting for authorization on GitHub...',
+  'cli.deviceExpired': 'The code expired. Run standwise login again.',
+  'cli.deviceDenied': 'Authorization was denied on GitHub.',
+  'cli.deviceFailed': 'GitHub login failed: {reason}',
+  'cli.networkError': 'Could not connect to {url}.',
+  'cli.retryAfter': 'retry after {seconds}s',
+  'cli.ambiguousOrg': 'More than one organization. Use --org with one of: {orgs}',
+  'cli.noOrgs': 'No organization with Standwise installed for this user.',
+  'cli.invalidJson': 'The daily JSON is invalid.',
+  'cli.validationFailed': 'The daily is invalid:',
+  'cli.fileReadFailed': 'Could not read the file {path}.',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {
