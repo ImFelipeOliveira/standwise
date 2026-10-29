@@ -143,9 +143,7 @@ export const apiKeys = pgTable(
     prefix: text('prefix').notNull(),
     secretHash: text('secret_hash').notNull().unique(),
     scopes: text('scopes').array().$type<ApiKeyScope[]>().notNull(),
-    createdBy: uuid('created_by')
-      .notNull()
-      .references(() => members.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => members.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),

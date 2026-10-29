@@ -99,4 +99,22 @@ describe('isInstallationAdmin', () => {
     expect(await isInstallationAdmin(deps, INST, member)).toBe(false);
     expect(calls.roles).toHaveLength(3);
   });
+
+  test('fresh bypasses the cache and refreshes it', async () => {
+    await seedOrg();
+    const member = await seedMember();
+    const { deps, roles, calls } = fakeDeps();
+    roles.set('alice', { role: 'admin', state: 'active' });
+    expect(await isInstallationAdmin(deps, INST, member)).toBe(true);
+    roles.delete('alice');
+    expect(await isInstallationAdmin(deps, INST, member, { fresh: true })).toBe(false);
+    expect(calls.roles).toHaveLength(2);
+    expect(await isInstallationAdmin(deps, INST, member)).toBe(false);
+    expect(calls.roles).toHaveLength(3);
+    roles.set('alice', { role: 'admin', state: 'active' });
+    expect(await isInstallationAdmin(deps, INST, member, { fresh: true })).toBe(true);
+    roles.delete('alice');
+    expect(await isInstallationAdmin(deps, INST, member)).toBe(true);
+    expect(calls.roles).toHaveLength(4);
+  });
 });

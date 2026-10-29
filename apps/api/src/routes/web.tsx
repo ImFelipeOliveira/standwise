@@ -20,6 +20,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import { STATUS } from '../http/errors';
 import { ErrorPage } from '../web/error';
+import { FLASH_COOKIE, FLASH_PATH, FLASH_SECONDS, openFlash, sealFlash } from '../web/flash';
 import { type NewApiKey, SetupPage } from '../web/setup';
 
 const COOKIE = 'sw_web';
@@ -155,7 +156,12 @@ export function webRoutes(deps: Deps): Hono {
       getSetupStatus(deps, isMember, session.member, installationId(c)),
     );
     if (result instanceof Response) return result;
-    return c.html(setupPage(c, session, result));
+    const raw = getCookie(c, FLASH_COOKIE);
+    if (!raw) return c.html(setupPage(c, session, result));
+    deleteCookie(c, FLASH_COOKIE, { path: FLASH_PATH, secure: true });
+    c.header('Cache-Control', 'no-store');
+    const newKey = openFlash(deps.encryptionKey, session.token, result.installationId, raw);
+    return c.html(setupPage(c, session, result, newKey));
   });
 
   app.post('/setup/api-keys', async (c) => {
@@ -171,9 +177,17 @@ export function webRoutes(deps: Deps): Hono {
       name,
       scopes,
     });
+    setCookie(
+      c,
+      FLASH_COOKIE,
+      sealFlash(deps.encryptionKey, session.token, installationId, {
+        name: name.trim(),
+        key: created.key,
+      }),
+      { httpOnly: true, secure: true, sameSite: 'Lax', path: FLASH_PATH, maxAge: FLASH_SECONDS },
+    );
     c.header('Cache-Control', 'no-store');
-    const status = await getSetupStatus(deps, isMember, session.member, installationId);
-    return c.html(setupPage(c, session, status, { name: name.trim(), key: created.key }));
+    return c.redirect(`/setup?installation_id=${installationId}`, 303);
   });
 
   app.post('/setup/api-keys/:id/revoke', async (c) => {

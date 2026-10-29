@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { parseConfig } from '@standwise/core';
 import {
+  createApiKey,
   createSession,
   listApiKeys,
   resolveApiKey,
@@ -75,12 +76,43 @@ const setupPage = (app: App, cookie: string, headers: Record<string, string> = {
 
 const csrfOf = (html: string) => /name="csrf" value="([^"]+)"/.exec(html)?.[1] ?? '';
 
-const post = (app: App, path: string, cookie: string, fields: [string, string][]) =>
+const post = (
+  app: App,
+  path: string,
+  cookie: string,
+  fields: [string, string][],
+  headers: Record<string, string> = {},
+) =>
   app.request(path, {
     method: 'POST',
-    headers: { cookie, 'content-type': 'application/x-www-form-urlencoded' },
+    headers: { cookie, 'content-type': 'application/x-www-form-urlencoded', ...headers },
     body: new URLSearchParams(fields).toString(),
   });
+
+const FULL_KEY = /swk_[A-Za-z0-9_-]{43}/;
+
+const corrupt = (cookie: string) =>
+  `${cookie.slice(0, 40)}${cookie[40] === 'A' ? 'B' : 'A'}${cookie.slice(41)}`;
+
+type User = { token: string; cookie: string };
+
+const flashOf = (res: Response) =>
+  res.headers
+    .getSetCookie()
+    .map((c) => c.split(';')[0] ?? '')
+    .find((c) => c.startsWith('sw_flash=')) ?? '';
+
+async function createAndShow(app: App, user: User, headers: Record<string, string> = {}) {
+  const csrf = csrfToken('sess', user.token);
+  const res = await post(app, '/setup/api-keys', user.cookie, createFields(csrf), headers);
+  const flash = flashOf(res);
+  const location = res.headers.get('location') ?? '';
+  const page = location
+    ? await app.request(location, { headers: { cookie: `${user.cookie}; ${flash}`, ...headers } })
+    : res;
+  const html = await page.text();
+  return { res, page, html, flash, key: /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '' };
+}
 
 const createFields = (csrf: string, extra: [string, string][] = []): [string, string][] => [
   ['csrf', csrf],
@@ -110,14 +142,22 @@ describe('api keys section visibility', () => {
 describe('creating keys', () => {
   test('an admin creates a key, the secret shows once and the list shows the prefix', async () => {
     const { app, alice } = await harness();
-    const csrf = csrfOf(await (await setupPage(app, alice.cookie)).text());
-    const res = await post(app, '/setup/api-keys', alice.cookie, createFields(csrf));
-    expect(res.status).toBe(200);
+    const { res, page, html, key } = await createAndShow(app, alice);
+    expect(res.status).toBe(303);
+    expect(res.headers.get('location')).toBe(`/setup?installation_id=${INST}`);
     expect(res.headers.get('cache-control')).toBe('no-store');
-    const html = await res.text();
-    const key = /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '';
+    expect(await res.text()).not.toMatch(FULL_KEY);
+    const flashCookie = res.headers.getSetCookie().find((c) => c.startsWith('sw_flash=')) ?? '';
+    expect(flashCookie).toContain('HttpOnly');
+    expect(flashCookie).toContain('Secure');
+    expect(flashCookie).toContain('Path=/setup');
+    expect(flashCookie).toContain('Max-Age=60');
+    expect(flashCookie).not.toContain(key.slice(4));
+    expect(page.headers.get('cache-control')).toBe('no-store');
+    expect(page.headers.getSetCookie().join(';')).toMatch(/sw_flash=;.*Max-Age=0/s);
     expect(key).not.toBe('');
     expect(html).toContain('Copie agora');
+    expect(html).toContain('Revogue');
     expect(html).toContain('Reporting');
     const again = await (await setupPage(app, alice.cookie)).text();
     expect(again).not.toContain(key);
@@ -129,20 +169,44 @@ describe('creating keys', () => {
     expect(resolved?.scopes).toEqual(['teams:read', 'dailies:read']);
   });
 
+  test('refreshing after creating a key never creates a second one', async () => {
+    const { app, alice } = await harness();
+    const { res, flash } = await createAndShow(app, alice);
+    const location = res.headers.get('location') ?? '';
+    const headers = { cookie: `${alice.cookie}; ${flash}` };
+    await app.request(location, { headers });
+    const refreshed = await (
+      await app.request(location, { headers: { cookie: alice.cookie } })
+    ).text();
+    expect(refreshed).not.toMatch(FULL_KEY);
+    expect(await listApiKeys(db, INST)).toHaveLength(1);
+  });
+
+  test('a flash cookie of another session or a tampered one shows nothing', async () => {
+    const { app, alice, bob } = await harness();
+    const { flash } = await createAndShow(app, alice);
+    const other = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie: `${bob.cookie}; ${flash}` },
+      })
+    ).text();
+    expect(other).not.toMatch(FULL_KEY);
+    const tampered = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie: `${alice.cookie}; ${corrupt(flash)}` },
+      })
+    ).text();
+    expect(tampered).not.toMatch(FULL_KEY);
+    expect(tampered).toContain('API keys');
+  });
+
   test('the copy-now warning and labels follow the language', async () => {
     const { app, alice } = await harness();
     const csrf = csrfOf(await (await setupPage(app, alice.cookie)).text());
-    const res = await app.request('/setup/api-keys', {
-      method: 'POST',
-      headers: {
-        cookie: alice.cookie,
-        'accept-language': 'en',
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(createFields(csrf)).toString(),
-    });
-    const html = await res.text();
+    const { html } = await createAndShow(app, alice, { 'accept-language': 'en' });
+    expect(csrf).not.toBe('');
     expect(html).toContain('Copy it now');
+    expect(html).toContain('Revoke this key');
     expect(html).toContain('Create key');
     expect(html).not.toContain('Copie agora');
   });
@@ -228,11 +292,7 @@ describe('csrf', () => {
 
   test('revoking without the token is 403 and the key keeps working', async () => {
     const { app, alice } = await harness();
-    const csrf = csrfToken('sess', alice.token);
-    const html = await (
-      await post(app, '/setup/api-keys', alice.cookie, createFields(csrf))
-    ).text();
-    const key = /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '';
+    const { key } = await createAndShow(app, alice);
     const [listed] = await listApiKeys(db, INST);
     const res = await post(app, `/setup/api-keys/${listed?.id}/revoke`, alice.cookie, [
       ['installation_id', String(INST)],
@@ -246,10 +306,7 @@ describe('revoking keys', () => {
   test('an admin revokes a key and the list shows it as revoked', async () => {
     const { app, alice } = await harness();
     const csrf = csrfToken('sess', alice.token);
-    const html = await (
-      await post(app, '/setup/api-keys', alice.cookie, createFields(csrf))
-    ).text();
-    const key = /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '';
+    const { key } = await createAndShow(app, alice);
     const [listed] = await listApiKeys(db, INST);
     const res = await post(app, `/setup/api-keys/${listed?.id}/revoke`, alice.cookie, [
       ['csrf', csrf],
@@ -265,11 +322,7 @@ describe('revoking keys', () => {
 
   test('a plain member cannot revoke', async () => {
     const { app, alice, bob } = await harness();
-    const csrf = csrfToken('sess', alice.token);
-    const html = await (
-      await post(app, '/setup/api-keys', alice.cookie, createFields(csrf))
-    ).text();
-    const key = /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '';
+    const { key } = await createAndShow(app, alice);
     const [listed] = await listApiKeys(db, INST);
     const res = await post(app, `/setup/api-keys/${listed?.id}/revoke`, bob.cookie, [
       ['csrf', csrfToken('sess', bob.token)],
@@ -277,5 +330,41 @@ describe('revoking keys', () => {
     ]);
     expect(res.status).toBe(403);
     expect(await resolveApiKey(db, key)).not.toBeNull();
+  });
+
+  test('unknown, malformed, foreign and already revoked keys render a localized 404', async () => {
+    const { app, alice } = await harness();
+    await upsertInstallation(db, { id: 12, accountLogin: 'other', accountType: 'Organization' });
+    const foreign = await createApiKey(db, {
+      installationId: 12,
+      name: 'foreign',
+      scopes: ['teams:read'],
+      createdBy: alice.member.id,
+    });
+    const csrf = csrfToken('sess', alice.token);
+    const revoke = (id: string, headers: Record<string, string> = {}) =>
+      post(
+        app,
+        `/setup/api-keys/${id}/revoke`,
+        alice.cookie,
+        [
+          ['csrf', csrf],
+          ['installation_id', String(INST)],
+        ],
+        headers,
+      );
+    for (const id of [crypto.randomUUID(), 'nope', foreign.id]) {
+      const res = await revoke(id);
+      expect(res.status).toBe(404);
+      expect(await res.text()).toContain('Não encontrado');
+    }
+    expect(await resolveApiKey(db, foreign.key)).not.toBeNull();
+    const { key } = await createAndShow(app, alice);
+    const [listed] = await listApiKeys(db, INST);
+    expect((await revoke(listed?.id ?? '')).status).toBe(303);
+    const again = await revoke(listed?.id ?? '', { 'accept-language': 'en' });
+    expect(again.status).toBe(404);
+    expect(await again.text()).toContain('Not found');
+    expect(await resolveApiKey(db, key)).toBeNull();
   });
 });

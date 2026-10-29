@@ -42,6 +42,8 @@ const ptBR = {
   'web.apiKeys.created': 'Chave criada: {name}',
   'web.apiKeys.copyNow':
     'Copie agora. Esta chave não será exibida novamente e o Standwise guarda apenas um hash dela.',
+  'web.apiKeys.revokeHint':
+    'Revogue esta chave na lista abaixo se não conseguir copiá-la e crie outra.',
   'web.apiKeys.prefix': 'Prefixo',
   'web.apiKeys.createdAt': 'Criada em',
   'web.apiKeys.lastUsed': 'Último uso',
@@ -68,6 +70,8 @@ const ptBR = {
   'web.error.installation_pending.title': 'Instalação em processamento',
   'web.error.installation_pending.body':
     'Esta instalação ainda está sendo processada. Atualize a página em alguns segundos.',
+  'web.error.not_found.title': 'Não encontrado',
+  'web.error.not_found.body': 'O item solicitado não existe ou já foi removido.',
   'web.error.slack_oauth_failed.title': 'Falha ao conectar o Slack',
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
@@ -115,6 +119,8 @@ const en = {
   'web.apiKeys.created': 'Key created: {name}',
   'web.apiKeys.copyNow':
     'Copy it now. This key will not be shown again and Standwise stores only a hash of it.',
+  'web.apiKeys.revokeHint':
+    'Revoke this key in the list below if you could not copy it, and create another.',
   'web.apiKeys.prefix': 'Prefix',
   'web.apiKeys.createdAt': 'Created',
   'web.apiKeys.lastUsed': 'Last used',
@@ -141,6 +147,8 @@ const en = {
   'web.error.installation_pending.title': 'Installation in progress',
   'web.error.installation_pending.body':
     'This installation is still being processed. Refresh the page in a few seconds.',
+  'web.error.not_found.title': 'Not found',
+  'web.error.not_found.body': 'The requested item does not exist or was already removed.',
   'web.error.slack_oauth_failed.title': 'Slack connection failed',
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',

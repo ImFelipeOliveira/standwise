@@ -343,29 +343,27 @@ type Doc = {
   components: { schemas: Record<string, Json> };
 };
 
-function noOpenObjects(node: unknown, doc: Doc, path: string, seen = new Set<string>()): void {
-  if (Array.isArray(node)) {
-    for (const [i, n] of node.entries()) noOpenObjects(n, doc, `${path}[${i}]`, seen);
-    return;
+function strictify<T>(node: T): T {
+  if (Array.isArray(node)) return node.map((n) => strictify(n)) as T;
+  if (typeof node !== 'object' || node === null) return node;
+  const copy: Json = {};
+  for (const [k, v] of Object.entries(node as Json)) {
+    copy[k] = k === 'example' || k === 'examples' ? v : strictify(v);
   }
-  if (typeof node !== 'object' || node === null) return;
-  const schema = node as Json;
-  const ref = schema.$ref;
-  if (typeof ref === 'string') {
-    const name = ref.replace('#/components/schemas/', '');
-    if (seen.has(name)) return;
-    seen.add(name);
-    noOpenObjects(doc.components.schemas[name], doc, name, seen);
-    return;
-  }
-  if (schema.type === 'object' || schema.properties) {
-    expect(schema.additionalProperties, `${path} must set additionalProperties: false`).toBe(false);
-  }
-  for (const [k, v] of Object.entries(schema)) noOpenObjects(v, doc, `${path}.${k}`, seen);
+  if (copy.type === 'object' || copy.properties) copy.additionalProperties = false;
+  return copy as T;
 }
 
+describe('published schemas stay permissive', () => {
+  test('the public document never declares additionalProperties false', async () => {
+    const { app } = createTestApp();
+    const text = await (await app.request('/openapi.json')).text();
+    expect(text).not.toMatch(/"additionalProperties":\s*false/);
+  });
+});
+
 describe('org responses match the documented schema', () => {
-  test('every response validates against the openapi schema with additionalProperties false', async () => {
+  test('every response validates against a strict copy of the published schema', async () => {
     await seed();
     const { app } = createTestApp();
     await dailyFor('alice', A, '2026-10-28', 2);
@@ -400,10 +398,9 @@ describe('org responses match the documented schema', () => {
         | undefined;
       const schema = response?.content['application/json'].schema;
       expect(schema, `${route} ${status}`).toBeDefined();
-      noOpenObjects(schema, doc, `${route} ${status}`);
       const actual = await app.request(url, { headers: status === 401 ? {} : bearer(key) });
       expect(actual.status, url).toBe(status);
-      const validate = ajv.compile({ ...schema, components: doc.components });
+      const validate = ajv.compile(strictify({ ...schema, components: doc.components }));
       const body = await actual.json();
       expect(validate(body), `${url}: ${JSON.stringify(validate.errors)}`).toBe(true);
     }

@@ -7,7 +7,7 @@ const nextCursor = () =>
   });
 
 const RefSchema = z
-  .strictObject({
+  .object({
     kind: z.enum(['pull_request', 'issue', 'commit', 'card']).openapi({ example: 'pull_request' }),
     url: z.string().openapi({ example: 'https://github.com/acme/api/pull/42' }),
     title: z.string().nullable().openapi({ example: 'Add rate limiting' }),
@@ -15,7 +15,7 @@ const RefSchema = z
   .openapi('OrgRef');
 
 const ItemSchema = z
-  .strictObject({
+  .object({
     text: z.string().openapi({ example: 'Shipped rate limiting' }),
     ref: RefSchema.nullable(),
   })
@@ -31,7 +31,7 @@ export const ORG_TEAM_EXAMPLE = {
 };
 
 export const OrgTeamSchema = z
-  .strictObject({
+  .object({
     name: z.string(),
     timezone: z.string().openapi({ description: 'IANA time zone.' }),
     workdays: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])),
@@ -44,7 +44,7 @@ export const OrgTeamSchema = z
 export const ORG_TEAMS_EXAMPLE = { data: [ORG_TEAM_EXAMPLE], next_cursor: null };
 
 export const OrgTeamListSchema = z
-  .strictObject({ data: z.array(OrgTeamSchema), next_cursor: nextCursor() })
+  .object({ data: z.array(OrgTeamSchema), next_cursor: nextCursor() })
   .openapi('OrgTeamList', { example: ORG_TEAMS_EXAMPLE });
 
 export const ORG_DAILY_EXAMPLE = {
@@ -64,7 +64,7 @@ export const ORG_DAILY_EXAMPLE = {
 };
 
 export const OrgDailySchema = z
-  .strictObject({
+  .object({
     id: z.string().openapi({ format: 'uuid' }),
     login: z.string().openapi({ description: 'GitHub login of the author.' }),
     date: z.string().openapi({ description: 'Standup date in the team time zone, YYYY-MM-DD.' }),
@@ -85,7 +85,7 @@ export const ORG_DAILIES_EXAMPLE = {
 };
 
 export const OrgDailyListSchema = z
-  .strictObject({ data: z.array(OrgDailySchema), next_cursor: nextCursor() })
+  .object({ data: z.array(OrgDailySchema), next_cursor: nextCursor() })
   .openapi('OrgDailyList', { example: ORG_DAILIES_EXAMPLE });
 
 export const ORG_DIGEST_EXAMPLE = {
@@ -97,7 +97,7 @@ export const ORG_DIGEST_EXAMPLE = {
 };
 
 export const OrgDigestSchema = z
-  .strictObject({
+  .object({
     team: z.string(),
     date: z.string().openapi({ description: 'Standup date, YYYY-MM-DD.' }),
     status: z.enum(['pending', 'sent', 'failed']),
@@ -111,7 +111,7 @@ export const OrgDigestSchema = z
 export const ORG_DIGESTS_EXAMPLE = { data: [ORG_DIGEST_EXAMPLE], next_cursor: null };
 
 export const OrgDigestListSchema = z
-  .strictObject({ data: z.array(OrgDigestSchema), next_cursor: nextCursor() })
+  .object({ data: z.array(OrgDigestSchema), next_cursor: nextCursor() })
   .openapi('OrgDigestList', { example: ORG_DIGESTS_EXAMPLE });
 
 export const ORG_BLOCKER_EXAMPLE = {
@@ -123,7 +123,7 @@ export const ORG_BLOCKER_EXAMPLE = {
 };
 
 export const OrgBlockerSchema = z
-  .strictObject({
+  .object({
     text: z.string(),
     ref: RefSchema.nullable(),
     author: z.string(),
@@ -135,5 +135,5 @@ export const OrgBlockerSchema = z
 export const ORG_BLOCKERS_EXAMPLE = { data: [ORG_BLOCKER_EXAMPLE], next_cursor: null };
 
 export const OrgBlockerListSchema = z
-  .strictObject({ data: z.array(OrgBlockerSchema), next_cursor: nextCursor() })
+  .object({ data: z.array(OrgBlockerSchema), next_cursor: nextCursor() })
   .openapi('OrgBlockerList', { example: ORG_BLOCKERS_EXAMPLE });

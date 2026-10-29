@@ -5,6 +5,7 @@ import {
   createInstallationApiKey,
   createMembershipCheck,
   DomainError,
+  isInstallationAdmin,
   revokeInstallationApiKey,
 } from '../../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -76,7 +77,7 @@ describe('revokeInstallationApiKey', () => {
   test('an admin revokes a key', async () => {
     const { deps, isMember, member } = await setup();
     const { id, key } = await createInstallationApiKey(deps, isMember, member, input);
-    expect(await revokeInstallationApiKey(deps, isMember, member, INST, id)).toBe(true);
+    await revokeInstallationApiKey(deps, isMember, member, INST, id);
     expect(await resolveApiKey(db, key)).toBeNull();
   });
 
@@ -92,12 +93,14 @@ describe('revokeInstallationApiKey', () => {
     expect(await resolveApiKey(db, key)).not.toBeNull();
   });
 
-  test('a malformed key id is not revoked and does not fail', async () => {
+  test('a malformed key id is not_found', async () => {
     const { deps, isMember, member } = await setup();
-    expect(await revokeInstallationApiKey(deps, isMember, member, INST, 'nope')).toBe(false);
+    expect(await codeOf(revokeInstallationApiKey(deps, isMember, member, INST, 'nope'))).toBe(
+      'not_found',
+    );
   });
 
-  test('a key id from another installation is not revoked', async () => {
+  test('a key id from another installation is not_found and stays valid', async () => {
     const { deps, isMember, member } = await setup();
     await seedOrg(undefined, { id: 22, accountLogin: 'globex' });
     const foreign = await createApiKey(db, {
@@ -106,7 +109,26 @@ describe('revokeInstallationApiKey', () => {
       scopes: ['teams:read'],
       createdBy: member.id,
     });
-    expect(await revokeInstallationApiKey(deps, isMember, member, INST, foreign.id)).toBe(false);
+    expect(await codeOf(revokeInstallationApiKey(deps, isMember, member, INST, foreign.id))).toBe(
+      'not_found',
+    );
     expect(await resolveApiKey(db, foreign.key)).not.toBeNull();
+  });
+});
+
+describe('live admin checks', () => {
+  test('an admin demoted after a cached positive cannot create or revoke', async () => {
+    const { deps, isMember, member, roles } = await setup();
+    const { id } = await createInstallationApiKey(deps, isMember, member, input);
+    expect(await isInstallationAdmin(deps, INST, member)).toBe(true);
+    roles.clear();
+    expect(await codeOf(createInstallationApiKey(deps, isMember, member, input))).toBe('forbidden');
+    roles.set('alice', { role: 'admin', state: 'active' });
+    expect(await isInstallationAdmin(deps, INST, member)).toBe(true);
+    roles.clear();
+    expect(await codeOf(revokeInstallationApiKey(deps, isMember, member, INST, id))).toBe(
+      'forbidden',
+    );
+    expect(await listApiKeys(db, INST)).toHaveLength(1);
   });
 });

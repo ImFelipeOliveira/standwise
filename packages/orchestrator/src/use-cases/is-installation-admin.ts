@@ -1,6 +1,6 @@
 import { getInstallation, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
-import { currentLogin, statusOf } from '../membership';
+import { currentLogin, isUserAccountOwner, statusOf } from '../membership';
 
 const TTL_MS = 5 * 60 * 1000;
 
@@ -18,19 +18,18 @@ export async function isInstallationAdmin(
   deps: Deps,
   installationId: number,
   member: MemberRow,
+  options: { fresh?: boolean } = {},
 ): Promise<boolean> {
   const installation = await getInstallation(deps.db, installationId);
   if (!installation) return false;
   if (installation.accountType === 'User') {
-    return installation.accountId !== null
-      ? installation.accountId === member.githubUserId
-      : installation.accountLogin.toLowerCase() === member.login.toLowerCase();
+    return isUserAccountOwner(installation, member);
   }
   const cache = cacheFor(deps);
   const key = `${installationId}:${member.githubUserId}`;
   const now = deps.now().getTime();
   const cached = cache.get(key);
-  if (cached !== undefined && now - cached < TTL_MS) return true;
+  if (!options.fresh && cached !== undefined && now - cached < TTL_MS) return true;
   const octokit = await deps.github.installationOctokit(installationId);
   const login = await currentLogin(octokit, member.githubUserId);
   if (login === null) {

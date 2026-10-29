@@ -138,4 +138,17 @@ describe('api keys repo', () => {
     expect(await resolveApiKey(db, key)).toBeNull();
     expect(await rows()).toHaveLength(0);
   });
+
+  test('deleting the creator keeps the key and clears created_by', async () => {
+    const member = await seed();
+    const { key } = await createApiKey(db, {
+      installationId: 11,
+      name: 'ci',
+      scopes: ['teams:read'],
+      createdBy: member.id,
+    });
+    await db.execute(sql`DELETE FROM members WHERE id = ${member.id}`);
+    expect(await resolveApiKey(db, key)).not.toBeNull();
+    expect((await rows())[0]?.created_by).toBeNull();
+  });
 });

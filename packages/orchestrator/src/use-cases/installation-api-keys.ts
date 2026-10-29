@@ -28,7 +28,7 @@ async function requireAdmin(
     member,
     installationId,
   );
-  if (!(await isInstallationAdmin(deps, installation.id, current))) {
+  if (!(await isInstallationAdmin(deps, installation.id, current, { fresh: true }))) {
     throw new DomainError('forbidden', 'only an organization admin can manage api keys');
   }
   return current;
@@ -63,8 +63,9 @@ export async function revokeInstallationApiKey(
   member: MemberRow,
   installationId: number,
   keyId: string,
-): Promise<boolean> {
+): Promise<void> {
   await requireAdmin(deps, isMember, member, installationId);
-  if (!isUuid(keyId)) return false;
-  return revokeApiKey(deps.db, installationId, keyId);
+  if (!isUuid(keyId) || !(await revokeApiKey(deps.db, installationId, keyId))) {
+    throw new DomainError('not_found', 'api key not found');
+  }
 }

@@ -53,6 +53,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
   const users = new Map<number, string>([[1, 'Alice']]);
   let now = new Date('2026-10-28T15:00:00Z');
   let userLookupError: unknown = null;
+  let rolesError: unknown = null;
   const request = async (route: string, params: Record<string, unknown>) => {
     if (route === 'GET /orgs/{org}/members/{username}') {
       calls.membership.push(`${params.org}/${params.username}`);
@@ -63,6 +64,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
     }
     if (route === 'GET /orgs/{org}/memberships/{username}') {
       calls.roles.push(`${params.org}/${params.username}`);
+      if (rolesError) throw rolesError;
       const entry = roles.get(String(params.username).toLowerCase());
       if (!entry || params.org !== 'acme') {
         throw Object.assign(new Error('not found'), { status: 404 });
@@ -148,6 +150,9 @@ export function fakeDeps(opts: FakeOptions = {}) {
     users,
     setNow: (d: Date) => {
       now = d;
+    },
+    failRoles: (error: unknown) => {
+      rolesError = error;
     },
     failUserLookup: (error: unknown) => {
       userLookupError = error;

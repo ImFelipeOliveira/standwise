@@ -8,6 +8,7 @@ const PAGE_CODES = [
   'access_denied',
   'installation_pending',
   'slack_oauth_failed',
+  'not_found',
 ] as const;
 
 type PageCode = (typeof PAGE_CODES)[number];

@@ -51,4 +51,12 @@ describe('getSetupStatus api keys', () => {
     const status = await getSetupStatus(deps, isMember, member, INST);
     expect(status.apiKeys).toEqual({ manage: false });
   });
+
+  test('a github failure on the admin check hides the section and keeps the page', async () => {
+    const { deps, isMember, member, failRoles } = await setup(true);
+    failRoles(Object.assign(new Error('boom'), { status: 502 }));
+    const status = await getSetupStatus(deps, isMember, member, INST);
+    expect(status.apiKeys).toEqual({ manage: false });
+    expect(status.owner).toBe('acme');
+  });
 });

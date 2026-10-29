@@ -60,7 +60,7 @@ export async function getSetupStatus(
     findConfigRepo(octokit, installation.accountLogin),
     getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
     listFailedDeliveries(deps.db, installation.id, FAILED_LIMIT),
-    isInstallationAdmin(deps, installation.id, current),
+    isInstallationAdmin(deps, installation.id, current).catch(() => false),
   ]);
   const apiKeys: SetupStatus['apiKeys'] = admin
     ? { manage: true, keys: await listApiKeys(deps.db, installation.id) }

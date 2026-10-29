@@ -107,6 +107,7 @@ export function SetupPage(props: {
                 {translate(props.lang, 'web.apiKeys.created', { name: props.newKey.name })}
               </strong>
               <p>{t('web.apiKeys.copyNow')}</p>
+              <p>{t('web.apiKeys.revokeHint')}</p>
               <pre>{props.newKey.key}</pre>
             </div>
           ) : null}

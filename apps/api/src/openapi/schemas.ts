@@ -5,8 +5,8 @@ import { STATUS } from '../http/errors';
 const errorCodes = ['internal', ...Object.keys(STATUS)];
 
 export const ErrorSchema = z
-  .strictObject({
-    error: z.strictObject({
+  .object({
+    error: z.object({
       code: z.enum(errorCodes).openapi({ example: 'unauthorized' }),
       message: z.string().openapi({ example: 'missing or invalid session' }),
       issues: z.array(z.unknown()).optional(),

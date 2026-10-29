@@ -11,7 +11,7 @@ export function statusOf(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined;
 }
 
-function isUserAccountOwner(account: Account, member: MemberRow): boolean {
+export function isUserAccountOwner(account: Account, member: MemberRow): boolean {
   if (account.accountId !== null) return account.accountId === member.githubUserId;
   return account.accountLogin.toLowerCase() === member.login.toLowerCase();
 }
