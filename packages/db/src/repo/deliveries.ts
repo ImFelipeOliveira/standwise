@@ -7,7 +7,7 @@ export type DeliveryKey = {
   installationId: number;
   teamName: string;
   date: string;
-  kind: 'digest' | 'late_daily';
+  kind: 'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm';
   subject?: string;
 };
 

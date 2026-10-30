@@ -92,6 +92,15 @@ describe('deliveries', () => {
     expect(r.filter((x) => x.status === 'in_progress')).toHaveLength(1);
   });
 
+  test('claimDelivery accepts person-level kinds with empty team', async () => {
+    await seed();
+    for (const kind of ['reminder', 'blocker_route', 'suggestion_dm'] as const) {
+      const k = { ...dkey, teamName: '', kind, subject: 'ana' };
+      expect(await claimDelivery(db, k)).toEqual({ status: 'claimed', token: 1 });
+      expect(await claimDelivery(db, k)).toEqual({ status: 'in_progress' });
+    }
+  });
+
   test('claimDelivery after sent', async () => {
     await seed();
     const c = await claimDelivery(db, dkey);

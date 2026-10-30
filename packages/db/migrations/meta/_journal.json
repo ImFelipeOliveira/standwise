@@ -71,6 +71,13 @@
       "when": 1793301815328,
       "tag": "0009_installation_access_warning",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793392357133,
+      "tag": "0010_aspiring_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }
