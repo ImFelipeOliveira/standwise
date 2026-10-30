@@ -40,3 +40,20 @@ describe('fetchConfigSource', () => {
     expect(await fetchConfigSource(octokit, 'acme')).toEqual({ found: false, reason: 'no_access' });
   });
 });
+
+describe('fetchConfigSource ref', () => {
+  test('sends ref when given and omits it otherwise', async () => {
+    const routes = {
+      'GET /repos/acme/.github': { body: fixture('repo.json') },
+      'GET /repos/acme/.github/contents/standwise.yml': { body: fixture('contents.json') },
+    };
+    const withRef = octokitWith(routes);
+    await fetchConfigSource(withRef.octokit, 'acme', { ref: 'deadbeef' });
+    const refCall = withRef.calls.find((call) => call.url.pathname.endsWith('standwise.yml'));
+    expect(refCall?.url.searchParams.get('ref')).toBe('deadbeef');
+    const without = octokitWith(routes);
+    await fetchConfigSource(without.octokit, 'acme');
+    const plain = without.calls.find((call) => call.url.pathname.endsWith('standwise.yml'));
+    expect(plain?.url.searchParams.has('ref')).toBe(false);
+  });
+});

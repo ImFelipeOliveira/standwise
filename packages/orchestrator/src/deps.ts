@@ -2,9 +2,14 @@ import type { ChatChannel } from '@standwise/core';
 import type { Db } from '@standwise/db';
 import type {
   App,
+  createCheckRun,
+  fetchCodeowners,
   fetchConfigSource,
+  getPullRequest,
   getUserProfile,
   listActivity,
+  listOpenPullRequestSnapshots,
+  listPullRequestFiles,
   Octokit,
   resolveTeamMembers,
 } from '@standwise/github';
@@ -24,6 +29,11 @@ export type Deps = {
     listActivity: typeof listActivity;
     resolveTeamMembers: typeof resolveTeamMembers;
     fetchConfigSource: typeof fetchConfigSource;
+    getPullRequest: typeof getPullRequest;
+    listPullRequestFiles: typeof listPullRequestFiles;
+    listOpenPullRequestSnapshots: typeof listOpenPullRequestSnapshots;
+    fetchCodeowners: typeof fetchCodeowners;
+    createCheckRun: typeof createCheckRun;
     exchangeWebCode: (code: string) => Promise<string>;
   };
   slack: {

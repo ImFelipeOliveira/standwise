@@ -2,10 +2,12 @@ import {
   type ChatChannel,
   type Message,
   type MessageRef,
+  type PullRequestSnapshot,
   parseConfig,
   type StandwiseConfig,
 } from '@standwise/core';
 import { setInstallationConfig, upsertInstallation, upsertMember } from '@standwise/db';
+import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
 import type { Deps } from '../../src';
@@ -37,6 +39,11 @@ export type FakeOptions = {
   webCode?: (code: string) => Promise<string>;
   slackExchange?: Deps['slack']['exchangeCode'];
   configRepo?: 'missing' | 'error';
+  pulls?: Record<string, PullRequestDetail | null>;
+  files?: Record<string, string[]>;
+  codeowners?: Record<string, string | null>;
+  checks?: { createError?: unknown };
+  snapshots?: Record<string, PullRequestSnapshot[]>;
 };
 
 export function fakeDeps(opts: FakeOptions = {}) {
@@ -48,6 +55,12 @@ export function fakeDeps(opts: FakeOptions = {}) {
     roles: [] as string[],
     config: [] as string[],
     users: [] as number[],
+    configRefs: [] as (string | undefined)[],
+    getPullRequest: [] as string[],
+    listPullRequestFiles: [] as string[],
+    snapshots: [] as string[],
+    codeowners: [] as { repo: string; ref: string }[],
+    createCheckRun: [] as CheckRunInput[],
   };
   const orgMembers = new Set(['alice']);
   const roles = new Map<string, { role: string; state: string }>();
@@ -113,9 +126,32 @@ export function fakeDeps(opts: FakeOptions = {}) {
         return [];
       },
       resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
-      fetchConfigSource: async (_o, owner) => {
+      fetchConfigSource: async (_o, owner, options) => {
         calls.config.push(owner);
+        calls.configRefs.push(options?.ref);
         return opts.source ?? { found: false, reason: 'no_repo' };
+      },
+      getPullRequest: async (_o, ref) => {
+        const key = `${ref.owner}/${ref.repo}#${ref.number}`;
+        calls.getPullRequest.push(key);
+        return opts.pulls?.[key] ?? null;
+      },
+      listPullRequestFiles: async (_o, ref) => {
+        const key = `${ref.owner}/${ref.repo}#${ref.number}`;
+        calls.listPullRequestFiles.push(key);
+        return opts.files?.[key] ?? [];
+      },
+      listOpenPullRequestSnapshots: async (_o, _owner, _type, author) => {
+        calls.snapshots.push(author);
+        return opts.snapshots?.[author] ?? [];
+      },
+      fetchCodeowners: async (_o, owner, repo, ref) => {
+        calls.codeowners.push({ repo: `${owner}/${repo}`, ref });
+        return opts.codeowners?.[`${owner}/${repo}`] ?? null;
+      },
+      createCheckRun: async (_o, input) => {
+        calls.createCheckRun.push(input);
+        if (opts.checks?.createError) throw opts.checks.createError;
       },
       exchangeWebCode: opts.webCode ?? (async () => 'ghu_token'),
     },

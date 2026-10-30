@@ -89,6 +89,11 @@ function harness(
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       exchangeWebCode: async (code) => {
         webCodes.push(code);
         return 'ghu_token';

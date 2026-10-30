@@ -18,7 +18,11 @@ function failureReason(
   throw error;
 }
 
-export async function fetchConfigSource(octokit: Octokit, owner: string): Promise<ConfigSource> {
+export async function fetchConfigSource(
+  octokit: Octokit,
+  owner: string,
+  options: { ref?: string } = {},
+): Promise<ConfigSource> {
   try {
     await octokit.request('GET /repos/{owner}/{repo}', { owner, repo: CONFIG_REPO });
   } catch (error) {
@@ -29,6 +33,7 @@ export async function fetchConfigSource(octokit: Octokit, owner: string): Promis
       owner,
       repo: CONFIG_REPO,
       path: CONFIG_PATH,
+      ...(options.ref ? { ref: options.ref } : {}),
     });
     const data = response.data as { content?: string; encoding?: string };
     if (typeof data.content !== 'string') return { found: false, reason: 'no_file' };

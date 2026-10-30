@@ -102,6 +102,11 @@ function harness(
       },
       resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       exchangeWebCode: async () => {
         throw new Error('unused');
       },

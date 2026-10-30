@@ -39,6 +39,11 @@ function harness(source: Source) {
       },
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       fetchConfigSource: async (_o, owner) => {
         calls.push(owner);
         return source;

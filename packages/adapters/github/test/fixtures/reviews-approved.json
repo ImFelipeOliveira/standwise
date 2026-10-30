@@ -1,0 +1,6 @@
+[
+  { "state": "DISMISSED" },
+  { "state": "APPROVED" },
+  { "state": "COMMENTED" },
+  { "state": "PENDING" }
+]

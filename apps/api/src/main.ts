@@ -1,10 +1,15 @@
 import { createDb } from '@standwise/db';
 import {
+  createCheckRun,
   createGitHubApp,
   exchangeWebCode,
+  fetchCodeowners,
   fetchConfigSource,
+  getPullRequest,
   getUserProfile,
   listActivity,
+  listOpenPullRequestSnapshots,
+  listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
 import { createChatFor, type Deps } from '@standwise/orchestrator';
@@ -41,6 +46,11 @@ const deps: Deps = {
     listActivity,
     resolveTeamMembers,
     fetchConfigSource,
+    getPullRequest,
+    listPullRequestFiles,
+    listOpenPullRequestSnapshots,
+    fetchCodeowners,
+    createCheckRun,
     exchangeWebCode: (code) =>
       exchangeWebCode({
         clientId: env.GITHUB_CLIENT_ID,
