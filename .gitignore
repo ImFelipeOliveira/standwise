@@ -4,3 +4,4 @@ dist
 .superpowers/
 *.bun-build
 docs/site/.vitepress/cache
+.worktrees/
