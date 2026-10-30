@@ -57,7 +57,14 @@ Prints the draft of your daily for the organization:
       "count": 3
     }
   ],
-  "suggestions": []
+  "suggestions": [
+    {
+      "id": "6f1c2b8e-3a4d-4c55-9d0e-1a2b3c4d5e6f",
+      "kind": "pr_no_review",
+      "ref": { "kind": "pull_request", "url": "https://github.com/acme/api/pull/57", "title": "Retry webhooks" },
+      "since": "2026-10-26T14:00:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -65,7 +72,7 @@ Prints the draft of your daily for the organization:
 - `since`: the start of the activity window.
 - `teams`: your teams in this organization.
 - `activity`: up to 50 items, newest first. `kind` is `pr_opened`, `pr_merged`, `review` or `commits`. Commits are grouped per repository, with `count`.
-- `suggestions`: always empty today. Suggested blockers are coming soon.
+- `suggestions`: possible blockers Standwise noticed for you, each `{ id, kind, ref, since }`. `kind` is `pr_no_review` (your pull request without review) or `ci_failing` (checks failing on it for 24 hours). Only you see them. See [`standwise suggestion`](#standwise-suggestion).
 
 ### `standwise submit`
 
@@ -109,6 +116,20 @@ The result:
 `late: true` means the digest had already been posted, so your daily went as a reply in its thread.
 
 `standwise submit` sends what you give it. When an agent calls it for you, the agent must show you the daily and get your confirmation first. The [Claude Code skill](/members/claude-code) and the [MCP server](/members/mcp) enforce that.
+
+### `standwise suggestion`
+
+Answers a suggested blocker from the draft:
+
+```bash
+standwise suggestion confirm <id>
+standwise suggestion ignore <id>
+```
+
+- `confirm` marks it as a real blocker. Add it to `blockers` in your daily, with its `ref`; submitting the daily confirms it too.
+- `ignore` hides it. It comes back only if the signal changes: a new head commit that is still failing, or the pull request going back to no review.
+- Use `--org <login>` when you belong to more than one organization.
+- An unknown id, or one that is not yours, gives `error not_found`. The opposite decision to the one already made gives `error suggestion_already_decided`. Repeating the same decision works.
 
 ### `standwise mcp`
 

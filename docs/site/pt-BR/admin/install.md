@@ -15,8 +15,8 @@ O app pede estas permissões:
 | Metadata | read | Exigida pelo GitHub para todo app |
 | Contents | read | Ler o `standwise.yml` |
 | Pull requests | read | Montar o rascunho a partir de pull requests e revisões |
-| Checks | write | Reservada para o check run da configuração, em breve |
-| Commit statuses | read | Reservada para os impedimentos sugeridos, em breve |
+| Checks | write | Criar o check run `Standwise config` no `standwise.yml` |
+| Commit statuses | read | Ler os resultados dos checks dos pull requests, para os impedimentos sugeridos |
 | Members | read | Resolver times do GitHub (`@org/time`) e conferir participação e papel |
 | Email addresses (conta) | read | Ligar cada pessoa ao usuário dela no Slack pelo e-mail |
 
@@ -88,7 +88,7 @@ A página de setup mostra um de três estados.
 
 Se o arquivo estava válido logo antes do push inválido, a página também diz "O Standwise continua usando a última versão válida até você corrigir." O consolidado sai e o rascunho e o envio continuam funcionando, com a última versão válida. Corrija o arquivo e faça o commit para aplicar as suas mudanças. Se não há uma versão válida em uso (o arquivo nunca foi válido, ou foi apagado antes do push inválido), o Standwise não roda para a organização: nenhum consolidado é publicado, e o rascunho e o envio falham com `org_not_configured`.
 
-Em breve: um check run com falha no commit que quebra o `standwise.yml` e nos pull requests que o alteram.
+Quando um push em qualquer branch do repositório `.github` altera o `standwise.yml`, e nos pull requests do `.github` que o alteram, o Standwise cria o check run `Standwise config`, com sucesso ou falha. Na falha há uma anotação por erro, na linha dele, e o resumo lista todos os erros. Se o arquivo não existe, não há check. Qualquer push na branch padrão recarrega a configuração, inclusive force push.
 
 ## Próximos passos
 

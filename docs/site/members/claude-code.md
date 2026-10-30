@@ -20,9 +20,10 @@ Type `/daily`, or ask for it in your words: "my daily", "standup", "what did I d
 
 1. Gets the draft of yesterday from your GitHub activity. If you belong to more than one organization, it asks which one.
 2. Shows yesterday and lets you correct, remove or add items. It may add things that really happened in this Claude Code session.
-3. Asks what you will do today and what blocks you, in your language.
-4. Shows the final daily and asks for your explicit confirmation.
-5. Sends it, and tells you if it went to the digest thread because the digest was already posted.
+3. If the draft has suggested blockers, such as your pull request waiting for review or failing checks, asks about each one. If it is a real blocker, it goes into your blockers with its link; if not, the skill ignores it and it does not come back unless the signal changes. It never adds a suggestion without your answer, and suggestions are visible only to you.
+4. Asks what you will do today and what blocks you, in your language.
+5. Shows the final daily and asks for your explicit confirmation.
+6. Sends it, and tells you if it went to the digest thread because the digest was already posted.
 
 It uses the MCP tools when they are available, and falls back to the `standwise` CLI otherwise.
 
@@ -67,5 +68,6 @@ Claude:  Sent for 2026-10-28. It goes into the backend digest.
 | `standwise` is not installed | Explains how to install the CLI, then stops. |
 | Not signed in, or the session expired | Asks you to run `standwise login`, then stops. |
 | More than one organization | Asks which one and retries with it. |
+| A suggestion was already decided | Tells you and moves on. |
 | The daily is invalid | Shows the issues, fixes them with you without changing their meaning, and asks for a new confirmation. |
 | Any other error | Shows the message. See [Troubleshooting](/troubleshooting). |

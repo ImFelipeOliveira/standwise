@@ -16,9 +16,10 @@ Standwise uses the permissions of its GitHub App: Metadata (read), Contents (rea
 - the members of the GitHub teams you reference in `standwise.yml` (`@org/team`);
 - organization membership and role, to check who belongs to the organization and who is an admin;
 - for the person asking for a draft: titles, links, repositories and dates of the pull requests they opened, merged and reviewed, and of the commits they authored, in the organization;
+- for suggested blockers and blocker routing, on pull requests of the organization: title, url, draft state, the time it was ready for review, review states (only counted), the conclusions of check runs on the head commit, the paths of changed files (only to find code owners) and the `CODEOWNERS` file;
 - when you sign in: your GitHub user id, your login, your primary verified email and the installations you can access.
 
-It does not read the contents of your code or your files other than `standwise.yml`. Checks (write) is reserved for the configuration check run, which is coming soon. Standwise does not write to your repositories.
+It does not read the contents of your code or your files other than `standwise.yml` and `CODEOWNERS`. Checks (write) is used only to create the `Standwise config` check run on `standwise.yml`. Standwise does not write to your repositories.
 
 ### Slack
 
@@ -26,7 +27,8 @@ The bot token of the Slack app lets Standwise:
 
 - look up a Slack user by email, to mention people in the digest;
 - list channels, to turn `#channel` into a channel id;
-- post the digest and the replies in its thread.
+- post the digest and the replies in its thread;
+- send direct messages: reminders, routed blockers and, if the team enables `signals.direct_message`, suggested blockers.
 
 It does not read messages in any channel or conversation.
 
@@ -45,7 +47,8 @@ Standwise does not connect to Linear or Jira yet, so it reads nothing from them.
 | Slack connection | Workspace id and name, and the bot token | Bot token encrypted with AES-256-GCM |
 | Sessions | A SHA-256 hash of each CLI and web session token, its kind and when it was created and last used | Only the hash; the token itself is never stored |
 | Dailies | Date, submission time, the yesterday, today and blocker items with their links, and whether the person (`human`) or the agent (`agent`) confirmed it | |
-| Deliveries | For each digest and late daily: team, date, status, attempts, the Slack channel and message id, and the error if it failed | |
+| Suggestions | For each suggested blocker: the pull request link and title, the kind, when it was noticed and your decision | Visible only to you |
+| Deliveries | For each digest, late daily, reminder and routed blocker: team, date, status, attempts, the Slack channel and message id, and the error if it failed | |
 | API keys | Name, the first 8 characters after `swk_`, scopes, who created it, creation, last use and revocation times | Only a SHA-256 hash of the secret |
 | Webhook endpoints | URL, events, status and failure count | Signing secret encrypted with AES-256-GCM |
 | Webhook deliveries | The event payload sent (which can contain daily text), status, attempts, last response code or error | |
@@ -57,6 +60,7 @@ The GitHub token from your login is used once to identify you and is not stored.
 
 - Sends a daily without the person's explicit confirmation.
 - Shows anyone a draft or a suggestion that the person did not confirm.
+- Shows a suggested blocker to anyone but the person, in the digest, the organization or manager tools, webhooks or the setup page.
 - Computes rankings, scores, productivity metrics or per-person aggregates.
 - Reads your code, your Slack messages or your direct messages.
 - Writes to your repositories.
@@ -67,7 +71,7 @@ The GitHub token from your login is used once to identify you and is not stored.
 
 | Who | Sees |
 | --- | --- |
-| You | Your draft and your own dailies, through your agent |
+| You | Your draft, your suggested blockers and your own dailies, through your agent |
 | Members of the team's Slack channel | The digest and the late dailies in its thread |
 | Team managers | The team's digests, dailies and confirmed blockers for the last 90 days, through the MCP manager tools |
 | Organization admins | Everything managers see, for every team; on the setup page, the Slack connect and reconnect controls, API keys and webhooks |
@@ -77,7 +81,15 @@ The GitHub token from your login is used once to identify you and is not stored.
 
 ## Retention
 
-Standwise does not delete dailies on a schedule today. Dailies, deliveries and webhook deliveries stay while the app is installed. Rate limit counters are deleted after about 10 minutes. CLI sessions stop working after 90 days without use, and web sessions after 7 days.
+Standwise does not delete dailies on a schedule today. Dailies and digest deliveries stay while the app is installed. Some data is removed automatically:
+
+- outgoing webhook delivery logs: after 30 days;
+- expired sessions: removed;
+- resolved suggestions, those whose signal went away: after 90 days;
+- ignored and confirmed suggestions are kept, so they do not come back;
+- rate limit counters: after about 10 minutes.
+
+CLI sessions stop working after 90 days without use, and web sessions after 7 days.
 
 ## Removing your data
 

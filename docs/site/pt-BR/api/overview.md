@@ -136,6 +136,7 @@ O `code` é o contrato estável: decida pelo `code`, não pela `message`. A `mes
 | `forbidden` | 403 | A credencial é válida, mas a pessoa ou a organização não pode fazer esta ação. |
 | `insufficient_scope` | 403 | Falta à API key o escopo de que esta operação precisa. O erro traz `required_scope`. Crie uma key com esse escopo. |
 | `not_found` | 404 | O recurso não existe na organização da key. |
+| `suggestion_already_decided` | 409 | O impedimento sugerido já foi decidido no sentido oposto. Busque o rascunho de novo; ele não o lista mais. |
 | `invalid_state` | 400 | Um link de autorização expirou ou foi adulterado. Comece o fluxo de novo. |
 | `installation_pending` | 409 | A instalação ainda está sendo processada. Tente de novo em alguns segundos. |
 | `access_denied` | 403 | A pessoa negou a autorização. Nada mudou. |

@@ -15,8 +15,8 @@ The app asks for these permissions:
 | Metadata | read | Required by GitHub for every app |
 | Contents | read | Read `standwise.yml` |
 | Pull requests | read | Build the draft from pull requests and reviews |
-| Checks | write | Reserved for the configuration check run, coming soon |
-| Commit statuses | read | Reserved for suggested blockers, coming soon |
+| Checks | write | Create the `Standwise config` check run on `standwise.yml` |
+| Commit statuses | read | Read the check results of pull requests, for suggested blockers |
 | Members | read | Resolve GitHub teams (`@org/team`) and check membership and roles |
 | Email addresses (account) | read | Match people to their Slack user by email |
 
@@ -88,7 +88,7 @@ The setup page shows one of three states.
 
 If the file was valid right before the invalid push, the page also says "Standwise keeps using the last valid version until you fix it." Digests still go out and drafts and submissions still work, with the last valid version. Fix the file and commit to apply your changes. If there is no valid version in use (the file was never valid, or it was deleted before the invalid push), Standwise does not run for the organization: no digests are posted, and drafts and submissions fail with `org_not_configured`.
 
-Coming soon: a failing check run on the commit that breaks `standwise.yml`, and on pull requests that change it.
+When a push to any branch of the `.github` repository touches `standwise.yml`, and on pull requests in `.github` that change it, Standwise creates the check run `Standwise config`, with success or failure. On failure there is one annotation per error, on its line, and the summary lists every error. If the file does not exist, there is no check. Any push to the default branch reloads the configuration, force pushes included.
 
 ## Next steps
 

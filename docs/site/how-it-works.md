@@ -20,9 +20,14 @@ The window starts when she sent her last daily, if that was on or after the prev
 
 Alice edits yesterday, writes today and one blocker, and confirms. Standwise stores the daily for today's date. She can send it again until the digest goes out: the last version wins.
 
-## 09:30 · Reminder <Badge type="info" text="coming soon" />
+## 09:30 · Reminder
 
-Coming soon: at `remind_at`, people who have not sent the daily get a direct message in Slack, at most once per day. Today, `remind_at` is validated but nothing is sent.
+At `remind_at`, in the team's time zone and only on workdays, people who have not sent the daily get a direct message in Slack. The message says when their digest goes out. It is the earliest pending digest if the person is in several teams.
+
+- At most one reminder per person per day, even across several teams.
+- It is sent only while `remind_at` has passed and `digest_at` has not. If the worker was down, it can still go out up to 60 minutes after `remind_at`, but never at or after `digest_at`, and never once the team's digest has been posted.
+- People without a Slack identity get the failed delivery `no_chat_identity` on the setup page. See [Slack](/admin/slack#delivery-errors).
+- `remind_at` must be before `digest_at`, otherwise the file is invalid.
 
 ## 10:00 · The digest
 
@@ -43,19 +48,42 @@ Bob sends his daily after the digest. Standwise replies in the digest thread wit
 
 Only the first late daily of the day goes to the thread. If Bob sends again, Standwise stores the new version and sends the webhook, but does not post a second reply.
 
-## Blocker routing <Badge type="info" text="coming soon" />
+## Blocker routing
 
-Coming soon: when a daily has a blocker, Standwise will send a direct message to whoever can help, in this order:
+Each new blocker in a submitted daily is sent once by direct message to whoever can help, in this order:
 
-1. a blocker linked to a pull request goes to the requested reviewers, or to the CODEOWNERS of the changed files when there are no reviewers;
-2. a blocker linked to a card goes to the owner of the card it depends on ("blocked by"), or to the card's owner or creator;
-3. otherwise, to the team managers.
+1. A pull request link in your own organization goes to the requested reviewers and the members of requested teams. With none of those, it goes to the CODEOWNERS of the files changed in the pull request, at its base branch, with teams expanded to their members.
+2. A card link will go to whoever owns the blocking card. This needs the Linear integration, which is coming soon, so today it falls through to the next step.
+3. Otherwise, the managers of the author's first team.
 
-Today, blockers appear at the top of the digest, in the `blocker.opened` webhook and in the manager tools.
+Rules:
 
-## Suggested blockers <Badge type="info" text="coming soon" />
+- The author never receives their own blocker, and at most 5 people get it.
+- If none of the people found has a Slack identity, or GitHub could not be read, the blocker goes to the managers.
+- Pull requests from other organizations are not read, and go to the managers.
+- Sending the same blocker text again the same day does not send it again.
+- The message has only who reported it, the blocker text, the link and the date. It never includes the rest of the daily.
+- If nobody can receive it, the failed delivery `no_route_target` shows on the setup page.
 
-Coming soon: Standwise will suggest blockers you may have missed, such as a pull request with no review for more than `pr_review_hours` or a card in progress for more than `card_stale_days`. Suggestions go only to you. Today the draft always returns an empty `suggestions` list.
+Blockers also appear at the top of the digest, in the `blocker.opened` webhook and in the manager tools.
+
+## Suggested blockers
+
+Standwise can notice blockers you may have missed. There are two signals:
+
+- your own open pull request, not a draft, with no review for `pr_review_hours` (default 48) since it was ready for review;
+- failing CI on the head commit of your pull request for 24 hours.
+
+They are checked about an hour before `remind_at`, and in real time when a pull request, review or check suite changes. Only people who have signed in at least once get them.
+
+A suggestion shows only to you, in your draft. It never appears in the digest, the organization or manager tools, webhooks or the setup page. Your manager sees a blocker only after you put it in your daily. With `signals.direct_message: true` (default `false`) you also get a direct message, once per suggestion.
+
+To answer:
+
+- **Confirm:** add it to your blockers with its link. Submitting the daily confirms it. From a terminal, `standwise suggestion confirm <id>`.
+- **Ignore:** `standwise suggestion ignore <id>`, the MCP tool `standwise_decide_suggestion`, or answer when the `/daily` skill asks you.
+
+An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or the pull request going back to having no review. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
 
 ## Time zones, workdays and several teams
 
@@ -64,4 +92,5 @@ Coming soon: Standwise will suggest blockers you may have missed, such as a pull
 - **The standup date follows your first team.** "Today" and "previous workday" use the time zone and workdays of the first team in `standwise.yml` that lists you. A daily sent on a day off counts for the next workday.
 - **One daily, every team.** If you are in two teams, your daily appears in both digests. You write it once.
 - **One daily per organization.** If you belong to two organizations that use Standwise, you write one daily for each. The CLI and the MCP tools ask which one, or take `--org` / `org`.
-- **Changing the file.** Standwise reloads `standwise.yml` when a push to the default branch of the `.github` repository changes it. If a push makes the file invalid, Standwise keeps using the last valid version until you fix it: digests still go out, and drafts and submissions still work. Deleting the file switches Standwise off for the organization. Without a valid version in use, drafts and submissions get `org_not_configured`. See [Install](/admin/install#configuration-states).
+- **Changing the file.** Standwise reloads `standwise.yml` on every push to the default branch of the `.github` repository, force pushes included. If a push makes the file invalid, Standwise keeps using the last valid version until you fix it: digests still go out, and drafts and submissions still work. Deleting the file switches Standwise off for the organization. Without a valid version in use, drafts and submissions get `org_not_configured`. See [Install](/admin/install#configuration-states).
+- **Checking the file before it lands.** When a push to any branch of `.github` touches `standwise.yml`, or a pull request in `.github` changes it, Standwise creates a check run named `Standwise config`. See [Install](/admin/install#configuration-states).

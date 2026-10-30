@@ -15,10 +15,11 @@ O Standwise usa as permissões do GitHub App dele: Metadata (read), Contents (re
 - o `standwise.yml` do repositório `.github` do dono da instalação;
 - os membros dos times do GitHub citados no `standwise.yml` (`@org/time`);
 - a participação e o papel na organização, para saber quem é membro e quem é admin;
+- para os impedimentos sugeridos e o encaminhamento de impedimentos, em pull requests da organização: título, url, estado de rascunho, o momento em que ficou pronto para revisão, o estado das revisões (só contadas), as conclusões dos check runs no commit head, os caminhos dos arquivos alterados (só para achar os donos do código) e o arquivo `CODEOWNERS`;
 - para a pessoa que pede o rascunho: títulos, links, repositórios e datas dos pull requests que ela abriu, mergeou e revisou, e dos commits de autoria dela, na organização;
 - quando você entra: o seu id de usuário no GitHub, o seu login, o seu e-mail principal verificado e as instalações que você acessa.
 
-Ele não lê o conteúdo do seu código nem outros arquivos além do `standwise.yml`. A permissão Checks (write) está reservada para o check run da configuração, que vem em breve. O Standwise não escreve nos seus repositórios.
+Ele não lê o conteúdo do seu código nem outros arquivos além do `standwise.yml` e do `CODEOWNERS`. A permissão Checks (write) é usada só para criar o check run `Standwise config` no `standwise.yml`. O Standwise não escreve nos seus repositórios.
 
 ### Slack
 
@@ -26,7 +27,8 @@ O token do bot do app do Slack permite que o Standwise:
 
 - busque um usuário do Slack pelo e-mail, para mencionar as pessoas no consolidado;
 - liste canais, para transformar `#canal` no id do canal;
-- publique o consolidado e as respostas na thread dele.
+- publique o consolidado e as respostas na thread dele;
+- envie mensagens diretas: lembretes, impedimentos encaminhados e, se o time ativar `signals.direct_message`, impedimentos sugeridos.
 
 Ele não lê mensagens de nenhum canal ou conversa.
 
@@ -45,7 +47,8 @@ O Standwise ainda não se conecta ao Linear nem ao Jira, então não lê nada de
 | Conexão com o Slack | Id e nome do workspace e o token do bot | Token do bot criptografado com AES-256-GCM |
 | Sessões | Um hash SHA-256 de cada token de sessão da CLI e da web, o tipo e quando foi criada e usada pela última vez | Só o hash; o token em si nunca é guardado |
 | Dailies | Data, horário do envio, os itens de ontem, hoje e impedimentos com os links, e se quem confirmou foi a pessoa (`human`) ou o agente (`agent`) | |
-| Entregas | Para cada consolidado e daily atrasada: time, data, estado, tentativas, o canal e o id da mensagem no Slack e o erro, se falhou | |
+| Sugestões | Para cada impedimento sugerido: o link e o título do pull request, o tipo, quando foi percebido e a sua decisão | Visível só para você |
+| Entregas | Para cada consolidado, daily atrasada, lembrete e impedimento encaminhado: time, data, estado, tentativas, o canal e o id da mensagem no Slack e o erro, se falhou | |
 | API keys | Nome, os 8 primeiros caracteres depois de `swk_`, escopos, quem criou, datas de criação, último uso e revogação | Só um hash SHA-256 do segredo |
 | Endpoints de webhook | URL, eventos, estado e número de falhas | Segredo de assinatura criptografado com AES-256-GCM |
 | Entregas de webhook | O payload do evento enviado (que pode conter o texto da daily), estado, tentativas, último código de resposta ou erro | |
@@ -57,6 +60,7 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 
 - Enviar uma daily sem a confirmação explícita da pessoa.
 - Mostrar a alguém um rascunho ou uma sugestão que a pessoa não confirmou.
+- Mostrar um impedimento sugerido a outra pessoa que não ela, no consolidado, nas tools de organização ou de gestor, nos webhooks ou na página de setup.
 - Calcular ranking, nota, métrica de produtividade ou agregado por pessoa.
 - Ler o seu código, as suas mensagens no Slack ou as suas mensagens diretas.
 - Escrever nos seus repositórios.
@@ -67,7 +71,7 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 
 | Quem | Vê |
 | --- | --- |
-| Você | O seu rascunho e as suas dailies, pelo seu agente |
+| Você | O seu rascunho, os seus impedimentos sugeridos e as suas dailies, pelo seu agente |
 | Membros do canal do time no Slack | O consolidado e as dailies atrasadas na thread dele |
 | Gestores do time | Os consolidados, as dailies e os impedimentos confirmados do time nos últimos 90 dias, pelas tools de gestor do MCP |
 | Admins da organização | Tudo o que os gestores veem, de todos os times; na página de setup, os controles para conectar e reconectar o Slack, as API keys e os webhooks |
@@ -77,7 +81,15 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 
 ## Retenção
 
-Hoje o Standwise não apaga dailies de forma programada. Dailies, entregas e entregas de webhook ficam guardadas enquanto o app estiver instalado. Os contadores de limite de taxa são apagados depois de uns 10 minutos. As sessões da CLI param de funcionar depois de 90 dias sem uso, e as sessões da web depois de 7 dias.
+Hoje o Standwise não apaga dailies de forma programada. Dailies e entregas de consolidado ficam guardadas enquanto o app estiver instalado. Alguns dados são removidos automaticamente:
+
+- logs de entrega de webhook de saída: depois de 30 dias;
+- sessões expiradas: removidas;
+- sugestões resolvidas, aquelas cujo sinal deixou de existir: depois de 90 dias;
+- sugestões ignoradas e confirmadas são mantidas, para não voltarem;
+- contadores de limite de taxa: depois de uns 10 minutos.
+
+As sessões da CLI param de funcionar depois de 90 dias sem uso, e as sessões da web depois de 7 dias.
 
 ## Remoção dos dados
 

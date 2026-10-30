@@ -159,11 +159,76 @@ export async function checkInstallUrl(root: string): Promise<string[]> {
   return problems;
 }
 
+const SUGGESTION_KINDS = /\b(pr_no_review|ci_failing)\b/;
+const MANAGER_SECTION = /^#{2,3} (Manager tools|Tools de gestor)\s*$/;
+const ORG_OUTPUT_FILES = [
+  'docs/api/guides/authentication.md',
+  'docs/api/guides/errors.md',
+  'docs/api/guides/pagination.md',
+  'docs/api/guides/rate-limits.md',
+  'docs/api/guides/versioning.md',
+  'docs/api/guides/webhooks.md',
+  'docs/site/api/overview.md',
+  'docs/site/api/webhooks.md',
+  'docs/site/admin/api-keys.md',
+  'docs/site/admin/webhooks.md',
+  'docs/site/pt-BR/api/overview.md',
+  'docs/site/pt-BR/api/webhooks.md',
+  'docs/site/pt-BR/admin/api-keys.md',
+  'docs/site/pt-BR/admin/webhooks.md',
+];
+const MANAGER_SECTION_FILES = ['docs/api/guides/mcp.md', 'docs/site/pt-BR/members/mcp.md'];
+
+export function managerSection(markdown: string): string {
+  const lines = markdown.split('\n');
+  const start = lines.findIndex((line) => MANAGER_SECTION.test(line));
+  if (start === -1) return '';
+  const level = (lines[start] ?? '').match(/^#+/)?.[0].length ?? 2;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => {
+    const heading = line.match(/^(#+) /);
+    return heading !== null && (heading[1] ?? '').length <= level;
+  });
+  return (end === -1 ? rest : rest.slice(0, end)).join('\n');
+}
+
+export function suggestionLeakProblems(file: string, text: string): string[] {
+  const match = text.match(SUGGESTION_KINDS);
+  if (match === null) return [];
+  return [
+    `${file}: suggestion kind ${match[1]} must not appear in docs about org or manager outputs`,
+  ];
+}
+
+export async function checkSuggestionLeaks(root: string): Promise<string[]> {
+  const problems: string[] = [];
+  for (const file of ORG_OUTPUT_FILES) {
+    const text = await readFile(join(root, file), 'utf8').catch(() => null);
+    if (text === null) {
+      problems.push(`${file}: page not found`);
+      continue;
+    }
+    problems.push(...suggestionLeakProblems(file, text));
+  }
+  for (const file of MANAGER_SECTION_FILES) {
+    const text = await readFile(join(root, file), 'utf8').catch(() => null);
+    if (text === null) {
+      problems.push(`${file}: page not found`);
+      continue;
+    }
+    const section = managerSection(text);
+    if (section === '') problems.push(`${file}: manager tools section not found`);
+    problems.push(...suggestionLeakProblems(`${file} (manager tools)`, section));
+  }
+  return problems;
+}
+
 if (import.meta.main) {
   const root = join(import.meta.dir, '..');
   const problems = [
     ...(await checkDocs(join(root, 'docs/site'))),
     ...(await checkInstallUrl(root)),
+    ...(await checkSuggestionLeaks(root)),
   ];
   for (const problem of problems) console.error(problem);
   if (problems.length > 0) process.exit(1);

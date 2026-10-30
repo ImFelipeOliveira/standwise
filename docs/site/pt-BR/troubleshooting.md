@@ -4,7 +4,22 @@ Os problemas mais comuns e como resolver. Se nada disto ajudar, mande um e-mail 
 
 ## Não recebi lembrete
 
-Os lembretes vêm em breve. Hoje o Standwise não os envia, mesmo com o `remind_at` obrigatório no `standwise.yml`. O consolidado lista quem não enviou a daily.
+Os lembretes vão só para quem ainda não enviou a daily, no máximo uma vez por dia, no `remind_at` e antes do `digest_at`. Se o worker estava fora do ar, um lembrete pode atrasar até 60 minutos, mas nunca sai no `digest_at` ou depois. Confira se você já não enviou a daily, se hoje é dia útil nos `workdays` do time e se a página de setup não tem uma entrega `no_chat_identity` para você.
+
+## `no_chat_identity`
+
+O Standwise não conhece o seu usuário no Slack, então não consegue mandar um lembrete nem um impedimento encaminhado. A entrega com falha aparece na página de setup. Rode `standwise login` de novo depois que o Slack foi conectado, ou peça ao admin para adicionar `members.<seu-login>.slack` no `standwise.yml`. Veja [Meu nome aparece como @login](#meu-nome-aparece-como-login).
+
+## `no_route_target`
+
+Um impedimento foi reportado, mas ninguém pôde recebê-lo: nenhum revisor, dono de código ou gestor tem identidade no Slack. Peça ao admin para conferir se os gestores do time têm identidade no Slack e avise as pessoas certas manualmente.
+
+## Ninguém recebeu o meu impedimento
+
+1. **Cada impedimento é encaminhado uma vez.** Enviar o mesmo texto de novo no mesmo dia não envia outra vez. Mude o texto só se for mesmo um impedimento novo.
+2. **O link decide.** Um pull request da sua própria organização vai para os revisores solicitados, depois para os CODEOWNERS. Um link de outra organização, um link malformado ou um pull request que não existe vai para os gestores. Sem link, vai para os gestores.
+3. **Você nunca é destinatário** do seu próprio impedimento.
+4. **As pessoas precisam de identidade no Slack.** Se nenhuma das pessoas encontradas tem, o impedimento vai para os gestores. Se os gestores também não têm, a página de setup mostra `no_route_target`.
 
 ## Meu nome aparece como @login
 
@@ -66,3 +81,7 @@ Você mandou requisições demais em um minuto. Espere os segundos indicados na 
 ## O meu endpoint de webhook foi desativado
 
 Ele falhou 20 entregas seguidas. Corrija o receptor, adicione o endpoint de novo na página de setup e use o novo segredo. Use **Enviar evento de teste** para conferir. Veja [Webhooks](/pt-BR/admin/webhooks).
+
+## O check `Standwise config` falhou
+
+Um push ou pull request no repositório `.github` alterou o `standwise.yml` e ele tem erros. Abra o check: cada erro é uma anotação na linha dele, e o resumo lista todos. Corrija e faça push de novo. Enquanto isso, a última versão válida continua valendo. Se o arquivo não existe, não há check.
