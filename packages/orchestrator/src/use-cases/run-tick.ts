@@ -8,6 +8,7 @@ import {
 } from '@standwise/core';
 import {
   getDelivery,
+  getInstallationMemberIds,
   listDailies,
   listOperationalInstallations,
   listReminderDeliveries,
@@ -15,6 +16,9 @@ import {
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
+import { SCAN_MEMBER_SIGNALS_JOB, type ScanMemberSignalsJob } from './scan-member-signals';
+
+type OperationalInstallation = Awaited<ReturnType<typeof listOperationalInstallations>>[number];
 
 function dueDigestDate(now: Date, team: TeamConfig): string | null {
   const today = localDate(now, team.timezone);
@@ -40,7 +44,7 @@ function dueReminderDates(now: Date, team: TeamConfig): string[] {
 
 async function enqueueReminders(
   deps: WorkerDeps,
-  installation: Awaited<ReturnType<typeof listOperationalInstallations>>[number],
+  installation: OperationalInstallation,
   team: TeamConfig,
   now: Date,
 ): Promise<void> {
@@ -79,20 +83,81 @@ async function enqueueReminders(
   }
 }
 
+const SCAN_LEAD_MINUTES = 60;
+const SCAN_GRACE_MINUTES = 60;
+
+export function scanTime(remindAt: string): string {
+  const [hours, minutes] = remindAt.split(':').map(Number);
+  const total = Math.max(0, (hours as number) * 60 + (minutes as number) - SCAN_LEAD_MINUTES);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+function dueScanDates(now: Date, team: TeamConfig): string[] {
+  const today = localDate(now, team.timezone);
+  const yesterday = addCalendarDays(today, -1);
+  const at = scanTime(team.remindAt);
+  return [today, yesterday].filter(
+    (date) => isWorkday(date, team) && isDue(now, date, at, team.timezone, SCAN_GRACE_MINUTES),
+  );
+}
+
+async function enqueueScans(
+  deps: WorkerDeps,
+  installation: OperationalInstallation,
+  team: TeamConfig,
+  now: Date,
+): Promise<void> {
+  const dates = dueScanDates(now, team);
+  if (dates.length === 0) return;
+  const [resolved] = await resolveTeams(deps, installation.id, installation.accountLogin, {
+    ...installation.config,
+    teams: [team],
+  });
+  if (!resolved) return;
+  const linked = await getInstallationMemberIds(deps.db, installation.id, resolved.memberLogins);
+  for (const date of dates) {
+    for (const login of resolved.memberLogins) {
+      if (!linked.has(login)) continue;
+      const marker = await getDelivery(deps.db, {
+        installationId: installation.id,
+        teamName: '',
+        date,
+        kind: 'signal_scan',
+        subject: login,
+      });
+      if (marker?.status === 'sent') continue;
+      const job: ScanMemberSignalsJob = { installationId: installation.id, login, date };
+      await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
+        singletonKey: `scan:${installation.id}:${login}:${date}`,
+      });
+    }
+  }
+}
+
+async function isolated(label: string, run: () => Promise<void>): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    const e = error as { name?: unknown; code?: unknown; message?: unknown };
+    console.error(label, {
+      name: String(e.name),
+      code: String(e.code),
+      message: String(e.message),
+    });
+  }
+}
+
 export async function runTick(deps: WorkerDeps): Promise<void> {
   const now = deps.now();
   for (const installation of await listOperationalInstallations(deps.db)) {
     for (const team of installation.config.teams) {
-      try {
-        await enqueueReminders(deps, installation, team, now);
-      } catch (error) {
-        const e = error as { name?: unknown; code?: unknown; message?: unknown };
-        console.error('reminder enqueue failed', {
-          name: String(e.name),
-          code: String(e.code),
-          message: String(e.message),
-        });
-      }
+      await isolated('signal scan enqueue failed', () =>
+        enqueueScans(deps, installation, team, now),
+      );
+      await isolated('reminder enqueue failed', () =>
+        enqueueReminders(deps, installation, team, now),
+      );
       const date = dueDigestDate(now, team);
       if (!date) continue;
       const delivery = await getDelivery(deps.db, {

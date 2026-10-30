@@ -12,10 +12,12 @@ import {
   getDelivery,
   getIdentities,
   getInstallation,
+  getInstallationMemberIds,
   getLastDaily,
   listDailies,
   listFailedDeliveries,
   listOperationalInstallations,
+  markDeliverySent,
   resolveSession,
   revokeSession,
   saveConnection,
@@ -160,6 +162,25 @@ describe('deliveries', () => {
   });
 });
 
+describe('delivery markers', () => {
+  test('markDeliverySent records a sent row and is idempotent', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    const key = {
+      installationId: 1,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'signal_scan' as const,
+      subject: 'alice',
+    };
+    await markDeliverySent(db, key);
+    await markDeliverySent(db, key);
+    const row = await getDelivery(db, key);
+    expect(row?.status).toBe('sent');
+    expect(row?.attempts).toBe(1);
+    expect(await claimDelivery(db, key)).toEqual({ status: 'already_sent' });
+  });
+});
+
 describe('installations', () => {
   test('invalid config keeps last valid', async () => {
     await seed();
@@ -266,6 +287,22 @@ describe('member logins', () => {
 
   test('updateMemberLogin returns null for an unknown github id', async () => {
     expect(await updateMemberLogin(db, 99, 'nobody')).toBeNull();
+  });
+});
+
+describe('installation member ids', () => {
+  test('returns ids only for members linked to the installation, case-insensitively', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
+    const ana = await upsertMember(db, { githubUserId: 1, login: 'Ana', email: null });
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: null });
+    await upsertMember(db, { githubUserId: 3, login: 'carol', email: null });
+    await setMemberInstallations(db, ana.id, [1]);
+    await setMemberInstallations(db, bob.id, [2]);
+    const ids = await getInstallationMemberIds(db, 1, ['ANA', 'bob', 'carol', 'dave']);
+    expect([...ids.entries()]).toEqual([['ana', ana.id]]);
+    expect((await getInstallationMemberIds(db, 2, ['Bob'])).get('bob')).toBe(bob.id);
+    expect((await getInstallationMemberIds(db, 1, [])).size).toBe(0);
   });
 });
 

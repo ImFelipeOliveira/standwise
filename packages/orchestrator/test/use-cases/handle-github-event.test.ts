@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { getInstallation, upsertInstallation } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { handleGitHubEvent } from '../../src';
-import { fakeDeps } from './fakes';
+import { config, fakeDeps, seedOrg } from './fakes';
 
 const INST = 21;
 
@@ -103,5 +103,116 @@ describe('handleGitHubEvent', () => {
     await handleGitHubEvent(deps, 'pull_request', created);
     expect(await getInstallation(db, INST)).toBeNull();
     expect(calls.config).toEqual([]);
+  });
+});
+
+const pullRequest = (action: string, author: string, owner = 'acme') => ({
+  action,
+  installation: { id: INST },
+  repository: { name: 'api', owner: { login: owner } },
+  pull_request: { number: 7, user: { login: author } },
+});
+
+const checkSuite = (action: string, numbers: number[], owner = 'acme') => ({
+  action,
+  installation: { id: INST },
+  repository: { name: 'api', owner: { login: owner } },
+  check_suite: { pull_requests: numbers.map((number) => ({ number, head: { sha: 'abc' } })) },
+});
+
+const detail = (number: number, author: string) => ({
+  ref: { owner: 'acme', repo: 'api', number },
+  url: `https://github.com/acme/api/pull/${number}`,
+  title: `PR ${number}`,
+  author,
+  state: 'open' as const,
+  draft: false,
+  headSha: 'abc',
+  baseRef: 'main',
+  requestedReviewers: [],
+  requestedTeams: [],
+});
+
+const scans = (queue: { enqueued: { name: string; data: unknown }[] }) =>
+  queue.enqueued.filter((j) => j.name === 'scan-member-signals').map((j) => j.data);
+
+describe('handleGitHubEvent signal scans', () => {
+  test('a pull_request_review for a member enqueues a scan for the PR author', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'pull_request_review', pullRequest('submitted', 'Alice'));
+    expect(scans(queue)).toEqual([{ installationId: INST, login: 'alice' }]);
+  });
+
+  test('a pull_request_review for a non-member enqueues nothing', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'pull_request_review', pullRequest('submitted', 'carol'));
+    expect(scans(queue)).toEqual([]);
+  });
+
+  test('pull_request actions that change signals enqueue a scan, others do not', async () => {
+    await seedOrg(config(), { id: INST });
+    for (const action of ['opened', 'ready_for_review', 'synchronize', 'closed', 'reopened']) {
+      const { deps, queue } = fakeDeps();
+      await handleGitHubEvent(deps, 'pull_request', pullRequest(action, 'bob'));
+      expect(scans(queue)).toEqual([{ installationId: INST, login: 'bob' }]);
+    }
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'pull_request', pullRequest('labeled', 'bob'));
+    await handleGitHubEvent(deps, 'pull_request_review', pullRequest('edited', 'bob'));
+    expect(scans(queue)).toEqual([]);
+  });
+
+  test('a dismissed review enqueues a scan', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'pull_request_review', pullRequest('dismissed', 'alice'));
+    expect(scans(queue)).toEqual([{ installationId: INST, login: 'alice' }]);
+  });
+
+  test('a repository of another owner or an unconfigured installation enqueues nothing', async () => {
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'pull_request', pullRequest('opened', 'alice'));
+    await seedOrg(config(), { id: INST });
+    await handleGitHubEvent(deps, 'pull_request', pullRequest('opened', 'alice', 'evil'));
+    expect(scans(queue)).toEqual([]);
+  });
+
+  test('a completed check_suite looks up each PR author and enqueues members only', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue, calls } = fakeDeps({
+      pulls: {
+        'acme/api#1': detail(1, 'Alice'),
+        'acme/api#2': detail(2, 'carol'),
+      },
+    });
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1, 2, 3]));
+    expect(calls.getPullRequest).toEqual(['acme/api#1', 'acme/api#2', 'acme/api#3']);
+    expect(scans(queue)).toEqual([{ installationId: INST, login: 'alice' }]);
+  });
+
+  test('check_suite lookups are capped and skip foreign repos and other actions', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, calls } = fakeDeps();
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1, 2, 3, 4, 5, 6, 7]));
+    expect(calls.getPullRequest).toHaveLength(5);
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1], 'evil'));
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('requested', [1]));
+    expect(calls.getPullRequest).toHaveLength(5);
+  });
+
+  test('a GitHub failure while resolving members is logged and does not throw', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue } = fakeDeps();
+    deps.github.resolveTeamMembers = async () => {
+      throw new Error('github down');
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    await handleGitHubEvent(deps, 'pull_request', pullRequest('opened', 'alice'));
+    const logged = JSON.stringify(spy.mock.calls);
+    spy.mockRestore();
+    expect(logged).toContain('github down');
+    expect(scans(queue)).toEqual([]);
   });
 });

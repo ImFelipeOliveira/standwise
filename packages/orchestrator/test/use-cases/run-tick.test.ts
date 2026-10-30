@@ -4,11 +4,13 @@ import {
   claimDelivery,
   completeDelivery,
   failDelivery,
+  markDeliverySent,
   setInstallationConfig,
+  setMemberInstallations,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { runTick } from '../../src';
-import { config, fakeDeps, INST, seedOrg } from './fakes';
+import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -193,5 +195,101 @@ describe('runTick', () => {
     fake.setNow(local('2026-10-28T10:00:00'));
     await runTick(fake.deps);
     expect(digests(fake)).toHaveLength(1);
+  });
+
+  describe('signal scans', () => {
+    const scans = (f: { queue: { enqueued: { name: string; data: unknown }[] } }) =>
+      f.queue.enqueued.filter((j) => j.name === 'scan-member-signals').map((j) => j.data);
+
+    async function linkAlice() {
+      const alice = await seedMember('Alice', 1);
+      await setMemberInstallations(db, alice.id, [INST]);
+    }
+
+    function remindingAt(remindAt: string): StandwiseConfig {
+      const parsed = parseConfig(`
+teams:
+  - name: Alpha
+    timezone: America/Sao_Paulo
+    remind_at: "${remindAt}"
+    digest_at: "10:00"
+    managers: [alice]
+    members: [alice, bob]
+    chat: { provider: slack, channel: "#alpha" }
+`);
+      if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+      return parsed.config;
+    }
+
+    test('the tick enqueues a scan at remind_at minus 60 minutes for linked members', async () => {
+      await seedOrg();
+      await linkAlice();
+      const fake = fakeDeps();
+      fake.setNow(local('2026-10-28T07:59:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([]);
+
+      fake.setNow(local('2026-10-28T08:00:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([{ installationId: INST, login: 'alice', date: '2026-10-28' }]);
+    });
+
+    test('a day already scanned is not enqueued again', async () => {
+      await seedOrg();
+      await linkAlice();
+      await markDeliverySent(db, {
+        installationId: INST,
+        teamName: '',
+        date: '2026-10-28',
+        kind: 'signal_scan',
+        subject: 'alice',
+      });
+      const fake = fakeDeps();
+      fake.setNow(local('2026-10-28T08:10:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([]);
+    });
+
+    test('the scan window closes 60 minutes after it opens', async () => {
+      await seedOrg();
+      await linkAlice();
+      const fake = fakeDeps();
+      fake.setNow(local('2026-10-28T09:01:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([]);
+    });
+
+    test('a remind_at before 01:00 scans at 00:00', async () => {
+      await seedOrg(remindingAt('00:30'));
+      await linkAlice();
+      const fake = fakeDeps();
+      fake.setNow(local('2026-10-27T23:59:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([]);
+      fake.setNow(local('2026-10-28T00:00:00'));
+      await runTick(fake.deps);
+      expect(scans(fake)).toEqual([{ installationId: INST, login: 'alice', date: '2026-10-28' }]);
+    });
+
+    test('a failing scan enqueue is logged and does not block reminders or the digest', async () => {
+      await seedOrg();
+      await linkAlice();
+      const fake = fakeDeps();
+      const enqueue = fake.queue.enqueue.bind(fake.queue);
+      fake.deps.queue = {
+        ...fake.queue,
+        enqueue: async (name, data, opts) => {
+          if (name === 'scan-member-signals') throw new Error('queue down');
+          return enqueue(name, data, opts);
+        },
+      };
+      fake.setNow(local('2026-10-28T09:00:00'));
+      const spy = spyOn(console, 'error').mockImplementation(() => {});
+      await runTick(fake.deps);
+      const logged = JSON.stringify(spy.mock.calls);
+      spy.mockRestore();
+      expect(logged).toContain('queue down');
+      expect(fake.queue.enqueued.map((j) => j.name)).toContain('send-reminder');
+    });
   });
 });

@@ -124,7 +124,9 @@ export const deliveries = pgTable(
     teamName: text('team_name').notNull(),
     date: date('date', { mode: 'string' }).notNull(),
     kind: text('kind')
-      .$type<'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm'>()
+      .$type<
+        'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm' | 'signal_scan'
+      >()
       .notNull(),
     subject: text('subject').notNull().default(''),
     status: text('status').$type<'pending' | 'sent' | 'failed'>().notNull(),

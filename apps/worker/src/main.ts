@@ -17,12 +17,14 @@ import {
   DELIVER_WEBHOOK_JOB,
   nullTracker,
   ROUTE_BLOCKER_JOB,
+  SCAN_MEMBER_SIGNALS_JOB,
   type WorkerDeps,
 } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { routeBlockerJob } from './jobs/route-blocker';
+import { scanMemberSignalsJob } from './jobs/scan-member-signals';
 import { sendDigestJob } from './jobs/send-digest';
 import { sendLateDailyJob } from './jobs/send-late-daily';
 import { sendReminderJob } from './jobs/send-reminder';
@@ -76,6 +78,7 @@ await queue.work('send-digest', sendDigestJob(deps));
 await queue.work('send-late-daily', sendLateDailyJob(deps));
 await queue.work('send-reminder', sendReminderJob(deps));
 await queue.work(ROUTE_BLOCKER_JOB, routeBlockerJob(deps));
+await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps));
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
 await queue.schedule('tick', '* * * * *');

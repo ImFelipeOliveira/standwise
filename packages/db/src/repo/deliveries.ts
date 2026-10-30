@@ -7,7 +7,7 @@ export type DeliveryKey = {
   installationId: number;
   teamName: string;
   date: string;
-  kind: 'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm';
+  kind: 'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm' | 'signal_scan';
   subject?: string;
 };
 
@@ -110,6 +110,30 @@ export async function failDelivery(
     .where(and(keyFilter(k), eq(deliveries.status, 'pending'), eq(deliveries.attempts, token)))
     .returning({ id: deliveries.id });
   return rows.length > 0;
+}
+
+export async function markDeliverySent(db: Db, k: DeliveryKey): Promise<void> {
+  await db
+    .insert(deliveries)
+    .values({
+      installationId: k.installationId,
+      teamName: k.teamName,
+      date: k.date,
+      kind: k.kind,
+      subject: k.subject ?? '',
+      status: 'sent',
+      attempts: 1,
+    })
+    .onConflictDoUpdate({
+      target: [
+        deliveries.installationId,
+        deliveries.teamName,
+        deliveries.date,
+        deliveries.kind,
+        deliveries.subject,
+      ],
+      set: { status: 'sent', error: null, updatedAt: sql`now()` },
+    });
 }
 
 export async function getDelivery(db: Db, k: DeliveryKey): Promise<DeliveryRow | null> {

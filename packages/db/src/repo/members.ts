@@ -143,6 +143,26 @@ export async function getMemberLogins(db: Db, logins: string[]): Promise<Map<str
   return new Map(rows.map((r) => [r.login.toLowerCase(), r.login]));
 }
 
+export async function getInstallationMemberIds(
+  db: Db,
+  installationId: number,
+  logins: string[],
+): Promise<Map<string, string>> {
+  if (logins.length === 0) return new Map();
+  const lowered = [...new Set(logins.map((l) => l.toLowerCase()))];
+  const rows = await db
+    .select({ id: members.id, login: members.login })
+    .from(members)
+    .innerJoin(memberInstallations, eq(memberInstallations.memberId, members.id))
+    .where(
+      and(
+        eq(memberInstallations.installationId, installationId),
+        inArray(sql`lower(${members.login})`, lowered),
+      ),
+    );
+  return new Map(rows.map((r) => [r.login.toLowerCase(), r.id]));
+}
+
 export async function getMemberById(db: Db, id: string): Promise<MemberRow | null> {
   const [row] = await db.select().from(members).where(eq(members.id, id));
   return row ?? null;

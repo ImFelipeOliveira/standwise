@@ -13,3 +13,4 @@ export * from './message';
 export * from './ports';
 export * from './reminder';
 export * from './signals';
+export * from './suggestion-dm';
