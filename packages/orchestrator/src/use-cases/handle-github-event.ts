@@ -7,7 +7,12 @@ import {
 import type { Deps } from '../deps';
 import { resolveTeams } from '../teams';
 import { loadInstallationConfig } from './load-installation-config';
-import { SCAN_MEMBER_SIGNALS_JOB, type ScanMemberSignalsJob } from './scan-member-signals';
+import {
+  MAX_CHECK_SUITE_LOOKUPS,
+  RESOLVE_CHECK_SUITE_JOB,
+  type ResolveCheckSuiteJob,
+} from './resolve-check-suite';
+import { enqueueMemberScan } from './scan-member-signals';
 
 const CONFIG_REPO = '.github';
 const CONFIG_FILE = 'standwise.yml';
@@ -23,8 +28,6 @@ export type GitHubEventPayload = {
   pull_request?: { number?: number; user?: { login?: string } };
   check_suite?: { pull_requests?: { number?: number }[] };
 };
-
-export const MAX_CHECK_SUITE_LOOKUPS = 5;
 
 const SIGNAL_ACTIONS: Record<string, string[]> = {
   pull_request: ['opened', 'ready_for_review', 'synchronize', 'closed', 'reopened'],
@@ -94,31 +97,6 @@ function logSignalFailure(error: unknown): void {
   });
 }
 
-async function checkSuiteAuthors(
-  deps: Deps,
-  installationId: number,
-  owner: string,
-  repo: string,
-  payload: GitHubEventPayload,
-): Promise<string[]> {
-  const numbers = (payload.check_suite?.pull_requests ?? [])
-    .map((pr) => pr.number)
-    .filter((n): n is number => typeof n === 'number')
-    .slice(0, MAX_CHECK_SUITE_LOOKUPS);
-  if (numbers.length === 0) return [];
-  const octokit = await deps.github.installationOctokit(installationId);
-  const authors: string[] = [];
-  for (const number of numbers) {
-    try {
-      const detail = await deps.github.getPullRequest(octokit, { owner, repo, number });
-      if (detail) authors.push(detail.author);
-    } catch (error) {
-      logSignalFailure(error);
-    }
-  }
-  return authors;
-}
-
 async function enqueueSignalScans(
   deps: Deps,
   name: string,
@@ -134,20 +112,22 @@ async function enqueueSignalScans(
   if (!installation || !config) return;
   if (owner.toLowerCase() !== installation.accountLogin.toLowerCase()) return;
 
-  const teams = await resolveTeams(deps, installationId, installation.accountLogin, config);
-  const members = new Set(teams.flatMap((team) => team.memberLogins));
-  const authors =
-    name === 'check_suite'
-      ? await checkSuiteAuthors(deps, installationId, owner, repo, payload)
-      : [payload.pull_request?.user?.login ?? ''];
-  const logins = [...new Set(authors.map((a) => a.toLowerCase()))];
-  for (const login of logins) {
-    if (!members.has(login)) continue;
-    const job: ScanMemberSignalsJob = { installationId, login };
-    await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
-      singletonKey: `scan:${installationId}:${login}`,
-    });
+  if (name === 'check_suite') {
+    const numbers = (payload.check_suite?.pull_requests ?? [])
+      .map((pr) => pr.number)
+      .filter((n): n is number => typeof n === 'number')
+      .slice(0, MAX_CHECK_SUITE_LOOKUPS);
+    if (numbers.length === 0) return;
+    const job: ResolveCheckSuiteJob = { installationId, owner, repo, numbers };
+    await deps.queue.enqueue(RESOLVE_CHECK_SUITE_JOB, job);
+    return;
   }
+
+  const author = payload.pull_request?.user?.login?.toLowerCase();
+  if (!author) return;
+  const teams = await resolveTeams(deps, installationId, installation.accountLogin, config);
+  if (!teams.some((team) => team.memberLogins.includes(author))) return;
+  await enqueueMemberScan(deps, installationId, author);
 }
 
 async function onSignalEvent(deps: Deps, name: string, payload: GitHubEventPayload): Promise<void> {

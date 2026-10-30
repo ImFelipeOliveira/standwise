@@ -22,6 +22,7 @@ export const CI_FAILING_HOURS = 24;
 export type NotifySuggestionsInput = {
   installationId: number;
   config: StandwiseConfig;
+  memberId: string;
   login: string;
   team: TeamConfig;
   suggestions: SuggestionRow[];
@@ -53,7 +54,7 @@ export async function notifySuggestions(
       teamName: '',
       date,
       kind: 'suggestion_dm',
-      subject: suggestion.fingerprint,
+      subject: `${input.memberId}:${suggestion.fingerprint}`,
     };
     const claim = await claimDelivery(deps.db, key);
     if (claim.status !== 'claimed') continue;
@@ -65,7 +66,7 @@ export async function notifySuggestions(
       }
       const chatUserId = await chatUserIdFor(deps, input.installationId, input.config, login);
       if (!chatUserId) {
-        await failDelivery(deps.db, key, claim.token, `no_chat_identity: ${login}`);
+        await failDelivery(deps.db, key, claim.token, 'no_chat_identity');
         continue;
       }
       const ref = await chat.sendDirect(

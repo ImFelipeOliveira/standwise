@@ -1,13 +1,21 @@
 import type { MessageRef } from '@standwise/core';
-import { and, desc, eq, gte, lt, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type DeliveryRow, deliveries } from '../schema';
+
+export type DeliveryKind =
+  | 'digest'
+  | 'late_daily'
+  | 'reminder'
+  | 'blocker_route'
+  | 'suggestion_dm'
+  | 'signal_scan';
 
 export type DeliveryKey = {
   installationId: number;
   teamName: string;
   date: string;
-  kind: 'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm' | 'signal_scan';
+  kind: DeliveryKind;
   subject?: string;
 };
 
@@ -141,10 +149,13 @@ export async function getDelivery(db: Db, k: DeliveryKey): Promise<DeliveryRow |
   return row ?? null;
 }
 
-export async function listReminderDeliveries(
+export type PersonDeliveryKind = Extract<DeliveryKind, 'reminder' | 'signal_scan'>;
+
+export async function listPersonDeliveries(
   db: Db,
   installationId: number,
   date: string,
+  kind: PersonDeliveryKind,
 ): Promise<DeliveryRow[]> {
   return db
     .select()
@@ -153,10 +164,17 @@ export async function listReminderDeliveries(
       and(
         eq(deliveries.installationId, installationId),
         eq(deliveries.date, date),
-        eq(deliveries.kind, 'reminder'),
+        eq(deliveries.kind, kind),
       ),
     );
 }
+
+export const ADMIN_VISIBLE_DELIVERY_KINDS = [
+  'digest',
+  'late_daily',
+  'reminder',
+  'blocker_route',
+] as const satisfies readonly DeliveryKind[];
 
 export async function listFailedDeliveries(
   db: Db,
@@ -166,7 +184,13 @@ export async function listFailedDeliveries(
   return db
     .select()
     .from(deliveries)
-    .where(and(eq(deliveries.installationId, installationId), eq(deliveries.status, 'failed')))
+    .where(
+      and(
+        eq(deliveries.installationId, installationId),
+        eq(deliveries.status, 'failed'),
+        inArray(deliveries.kind, [...ADMIN_VISIBLE_DELIVERY_KINDS]),
+      ),
+    )
     .orderBy(desc(deliveries.updatedAt))
     .limit(limit);
 }

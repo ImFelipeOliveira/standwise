@@ -172,7 +172,7 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: 'pr_no_review:acme/api#7',
+      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
     });
     expect(delivery?.status).toBe('sent');
 
@@ -200,10 +200,10 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: 'pr_no_review:acme/api#7',
+      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
     });
     expect(delivery?.status).toBe('failed');
-    expect(delivery?.error).toBe('no_chat_identity: alice');
+    expect(delivery?.error).toBe('no_chat_identity');
     expect((await states(s.alice.id))[0]?.notified).toBe(false);
   });
 
@@ -226,7 +226,7 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: 'pr_no_review:acme/api#7',
+      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
     });
     expect(failed?.status).toBe('failed');
   });

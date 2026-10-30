@@ -120,19 +120,6 @@ const checkSuite = (action: string, numbers: number[], owner = 'acme') => ({
   check_suite: { pull_requests: numbers.map((number) => ({ number, head: { sha: 'abc' } })) },
 });
 
-const detail = (number: number, author: string) => ({
-  ref: { owner: 'acme', repo: 'api', number },
-  url: `https://github.com/acme/api/pull/${number}`,
-  title: `PR ${number}`,
-  author,
-  state: 'open' as const,
-  draft: false,
-  headSha: 'abc',
-  baseRef: 'main',
-  requestedReviewers: [],
-  requestedTeams: [],
-});
-
 const scans = (queue: { enqueued: { name: string; data: unknown }[] }) =>
   queue.enqueued.filter((j) => j.name === 'scan-member-signals').map((j) => j.data);
 
@@ -179,27 +166,35 @@ describe('handleGitHubEvent signal scans', () => {
     expect(scans(queue)).toEqual([]);
   });
 
-  test('a completed check_suite looks up each PR author and enqueues members only', async () => {
+  test('a completed check_suite only enqueues a resolve job, without GitHub calls', async () => {
     await seedOrg(config(), { id: INST });
-    const { deps, queue, calls } = fakeDeps({
-      pulls: {
-        'acme/api#1': detail(1, 'Alice'),
-        'acme/api#2': detail(2, 'carol'),
+    const { deps, queue, calls } = fakeDeps();
+    let resolves = 0;
+    deps.github.resolveTeamMembers = async (_o, _owner, members) => {
+      resolves++;
+      return members;
+    };
+    deps.github.installationOctokit = async () => {
+      throw new Error('no github in the webhook');
+    };
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1, 2, 3, 4, 5, 6, 7]));
+    expect(calls.getPullRequest).toEqual([]);
+    expect(resolves).toBe(0);
+    expect(queue.enqueued).toEqual([
+      {
+        name: 'resolve-check-suite',
+        data: { installationId: INST, owner: 'acme', repo: 'api', numbers: [1, 2, 3, 4, 5] },
       },
-    });
-    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1, 2, 3]));
-    expect(calls.getPullRequest).toEqual(['acme/api#1', 'acme/api#2', 'acme/api#3']);
-    expect(scans(queue)).toEqual([{ installationId: INST, login: 'alice' }]);
+    ]);
   });
 
-  test('check_suite lookups are capped and skip foreign repos and other actions', async () => {
+  test('check_suite skips foreign repos, other actions and empty PR lists', async () => {
     await seedOrg(config(), { id: INST });
-    const { deps, calls } = fakeDeps();
-    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1, 2, 3, 4, 5, 6, 7]));
-    expect(calls.getPullRequest).toHaveLength(5);
+    const { deps, queue } = fakeDeps();
     await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', [1], 'evil'));
     await handleGitHubEvent(deps, 'check_suite', checkSuite('requested', [1]));
-    expect(calls.getPullRequest).toHaveLength(5);
+    await handleGitHubEvent(deps, 'check_suite', checkSuite('completed', []));
+    expect(queue.enqueued).toEqual([]);
   });
 
   test('a GitHub failure while resolving members is logged and does not throw', async () => {

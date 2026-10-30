@@ -20,6 +20,7 @@ export * from './notify-suggestions';
 export * from './org-context';
 export * from './pagination';
 export * from './readable-teams';
+export * from './resolve-check-suite';
 export * from './route-blocker';
 export * from './run-tick';
 export * from './scan-member-signals';

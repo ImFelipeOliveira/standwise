@@ -17,6 +17,7 @@ import {
   listDailies,
   listFailedDeliveries,
   listOperationalInstallations,
+  listPersonDeliveries,
   markDeliverySent,
   resolveSession,
   revokeSession,
@@ -178,6 +179,42 @@ describe('delivery markers', () => {
     expect(row?.status).toBe('sent');
     expect(row?.attempts).toBe(1);
     expect(await claimDelivery(db, key)).toEqual({ status: 'already_sent' });
+  });
+});
+
+describe('admin-visible failed deliveries', () => {
+  test('failed suggestion DMs and scan markers never appear, other kinds do', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const base = { installationId: INST, teamName: '', date: '2026-10-28' };
+    for (const kind of ['suggestion_dm', 'signal_scan', 'reminder'] as const) {
+      const k = { ...base, kind, subject: `${kind}-subject` };
+      const claim = await claimDelivery(db, k);
+      if (claim.status !== 'claimed') throw new Error('not claimed');
+      await failDelivery(db, k, claim.token, 'no_chat_identity');
+    }
+    await markDeliverySent(db, { ...base, kind: 'signal_scan', subject: 'alice' });
+    const listed = await listFailedDeliveries(db, INST, 10);
+    expect(listed.map((d) => d.kind)).toEqual(['reminder']);
+  });
+});
+
+describe('person deliveries', () => {
+  test('listPersonDeliveries returns one kind for one installation and date', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
+    const k = (
+      installationId: number,
+      date: string,
+      kind: 'signal_scan' | 'reminder',
+      subject: string,
+    ) => ({ installationId, teamName: '', date, kind, subject }) as const;
+    await markDeliverySent(db, k(1, '2026-10-28', 'signal_scan', 'alice'));
+    await markDeliverySent(db, k(1, '2026-10-28', 'signal_scan', 'bob'));
+    await markDeliverySent(db, k(1, '2026-10-27', 'signal_scan', 'carol'));
+    await markDeliverySent(db, k(2, '2026-10-28', 'signal_scan', 'dave'));
+    await markDeliverySent(db, k(1, '2026-10-28', 'reminder', 'erin'));
+    const rows = await listPersonDeliveries(db, 1, '2026-10-28', 'signal_scan');
+    expect(rows.map((r) => r.subject).sort()).toEqual(['alice', 'bob']);
   });
 });
 

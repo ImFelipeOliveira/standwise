@@ -16,6 +16,18 @@ export const PULL_REQUEST_SIGNAL_KINDS: SignalKind[] = ['pr_no_review', 'ci_fail
 
 export type ScanMemberSignalsJob = { installationId: number; login: string; date?: string };
 
+export async function enqueueMemberScan(
+  deps: Pick<WorkerDeps, 'queue'>,
+  installationId: number,
+  login: string,
+): Promise<void> {
+  const lower = login.toLowerCase();
+  const job: ScanMemberSignalsJob = { installationId, login: lower };
+  await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
+    singletonKey: `scan:${installationId}:${lower}`,
+  });
+}
+
 function logGitHubFailure(error: unknown): void {
   const e = error as { name?: unknown; code?: unknown; message?: unknown };
   console.error('signal scan github lookup failed', {
@@ -74,6 +86,7 @@ export async function scanMemberSignals(
     await notifySuggestions(deps, {
       installationId: installation.id,
       config,
+      memberId,
       login,
       team: first,
       suggestions: created,

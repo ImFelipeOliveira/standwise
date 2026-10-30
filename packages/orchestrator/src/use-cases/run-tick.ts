@@ -11,7 +11,7 @@ import {
   getInstallationMemberIds,
   listDailies,
   listOperationalInstallations,
-  listReminderDeliveries,
+  listPersonDeliveries,
   MAX_DELIVERY_ATTEMPTS,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
@@ -65,7 +65,7 @@ async function enqueueReminders(
       (await listDailies(deps.db, installation.id, date)).map((d) => d.login.toLowerCase()),
     );
     const settled = new Set(
-      (await listReminderDeliveries(deps.db, installation.id, date))
+      (await listPersonDeliveries(deps.db, installation.id, date, 'reminder'))
         .filter(
           (r) =>
             r.status === 'sent' || (r.status === 'failed' && r.attempts >= MAX_DELIVERY_ATTEMPTS),
@@ -117,16 +117,13 @@ async function enqueueScans(
   if (!resolved) return;
   const linked = await getInstallationMemberIds(deps.db, installation.id, resolved.memberLogins);
   for (const date of dates) {
+    const scanned = new Set(
+      (await listPersonDeliveries(deps.db, installation.id, date, 'signal_scan'))
+        .filter((r) => r.status === 'sent')
+        .map((r) => r.subject),
+    );
     for (const login of resolved.memberLogins) {
-      if (!linked.has(login)) continue;
-      const marker = await getDelivery(deps.db, {
-        installationId: installation.id,
-        teamName: '',
-        date,
-        kind: 'signal_scan',
-        subject: login,
-      });
-      if (marker?.status === 'sent') continue;
+      if (!linked.has(login) || scanned.has(login)) continue;
       const job: ScanMemberSignalsJob = { installationId: installation.id, login, date };
       await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
         singletonKey: `scan:${installation.id}:${login}:${date}`,
