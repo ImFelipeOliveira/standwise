@@ -43,6 +43,9 @@ teams:
   return parsed.config;
 }
 
+const digests = (f: { queue: { enqueued: { name: string; data: unknown }[] } }) =>
+  f.queue.enqueued.filter((j) => j.name === 'send-digest');
+
 async function tickAt(at: Date, cfg: StandwiseConfig = config()) {
   await seedOrg(cfg);
   const fake = fakeDeps();
@@ -54,11 +57,11 @@ async function tickAt(at: Date, cfg: StandwiseConfig = config()) {
 describe('runTick', () => {
   test('tick enqueues once per due team', async () => {
     const early = await tickAt(local('2026-10-28T09:59:00'));
-    expect(early.queue.enqueued).toEqual([]);
+    expect(digests(early)).toEqual([]);
 
     const fake = await tickAt(local('2026-10-28T10:00:00'));
     await runTick(fake.deps);
-    expect(fake.queue.enqueued).toEqual([
+    expect(digests(fake)).toEqual([
       {
         name: 'send-digest',
         data: { installationId: INST, teamName: 'Alpha', date: '2026-10-28' },
@@ -75,7 +78,7 @@ describe('runTick', () => {
     const fake = fakeDeps();
     fake.setNow(local('2026-10-28T10:00:00'));
     await runTick(fake.deps);
-    expect(fake.queue.enqueued).toEqual([
+    expect(digests(fake)).toEqual([
       {
         name: 'send-digest',
         data: { installationId: INST, teamName: 'Alpha', date: '2026-10-28' },
@@ -85,14 +88,14 @@ describe('runTick', () => {
 
   test('tick catches up within grace', async () => {
     const fake = await tickAt(local('2026-10-28T11:30:00'));
-    expect(fake.queue.enqueued).toHaveLength(1);
+    expect(digests(fake)).toHaveLength(1);
     const late = await tickAt(local('2026-10-28T12:01:00'));
-    expect(late.queue.enqueued).toEqual([]);
+    expect(digests(late)).toEqual([]);
   });
 
   test('tick skips non-workday', async () => {
     const fake = await tickAt(local('2026-10-31T10:00:00'));
-    expect(fake.queue.enqueued).toEqual([]);
+    expect(digests(fake)).toEqual([]);
   });
 
   test('tick covers a digest whose grace crosses midnight', async () => {
@@ -101,7 +104,7 @@ describe('runTick', () => {
     if (!team) throw new Error('no team');
     const cfg = { ...base, teams: [{ ...team, digestAt: '23:30' }] };
     const fake = await tickAt(local('2026-10-29T00:15:00'), cfg);
-    expect(fake.queue.enqueued).toEqual([
+    expect(digests(fake)).toEqual([
       {
         name: 'send-digest',
         data: { installationId: INST, teamName: 'Alpha', date: '2026-10-28' },
@@ -115,7 +118,7 @@ describe('runTick', () => {
     if (claim.status !== 'claimed') throw new Error('not claimed');
     await completeDelivery(db, digestKey('2026-10-28'), claim.token, { channel: 'C1', id: '1' });
     const fake = await tickAt(local('2026-10-28T10:05:00'));
-    expect(fake.queue.enqueued).toEqual([]);
+    expect(digests(fake)).toEqual([]);
   });
 
   test('tick retries a failed digest until attempts run out', async () => {
@@ -125,7 +128,7 @@ describe('runTick', () => {
     if (first.status !== 'claimed') throw new Error('not claimed');
     await failDelivery(db, key, first.token, 'not_in_channel: x');
     const retry = await tickAt(local('2026-10-28T10:05:00'));
-    expect(retry.queue.enqueued).toHaveLength(1);
+    expect(digests(retry)).toHaveLength(1);
 
     for (let i = 0; i < 2; i++) {
       const claim = await claimDelivery(db, key);
@@ -133,7 +136,7 @@ describe('runTick', () => {
       await failDelivery(db, key, claim.token, 'not_in_channel: x');
     }
     const exhausted = await tickAt(local('2026-10-28T10:06:00'));
-    expect(exhausted.queue.enqueued).toEqual([]);
+    expect(digests(exhausted)).toEqual([]);
   });
 
   test('removed team gets no digest', async () => {
@@ -143,9 +146,7 @@ describe('runTick', () => {
       ...cfg,
       teams: cfg.teams.filter((t) => t.name !== 'Beta'),
     });
-    expect(fake.queue.enqueued.map((j) => (j.data as { teamName: string }).teamName)).toEqual([
-      'Alpha',
-    ]);
+    expect(digests(fake).map((j) => (j.data as { teamName: string }).teamName)).toEqual(['Alpha']);
   });
 
   test('tick uses the previous calendar day across a spring-forward', async () => {
@@ -164,7 +165,7 @@ describe('runTick', () => {
       ],
     };
     const fake = await tickAt(new Date('2026-03-09T00:30:00-04:00'), cfg);
-    expect(fake.queue.enqueued).toEqual([
+    expect(digests(fake)).toEqual([
       {
         name: 'send-digest',
         data: { installationId: INST, teamName: 'Alpha', date: '2026-03-08' },

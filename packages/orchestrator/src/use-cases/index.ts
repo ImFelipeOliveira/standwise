@@ -22,6 +22,7 @@ export * from './readable-teams';
 export * from './run-tick';
 export * from './send-digest';
 export * from './send-late-daily';
+export * from './send-reminder';
 export * from './start-session';
 export * from './start-slack-connect';
 export * from './start-web-login';

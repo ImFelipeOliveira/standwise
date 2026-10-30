@@ -10,4 +10,5 @@ export * from './i18n';
 export * from './language';
 export * from './message';
 export * from './ports';
+export * from './reminder';
 export * from './signals';

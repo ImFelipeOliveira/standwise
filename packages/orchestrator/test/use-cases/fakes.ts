@@ -229,6 +229,7 @@ export const daily = {
 export function fakeChat() {
   const posted: { channel: string; msg: Message }[] = [];
   const replies: { ref: MessageRef; msg: Message }[] = [];
+  const directs: { userId: string; msg: Message }[] = [];
   let failure: Error | null = null;
   let counter = 0;
   const hooks: { afterSend?: () => Promise<void> } = {};
@@ -247,8 +248,12 @@ export function fakeChat() {
       await hooks.afterSend?.();
       return { channel: ref.channel, id: `${counter}.1` };
     },
-    sendDirect: async () => {
-      throw new Error('unexpected sendDirect');
+    sendDirect: async (userId, msg) => {
+      if (failure) throw failure;
+      directs.push({ userId, msg });
+      counter++;
+      await hooks.afterSend?.();
+      return { channel: `D${userId}`, id: `${counter}.2` };
     },
     findUserByEmail: async () => null,
   };
@@ -256,6 +261,7 @@ export function fakeChat() {
     chat,
     posted,
     replies,
+    directs,
     hooks,
     failWith: (error: Error | null) => {
       failure = error;

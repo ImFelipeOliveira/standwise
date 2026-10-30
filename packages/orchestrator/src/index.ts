@@ -1,4 +1,5 @@
 export * from './chat';
+export * from './chat-identity';
 export * from './csrf';
 export * from './deps';
 export * from './events';
