@@ -124,8 +124,47 @@ export async function checkDocs(siteDir: string): Promise<string[]> {
   ];
 }
 
+const CANONICAL_INSTALL_URL = 'https://api.standwise.dev/install.sh';
+
+async function markdownFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true });
+  return entries
+    .map((entry) => entry.split('\\').join('/'))
+    .filter((entry) => entry.endsWith('.md'))
+    .filter((entry) => !entry.split('/').some((part) => IGNORED_DIRS.has(part)))
+    .map((entry) => join(dir, entry));
+}
+
+export function installUrlProblems(file: string, text: string): string[] {
+  const problems: string[] = [];
+  for (const match of text.matchAll(/https?:\/\/[^\s)'"`>]*install\.sh/g)) {
+    if (match[0] !== CANONICAL_INSTALL_URL) {
+      problems.push(`${file}: install url must be ${CANONICAL_INSTALL_URL}, found ${match[0]}`);
+    }
+  }
+  if (text.includes('<standwise-host>')) problems.push(`${file}: placeholder <standwise-host>`);
+  return problems;
+}
+
+export async function checkInstallUrl(root: string): Promise<string[]> {
+  const files = [
+    join(root, 'README.md'),
+    join(root, 'packages/plugin/skills/daily/SKILL.md'),
+    ...(await markdownFiles(join(root, 'docs/site'))),
+  ];
+  const problems: string[] = [];
+  for (const file of files) {
+    problems.push(...installUrlProblems(file.slice(root.length + 1), await readFile(file, 'utf8')));
+  }
+  return problems;
+}
+
 if (import.meta.main) {
-  const problems = await checkDocs(join(import.meta.dir, '../docs/site'));
+  const root = join(import.meta.dir, '..');
+  const problems = [
+    ...(await checkDocs(join(root, 'docs/site'))),
+    ...(await checkInstallUrl(root)),
+  ];
   for (const problem of problems) console.error(problem);
   if (problems.length > 0) process.exit(1);
   console.log('docs: all checks passed');

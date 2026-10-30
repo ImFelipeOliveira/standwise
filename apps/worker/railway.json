@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "buildArgs": { "APP": "worker" }
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "startCommand": "bun run apps/worker/src/main.ts",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

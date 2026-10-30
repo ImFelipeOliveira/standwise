@@ -26,7 +26,11 @@ chmod +x ~/.local/bin/standwise
 standwise --version
 ```
 
-Cada release também traz um arquivo `SHA256SUMS` para conferir o download. Um script de instalação em uma linha vem em breve.
+Cada release também traz um arquivo `SHA256SUMS` para conferir o download. Ou use o script de instalação, que baixa o binário certo, confere com o `SHA256SUMS` e instala em `~/.local/bin/standwise`:
+
+```bash
+curl -fsSL https://api.standwise.dev/install.sh | sh
+```
 
 ## 2. Entre
 

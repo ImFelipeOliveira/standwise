@@ -26,7 +26,7 @@ esac
 asset="standwise-bun-${os}-${arch}"
 
 if command -v curl >/dev/null 2>&1; then
-  download() { curl -fsSL -o "$2" "$1"; }
+  download() { curl --proto '=https' --tlsv1.2 -fsSL -o "$2" "$1"; }
 elif command -v wget >/dev/null 2>&1; then
   download() { wget -q -O "$2" "$1"; }
 else
@@ -42,7 +42,8 @@ else
 fi
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT INT TERM
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 1' INT TERM
 
 echo "Downloading ${asset}"
 download "${BASE}/${asset}" "${tmp}/${asset}" || fail "could not download ${asset}"
@@ -54,8 +55,9 @@ actual="$(hash_of "${tmp}/${asset}")"
 [ "$expected" = "$actual" ] || fail "checksum mismatch for ${asset}: expected ${expected}, got ${actual}"
 
 mkdir -p "$BIN_DIR"
-chmod +x "${tmp}/${asset}"
-mv "${tmp}/${asset}" "$TARGET"
+cp "${tmp}/${asset}" "${TARGET}.new"
+chmod +x "${TARGET}.new"
+mv -f "${TARGET}.new" "$TARGET"
 
 echo "Installed ${TARGET}"
 

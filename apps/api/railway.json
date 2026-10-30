@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "buildArgs": { "APP": "api" }
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "startCommand": "sh -c 'bun run db:migrate && exec bun run apps/api/src/main.ts'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
