@@ -39,7 +39,9 @@ teams:
   return parsed.config;
 }
 
-function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
+function harness(
+  opts: { hasConfigRepo?: boolean; slackFails?: boolean; githubInstallations?: number[] } = {},
+) {
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
@@ -82,7 +84,7 @@ function harness(opts: { hasConfigRepo?: boolean; slackFails?: boolean } = {}) {
         githubUserId: 1,
         login: 'alice',
         email: 'alice@acme.com',
-        installationIds: [INST],
+        installationIds: opts.githubInstallations ?? [INST],
       }),
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
@@ -262,18 +264,35 @@ describe('web login', () => {
 describe('setup page', () => {
   useCleanDb();
 
-  test('setup forbids foreign installation', async () => {
+  test('a foreign installation and a missing one look the same', async () => {
     const { app } = harness();
     const { cookie } = await seed();
-    const res = await app.request(`/setup?installation_id=${FOREIGN}`, { headers: { cookie } });
-    expect(res.status).toBe(403);
+    const responses = async (id: number) => {
+      const first = await app.request(`/setup?installation_id=${id}`, { headers: { cookie } });
+      const after = await app.request(`/setup?installation_id=${id}&resynced=1`, {
+        headers: { cookie, 'accept-language': 'en' },
+      });
+      return {
+        firstStatus: first.status,
+        firstLocation: location(first).replace(String(id), 'ID'),
+        afterStatus: after.status,
+        afterBody: await after.text(),
+      };
+    };
+    const foreign = await responses(FOREIGN);
+    const missing = await responses(777);
+    expect(foreign.firstStatus).toBe(302);
+    expect(foreign.afterStatus).toBe(403);
+    expect(missing).toEqual(foreign);
   });
 
   test('setup forbids a member who left the organization', async () => {
     const { app, orgMembers } = harness();
     const { cookie } = await seed();
     orgMembers.delete('alice');
-    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    const res = await app.request(`/setup?installation_id=${INST}&resynced=1`, {
+      headers: { cookie },
+    });
     expect(res.status).toBe(403);
   });
 
@@ -474,7 +493,7 @@ describe('slack connection', () => {
     expect(callback.status).toBe(403);
     expect(slackCalls).toEqual([]);
     expect(await getConnection(db, INST, 'slack', KEY)).toBeNull();
-    const connect = await app.request(`/connect/slack?installation_id=${INST}`, {
+    const connect = await app.request(`/connect/slack?installation_id=${INST}&resynced=1`, {
       headers: { cookie },
     });
     expect(connect.status).toBe(403);
@@ -483,7 +502,7 @@ describe('slack connection', () => {
   test('connect forbids a foreign installation and requires login', async () => {
     const { app } = harness();
     const { cookie } = await seed();
-    const forbidden = await app.request(`/connect/slack?installation_id=${FOREIGN}`, {
+    const forbidden = await app.request(`/connect/slack?installation_id=${FOREIGN}&resynced=1`, {
       headers: { cookie },
     });
     expect(forbidden.status).toBe(403);
@@ -592,8 +611,11 @@ describe('setup right after install', () => {
   });
 
   test('renders a localized pending page instead of looping after the resync', async () => {
-    const { app } = harness();
-    const { cookie } = await seed();
+    const { app } = harness({ githubInstallations: [INST, 777] });
+    await seed();
+    const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=777&resynced=1');
+    const login = await callback(app, state, loginCookie);
+    const cookie = /sw_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
     const en = await app.request('/setup?installation_id=777&resynced=1', {
       headers: { cookie, 'accept-language': 'en' },
     });
@@ -607,13 +629,33 @@ describe('setup right after install', () => {
   });
 });
 
+describe('web rate limit', () => {
+  useCleanDb();
+
+  test('web routes allow 60 requests per minute per ip', async () => {
+    const { app } = harness();
+    for (let i = 0; i < 60; i++) {
+      expect((await app.request('/auth/github/login')).status).toBe(302);
+    }
+    const limited = await app.request('/setup?installation_id=11', {
+      headers: { 'accept-language': 'en' },
+    });
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('retry-after')).not.toBeNull();
+    expect(await limited.text()).toContain('Too many requests');
+    expect((await app.request('/connect/slack')).status).toBe(429);
+    expect((await app.request('/oauth/slack/callback')).status).toBe(429);
+    expect((await app.request('/install.sh')).status).toBe(200);
+  });
+});
+
 describe('browser error pages', () => {
   useCleanDb();
 
   test('forbidden renders a localized html page in english and pt-BR', async () => {
     const { app } = harness();
     const { cookie } = await seed();
-    const en = await app.request(`/setup?installation_id=${FOREIGN}`, {
+    const en = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
       headers: { cookie, 'accept-language': 'en' },
     });
     expect(en.status).toBe(403);
@@ -621,7 +663,7 @@ describe('browser error pages', () => {
     const enHtml = await en.text();
     expect(enHtml).toContain('<html lang="en"');
     expect(enHtml).toContain('You do not have access');
-    const pt = await app.request(`/setup?installation_id=${FOREIGN}`, {
+    const pt = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
       headers: { cookie, 'accept-language': 'pt-BR' },
     });
     expect(pt.status).toBe(403);

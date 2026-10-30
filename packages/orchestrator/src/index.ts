@@ -2,6 +2,7 @@ export * from './chat';
 export * from './csrf';
 export * from './deps';
 export * from './events';
+export * from './github-installations';
 export * from './identity';
 export * from './membership';
 export * from './safe-fetch';

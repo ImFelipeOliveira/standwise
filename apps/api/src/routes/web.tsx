@@ -23,6 +23,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import installScript from '../../../../scripts/install.sh' with { type: 'text' };
 import { STATUS } from '../http/errors';
+import { type GetClientIp, ipRateLimit } from '../middleware/rate-limit';
 import { ErrorPage } from '../web/error';
 import {
   FLASH_COOKIE,
@@ -40,6 +41,9 @@ const LOGIN_COOKIE_PATH = '/auth/github';
 const LOGIN_NONCE_SECONDS = 600;
 const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_denied'];
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
+export const WEB_IP_LIMIT = 60;
+const RESYNC_CODES = ['forbidden', 'installation_pending'];
+const RATE_LIMITED_PATHS = ['/setup', '/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
 
 type Session = { token: string; member: MemberRow };
 
@@ -65,9 +69,11 @@ const createWebhookForm = z.object({
     .transform((events) => (events === undefined ? [] : [events].flat())),
 });
 
-export function webRoutes(deps: Deps): Hono {
+export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Hono {
   const app = new Hono();
   const isMember = createMembershipCheck(deps);
+  const limit = ipRateLimit(deps, options.getClientIp, 'web', WEB_IP_LIMIT);
+  for (const path of RATE_LIMITED_PATHS) app.use(path, limit);
 
   const readSession = async (c: Context): Promise<Session | null> => {
     const token = getCookie(c, COOKIE);
@@ -160,7 +166,7 @@ export function webRoutes(deps: Deps): Hono {
     try {
       return await run();
     } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== 'installation_pending') throw error;
+      if (!(error instanceof DomainError) || !RESYNC_CODES.includes(error.code)) throw error;
       const url = new URL(c.req.url);
       if (url.searchParams.get('resynced') === '1') throw error;
       url.searchParams.set('resynced', '1');

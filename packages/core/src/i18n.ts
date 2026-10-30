@@ -107,6 +107,8 @@ const ptBR = {
     'Esta instalação ainda está sendo processada. Atualize a página em alguns segundos.',
   'web.error.not_found.title': 'Não encontrado',
   'web.error.not_found.body': 'O item solicitado não existe ou já foi removido.',
+  'web.error.rate_limited.title': 'Muitas requisições',
+  'web.error.rate_limited.body': 'Você fez muitas requisições. Espere um minuto e tente de novo.',
   'web.error.slack_oauth_failed.title': 'Falha ao conectar o Slack',
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
@@ -243,6 +245,8 @@ const en = {
     'This installation is still being processed. Refresh the page in a few seconds.',
   'web.error.not_found.title': 'Not found',
   'web.error.not_found.body': 'The requested item does not exist or was already removed.',
+  'web.error.rate_limited.title': 'Too many requests',
+  'web.error.rate_limited.body': 'You made too many requests. Wait a minute and try again.',
   'web.error.slack_oauth_failed.title': 'Slack connection failed',
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',

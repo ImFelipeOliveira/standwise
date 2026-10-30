@@ -27,6 +27,6 @@ export function createApp(deps: Deps, options: AppOptions): Hono {
     ),
   );
   app.route('/webhooks', webhookRoutes(deps));
-  app.route('/', webRoutes(deps));
+  app.route('/', webRoutes(deps, { getClientIp: options.getClientIp }));
   return app;
 }

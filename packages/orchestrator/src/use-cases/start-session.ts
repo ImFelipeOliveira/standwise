@@ -7,6 +7,7 @@ import {
   upsertMember,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { rememberGitHubInstallations } from '../github-installations';
 import { linkChatIdentities } from '../identity';
 import { DomainError } from './errors';
 
@@ -34,6 +35,7 @@ export async function syncMemberFromGitHub(
     login: profile.login,
     email: profile.email,
   });
+  rememberGitHubInstallations(deps, member.id, profile.installationIds);
   const known: { id: number; accountLogin: string }[] = [];
   for (const id of profile.installationIds) {
     const installation = await getInstallation(deps.db, id);

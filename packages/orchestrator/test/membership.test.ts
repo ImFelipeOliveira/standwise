@@ -117,6 +117,34 @@ describe('createMembershipCheck', () => {
   });
 });
 
+describe('membership negative cache', () => {
+  test('a repeated probe makes one github call within ten minutes', async () => {
+    const member = await seedMember('Alice', 1);
+    const { deps, calls, orgMembers, setNow } = fakeDeps();
+    orgMembers.clear();
+    const isMember = createMembershipCheck(deps);
+    expect(await isMember(orgAccount, member)).toBeNull();
+    expect(await isMember(orgAccount, member)).toBeNull();
+    expect(calls.membership).toHaveLength(1);
+    setNow(new Date('2026-10-28T15:09:59Z'));
+    expect(await isMember(orgAccount, member)).toBeNull();
+    expect(calls.membership).toHaveLength(1);
+    setNow(new Date('2026-10-28T15:10:00Z'));
+    await isMember(orgAccount, member);
+    expect(calls.membership).toHaveLength(2);
+  });
+
+  test('an unknown github user is cached as not a member', async () => {
+    const member = await seedMember('Alice', 1);
+    const { deps, calls, users } = fakeDeps();
+    users.clear();
+    const isMember = createMembershipCheck(deps);
+    await isMember(orgAccount, member);
+    await isMember(orgAccount, member);
+    expect(calls.users).toEqual([1]);
+  });
+});
+
 describe('currentLogin', () => {
   test('caches the login of a github id for ten minutes', async () => {
     const { deps, calls, setNow } = fakeDeps();

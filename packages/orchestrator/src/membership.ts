@@ -59,17 +59,20 @@ async function isOrgMember(octokit: Octokit, org: string, username: string): Pro
 export function createMembershipCheck(
   deps: Deps,
 ): (account: Account, member: MemberRow) => Promise<MemberRow | null> {
-  const cache = new Map<string, number>();
+  const cache = new Map<string, { checkedAt: number; member: boolean }>();
   return async (account, member) => {
     if (account.accountType === 'User') return isUserAccountOwner(account, member) ? member : null;
     const key = `${account.id}:${member.id}`;
     const now = deps.now().getTime();
     const cached = cache.get(key);
-    if (cached !== undefined && now - cached < TTL_MS) return member;
+    if (cached !== undefined && now - cached.checkedAt < TTL_MS) {
+      return cached.member ? member : null;
+    }
+    const remember = (isMember: boolean) => cache.set(key, { checkedAt: now, member: isMember });
     const octokit = await deps.github.installationOctokit(account.id);
     const login = await currentLogin(deps, octokit, member.githubUserId);
     if (login === null) {
-      cache.delete(key);
+      remember(false);
       return null;
     }
     const current =
@@ -77,10 +80,10 @@ export function createMembershipCheck(
         ? member
         : ((await updateMemberLogin(deps.db, member.githubUserId, login)) ?? { ...member, login });
     if (!(await isOrgMember(octokit, account.accountLogin, login))) {
-      cache.delete(key);
+      remember(false);
       return null;
     }
-    cache.set(key, now);
+    remember(true);
     return current;
   };
 }

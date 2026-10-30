@@ -7,6 +7,7 @@ import {
   removeMemberInstallation,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { isOwnGitHubInstallation } from '../github-installations';
 import { DomainError } from './errors';
 import type { MembershipCheck } from './org-context';
 
@@ -21,6 +22,7 @@ export async function authorizeInstallation(
   if (installationId === undefined || !Number.isInteger(installationId)) throw forbidden();
   const installation = await getInstallation(deps.db, installationId);
   if (!installation) {
+    if (!isOwnGitHubInstallation(deps, member.id, installationId)) throw forbidden();
     throw new DomainError('installation_pending', 'installation is still being processed');
   }
   const linked = (await listMemberInstallations(deps.db, member.id)).some(
