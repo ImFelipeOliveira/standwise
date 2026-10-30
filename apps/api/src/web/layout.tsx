@@ -1,4 +1,5 @@
 import type { Language } from '@standwise/core';
+import { raw } from 'hono/html';
 import type { Child } from 'hono/jsx';
 
 export const BRAND = {
@@ -8,7 +9,7 @@ export const BRAND = {
   background: '#F5F6F8',
 };
 
-const css = `
+export const PAGE_CSS = `
 body { margin: 0; background: ${BRAND.background}; color: ${BRAND.text}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; line-height: 1.5; }
 main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; font-weight: 700; font-size: 20px; }
@@ -47,7 +48,7 @@ export function Layout(props: { lang: Language; title: string; children?: Child 
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{props.title}</title>
-        <style>{css}</style>
+        <style>{raw(PAGE_CSS)}</style>
       </head>
       <body>
         <main>

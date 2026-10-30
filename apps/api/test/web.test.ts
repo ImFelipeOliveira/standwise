@@ -14,7 +14,7 @@ import {
   upsertInstallation,
   upsertMember,
 } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import { csrfToken, type Deps } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -626,6 +626,71 @@ describe('setup right after install', () => {
     });
     expect(pt.status).toBe(409);
     expect(await pt.text()).toContain('ainda está sendo processada');
+  });
+});
+
+describe('security headers', () => {
+  useCleanDb();
+
+  function expectSecure(res: Response) {
+    expect(res.headers.get('x-frame-options')).toBe('DENY');
+    expect(res.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    const csp = res.headers.get('content-security-policy') ?? '';
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("form-action 'self'");
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).not.toContain('unsafe-inline');
+    return csp;
+  }
+
+  test('the setup page sends the headers and its inline style matches the policy', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(res.status).toBe(200);
+    const csp = expectSecure(res);
+    const html = await res.text();
+    const style = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
+    expect(style).toContain('font-family');
+    const hash = new Bun.CryptoHasher('sha256').update(style).digest('base64');
+    expect(csp).toContain(`style-src 'sha256-${hash}'`);
+    expect(html).toContain('<form method="post" action="/setup/api-keys">');
+  });
+
+  test('error pages send the headers', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const forbidden = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
+      headers: { cookie },
+    });
+    expect(forbidden.status).toBe(403);
+    expectSecure(forbidden);
+    const unauthorized = await app.request('/oauth/slack/callback?code=c&state=x');
+    expect(unauthorized.status).toBe(401);
+    expectSecure(unauthorized);
+    const login = await app.request('/auth/github/login');
+    expectSecure(login);
+  });
+
+  test('the forms still post and redirect on the same origin', async () => {
+    const { app } = harness();
+    const { cookie, token } = await seed();
+    const form = new URLSearchParams({
+      installation_id: String(INST),
+      name: 'ci',
+      scopes: 'teams:read',
+      csrf: csrfToken('sess', token),
+    });
+    const res = await app.request('/setup/api-keys', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(location(res)).toBe(`/setup?installation_id=${INST}`);
+    expectSecure(res);
   });
 });
 

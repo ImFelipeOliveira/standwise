@@ -20,6 +20,7 @@ import {
 } from '@standwise/orchestrator';
 import { type Context, Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { secureHeaders } from 'hono/secure-headers';
 import { z } from 'zod';
 import installScript from '../../../../scripts/install.sh' with { type: 'text' };
 import { STATUS } from '../http/errors';
@@ -33,6 +34,7 @@ import {
   openFlash,
   sealFlash,
 } from '../web/flash';
+import { PAGE_CSS } from '../web/layout';
 import { SetupPage } from '../web/setup';
 
 const COOKIE = 'sw_web';
@@ -43,7 +45,21 @@ const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_den
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
 export const WEB_IP_LIMIT = 60;
 const RESYNC_CODES = ['forbidden', 'installation_pending'];
-const RATE_LIMITED_PATHS = ['/setup', '/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
+const PAGE_PATHS = ['/setup', '/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
+const STYLE_HASH = `'sha256-${new Bun.CryptoHasher('sha256').update(PAGE_CSS).digest('base64')}'`;
+
+const pageHeaders = secureHeaders({
+  xFrameOptions: 'DENY',
+  referrerPolicy: 'no-referrer',
+  xContentTypeOptions: 'nosniff',
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    styleSrc: [STYLE_HASH],
+    formAction: ["'self'"],
+    baseUri: ["'none'"],
+    frameAncestors: ["'none'"],
+  },
+});
 
 type Session = { token: string; member: MemberRow };
 
@@ -73,7 +89,7 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
   const app = new Hono();
   const isMember = createMembershipCheck(deps);
   const limit = ipRateLimit(deps, options.getClientIp, 'web', WEB_IP_LIMIT);
-  for (const path of RATE_LIMITED_PATHS) app.use(path, limit);
+  for (const path of PAGE_PATHS) app.use(path, pageHeaders, limit);
 
   const readSession = async (c: Context): Promise<Session | null> => {
     const token = getCookie(c, COOKIE);
