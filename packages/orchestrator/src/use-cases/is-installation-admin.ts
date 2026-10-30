@@ -31,7 +31,7 @@ export async function isInstallationAdmin(
   const cached = cache.get(key);
   if (!options.fresh && cached !== undefined && now - cached < TTL_MS) return true;
   const octokit = await deps.github.installationOctokit(installationId);
-  const login = await currentLogin(octokit, member.githubUserId);
+  const login = await currentLogin(deps, octokit, member.githubUserId, options);
   if (login === null) {
     cache.delete(key);
     return false;

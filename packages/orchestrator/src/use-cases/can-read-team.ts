@@ -16,7 +16,7 @@ export async function readableTeams(
   const teams = await configuredTeams(deps, installationId);
   if (teams.length === 0) return [];
   const octokit = await deps.github.installationOctokit(installationId);
-  const login = (await currentLogin(octokit, member.githubUserId))?.toLowerCase();
+  const login = (await currentLogin(deps, octokit, member.githubUserId))?.toLowerCase();
   const managed = teams.filter(
     (team) => login !== undefined && team.managers.some((m) => m.toLowerCase() === login),
   );

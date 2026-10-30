@@ -47,6 +47,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
     membership: [] as string[],
     roles: [] as string[],
     config: [] as string[],
+    users: [] as number[],
   };
   const orgMembers = new Set(['alice']);
   const roles = new Map<string, { role: string; state: string }>();
@@ -72,6 +73,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
       return { status: 200, data: entry };
     }
     if (route === 'GET /user/{account_id}') {
+      calls.users.push(Number(params.account_id));
       if (userLookupError) throw userLookupError;
       const login = users.get(Number(params.account_id));
       if (!login) throw Object.assign(new Error('not found'), { status: 404 });

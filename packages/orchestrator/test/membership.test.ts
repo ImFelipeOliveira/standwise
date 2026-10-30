@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { getMemberById } from '@standwise/db';
 import { db, useCleanDb } from '../../db/test/setup';
-import { createMembershipCheck } from '../src';
+import { createMembershipCheck, currentLogin, LOGIN_CACHE_TTL_MS } from '../src';
 import { fakeDeps, INST, seedMember } from './use-cases/fakes';
 
 useCleanDb();
@@ -114,5 +114,28 @@ describe('createMembershipCheck', () => {
     setNow(new Date('2026-10-28T15:11:00Z'));
     await isMember(orgAccount, member);
     expect(calls.membership).toHaveLength(2);
+  });
+});
+
+describe('currentLogin', () => {
+  test('caches the login of a github id for ten minutes', async () => {
+    const { deps, calls, setNow } = fakeDeps();
+    const octokit = await deps.github.installationOctokit(INST);
+    expect(await currentLogin(deps, octokit, 1)).toBe('Alice');
+    expect(await currentLogin(deps, octokit, 1)).toBe('Alice');
+    expect(calls.users).toEqual([1]);
+    setNow(new Date(deps.now().getTime() + LOGIN_CACHE_TTL_MS));
+    await currentLogin(deps, octokit, 1);
+    expect(calls.users).toEqual([1, 1]);
+  });
+
+  test('a fresh lookup skips the cache', async () => {
+    const { deps, calls, users } = fakeDeps();
+    const octokit = await deps.github.installationOctokit(INST);
+    await currentLogin(deps, octokit, 1);
+    users.set(1, 'alice-new');
+    expect(await currentLogin(deps, octokit, 1, { fresh: true })).toBe('alice-new');
+    expect(await currentLogin(deps, octokit, 1)).toBe('alice-new');
+    expect(calls.users).toEqual([1, 1]);
   });
 });

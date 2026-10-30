@@ -5,6 +5,7 @@ import {
   setInstallationConfig,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { invalidateResolvedTeams } from '../teams';
 
 export type ConfigStatus = 'configured' | 'invalid' | 'unconfigured';
 
@@ -23,23 +24,23 @@ export async function loadInstallationConfig(
     }
   }
   if (!source.found) {
-    await setInstallationConfig(deps.db, installationId, {
-      status: 'unconfigured',
-      reason: source.reason,
-    });
+    await storeConfig(deps, installationId, { status: 'unconfigured', reason: source.reason });
     return 'unconfigured';
   }
   const parsed = parseConfig(source.source);
   if (!parsed.ok) {
-    await setInstallationConfig(deps.db, installationId, {
-      status: 'invalid',
-      errors: parsed.errors,
-    });
+    await storeConfig(deps, installationId, { status: 'invalid', errors: parsed.errors });
     return 'invalid';
   }
-  await setInstallationConfig(deps.db, installationId, {
-    status: 'configured',
-    config: parsed.config,
-  });
+  await storeConfig(deps, installationId, { status: 'configured', config: parsed.config });
   return 'configured';
+}
+
+async function storeConfig(
+  deps: Deps,
+  installationId: number,
+  state: Parameters<typeof setInstallationConfig>[2],
+): Promise<void> {
+  await setInstallationConfig(deps.db, installationId, state);
+  invalidateResolvedTeams(deps, installationId);
 }

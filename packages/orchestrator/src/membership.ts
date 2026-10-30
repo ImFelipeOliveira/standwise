@@ -1,7 +1,11 @@
 import { type InstallationRow, type MemberRow, updateMemberLogin } from '@standwise/db';
 import type { Deps } from './deps';
+import { scopedTtlCache } from './ttl-cache';
 
 const TTL_MS = 10 * 60 * 1000;
+export const LOGIN_CACHE_TTL_MS = 10 * 60 * 1000;
+
+const loginCache = scopedTtlCache<string>(LOGIN_CACHE_TTL_MS);
 
 type Account = Pick<InstallationRow, 'id' | 'accountLogin' | 'accountType' | 'accountId'>;
 export type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
@@ -16,14 +20,27 @@ export function isUserAccountOwner(account: Account, member: MemberRow): boolean
   return account.accountLogin.toLowerCase() === member.login.toLowerCase();
 }
 
-export async function currentLogin(octokit: Octokit, githubUserId: number): Promise<string | null> {
+export async function currentLogin(
+  deps: Pick<Deps, 'github' | 'now'>,
+  octokit: Octokit,
+  githubUserId: number,
+  options: { fresh?: boolean } = {},
+): Promise<string | null> {
+  const cache = loginCache(deps.github);
+  const key = String(githubUserId);
+  const cached = options.fresh ? undefined : cache.get(key, deps.now().getTime());
+  if (cached !== undefined) return cached;
   try {
     const response = await octokit.request('GET /user/{account_id}', {
       account_id: githubUserId,
     });
+    cache.set(key, response.data.login, deps.now().getTime());
     return response.data.login;
   } catch (error) {
-    if (statusOf(error) === 404) return null;
+    if (statusOf(error) === 404) {
+      cache.delete(key);
+      return null;
+    }
     throw error;
   }
 }
@@ -50,7 +67,7 @@ export function createMembershipCheck(
     const cached = cache.get(key);
     if (cached !== undefined && now - cached < TTL_MS) return member;
     const octokit = await deps.github.installationOctokit(account.id);
-    const login = await currentLogin(octokit, member.githubUserId);
+    const login = await currentLogin(deps, octokit, member.githubUserId);
     if (login === null) {
       cache.delete(key);
       return null;

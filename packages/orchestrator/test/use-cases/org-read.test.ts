@@ -18,6 +18,7 @@ import {
   listOrgDailies,
   listOrgDigests,
   listOrgTeams,
+  loadInstallationConfig,
 } from '../../src';
 import { fakeDeps, INST, seedOrg } from './fakes';
 
@@ -478,5 +479,36 @@ describe('cursor codec', () => {
     const cursor = encodeCursor({ date: '2026-10-28', id: crypto.randomUUID() });
     expect(cursor).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(decodeCursor(cursor)).toMatchObject({ date: '2026-10-28' });
+  });
+});
+
+describe('org read caching', () => {
+  function counted(fake: ReturnType<typeof fakeDeps>) {
+    let count = 0;
+    const resolve = fake.deps.github.resolveTeamMembers;
+    fake.deps.github.resolveTeamMembers = async (...args) => {
+      count++;
+      return resolve(...args);
+    };
+    return () => count;
+  }
+
+  test('two org reads resolve the teams once', async () => {
+    await seedOrg(twoTeams());
+    const fake = fakeDeps();
+    const resolutions = counted(fake);
+    await listOrgTeams(fake.deps, INST);
+    await listOrgTeams(fake.deps, INST);
+    expect(resolutions()).toBe(2);
+  });
+
+  test('loading the config invalidates the resolved teams', async () => {
+    await seedOrg(twoTeams());
+    const fake = fakeDeps({ source: { found: true, source: 'teams: nope' } });
+    const resolutions = counted(fake);
+    await listOrgTeams(fake.deps, INST);
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    await listOrgTeams(fake.deps, INST);
+    expect(resolutions()).toBe(4);
   });
 });
