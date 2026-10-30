@@ -7,6 +7,7 @@ import { login } from './commands/login';
 import { logout } from './commands/logout';
 import { mcp } from './commands/mcp';
 import { submit } from './commands/submit';
+import { suggestion } from './commands/suggestion';
 import { whoami } from './commands/whoami';
 import { type Ctx, EXIT, ExitError, type Io } from './io';
 import { cliLanguage } from './language';
@@ -25,6 +26,7 @@ const COMMANDS: Record<string, (ctx: Ctx) => Promise<number>> = {
   whoami,
   draft,
   submit,
+  suggestion,
   mcp,
 };
 
@@ -64,6 +66,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
     io,
     lang,
     flags: { org: values.org, file: values.file, apiUrl: values['api-url'] },
+    args: positionals.slice(1),
   };
   try {
     return await command(ctx);

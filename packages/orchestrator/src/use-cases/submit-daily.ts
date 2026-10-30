@@ -1,5 +1,11 @@
 import type { DailyConfirmation, DailySubmission, Item } from '@standwise/core';
-import { getDelivery, getMemberDaily, type MemberRow, upsertDaily } from '@standwise/db';
+import {
+  confirmSuggestionsByUrl,
+  getDelivery,
+  getMemberDaily,
+  type MemberRow,
+  upsertDaily,
+} from '@standwise/db';
 import type { Deps } from '../deps';
 import { blockerHash, newBlockers } from '../events';
 import { emitEventSafely } from './emit-event';
@@ -19,6 +25,29 @@ async function isLate(deps: Deps, ctx: OrgContext): Promise<boolean> {
     if (delivery?.status === 'sent') return true;
   }
   return false;
+}
+
+function logFailure(label: string, error: unknown): void {
+  const e = error as { name?: unknown; code?: unknown; message?: unknown };
+  console.error(label, {
+    name: String(e.name),
+    code: String(e.code),
+    message: String(e.message),
+  });
+}
+
+async function confirmBlockerSuggestions(
+  deps: Deps,
+  ctx: OrgContext,
+  blockers: Item[],
+): Promise<void> {
+  const urls = [...new Set(blockers.flatMap((b) => (b.ref ? [b.ref.url] : [])))];
+  if (urls.length === 0) return;
+  try {
+    await confirmSuggestionsByUrl(deps.db, ctx.installationId, ctx.member.id, urls);
+  } catch (error) {
+    logFailure('suggestion confirmation failed', error);
+  }
 }
 
 async function enqueueBlockerRoutes(
@@ -41,12 +70,7 @@ async function enqueueBlockerRoutes(
         singletonKey: `route:${dailyId}:${hash}`,
       });
     } catch (error) {
-      const e = error as { name?: unknown; code?: unknown; message?: unknown };
-      console.error('blocker route enqueue failed', {
-        name: String(e.name),
-        code: String(e.code),
-        message: String(e.message),
-      });
+      logFailure('blocker route enqueue failed', error);
     }
   }
 }
@@ -67,6 +91,7 @@ export async function submitDaily(
     payload: options.confirmation ? { ...payload, confirmation: options.confirmation } : payload,
     submittedAt: deps.now(),
   });
+  await confirmBlockerSuggestions(deps, ctx, payload.blockers);
   const teams = ctx.mine.map((t) => t.name);
   const late = await isLate(deps, ctx);
   if (late) {

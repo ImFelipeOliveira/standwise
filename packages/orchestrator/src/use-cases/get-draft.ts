@@ -1,7 +1,9 @@
-import { type ActivityItem, activitySince } from '@standwise/core';
-import { getLastDaily, type MemberRow } from '@standwise/db';
+import { type ActivityItem, activitySince, type Ref, type SignalKind } from '@standwise/core';
+import { getLastDaily, listPendingSuggestions, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
 import { type MembershipCheck, resolveOrgContext } from './org-context';
+
+export type DraftSuggestion = { id: string; kind: SignalKind; ref: Ref; since: string };
 
 export type Draft = {
   org: string;
@@ -9,7 +11,7 @@ export type Draft = {
   since: string;
   teams: string[];
   activity: ActivityItem[];
-  suggestions: never[];
+  suggestions: DraftSuggestion[];
 };
 
 export async function getDraft(
@@ -24,12 +26,18 @@ export async function getDraft(
   const since = activitySince({ date: ctx.date, cal, ...(lastDaily ? { lastDaily } : {}) });
   const octokit = await deps.github.installationOctokit(ctx.installationId);
   const activity = await deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
+  const pending = await listPendingSuggestions(deps.db, ctx.installationId, ctx.member.id);
   return {
     org: ctx.owner,
     date: ctx.date,
     since: since.toISOString(),
     teams: ctx.mine.map((t) => t.name),
     activity,
-    suggestions: [],
+    suggestions: pending.map((s) => ({
+      id: s.id,
+      kind: s.kind,
+      ref: s.ref,
+      since: s.createdAt.toISOString(),
+    })),
   };
 }

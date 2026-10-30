@@ -10,7 +10,15 @@ import {
   t,
 } from '@standwise/core';
 import { z } from 'zod';
-import { ApiError, getDraft, getManage, getToday, NetworkError, postDaily } from '../api';
+import {
+  ApiError,
+  decideSuggestion,
+  getDraft,
+  getManage,
+  getToday,
+  NetworkError,
+  postDaily,
+} from '../api';
 import { type Ctx, EXIT, ExitError, type Io } from '../io';
 import { cliLanguage } from '../language';
 import { requireBoundCredentials, requireCredentials, resolveOrg } from '../session';
@@ -93,7 +101,14 @@ const draftOut = z.looseObject({
   since: z.string(),
   teams: z.array(z.string()),
   activity: z.array(z.unknown()),
-  suggestions: z.array(z.string()),
+  suggestions: z.array(
+    z.looseObject({
+      id: z.string(),
+      kind: z.string(),
+      ref: z.looseObject({ kind: z.string(), url: z.string() }),
+      since: z.string(),
+    }),
+  ),
   untrusted,
 });
 
@@ -353,6 +368,36 @@ export function registerTools(server: McpServer, io: Io): void {
         return toolError(error);
       }
     },
+  );
+
+  server.registerTool(
+    'standwise_decide_suggestion',
+    {
+      title: 'Confirm or ignore a suggested blocker',
+      description:
+        "Records the person's answer to a suggested blocker from their own draft. Call it only after asking the person whether the suggestion is a real blocker. Use decision ignored when they say no. When they say yes, add it to the blockers in their own words with its ref; submitting the daily confirms it, and decision confirmed records the answer right away. Never decide on the person's behalf.",
+      inputSchema: {
+        org,
+        id: z.string().min(1).describe('Suggestion id from the draft.'),
+        decision: z
+          .enum(['confirmed', 'ignored'])
+          .describe('confirmed when the person said it is a real blocker, ignored when not.'),
+      },
+      outputSchema: { id: z.string(), decision: z.enum(['confirmed', 'ignored']) },
+      annotations: {
+        title: 'Confirm or ignore a suggested blocker',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (input) =>
+      respond(async () => {
+        const s = await session(io, input.org);
+        await decideSuggestion(s.apiUrl, s.token, s.org, input.id, input.decision);
+        return { id: input.id, decision: input.decision };
+      }),
   );
 
   server.registerTool(

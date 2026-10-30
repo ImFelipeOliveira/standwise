@@ -1,6 +1,7 @@
 export * from './authorize-installation';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
+export * from './decide-suggestion';
 export * from './deliver-webhook';
 export * from './emit-event';
 export * from './errors';

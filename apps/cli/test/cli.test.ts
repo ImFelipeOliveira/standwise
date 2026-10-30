@@ -196,6 +196,65 @@ describe('draft', () => {
   });
 });
 
+describe('suggestion', () => {
+  const ID = '5f0c2a8e-3b1d-4c7e-9a2f-1d6b8e4c0a17';
+
+  test('suggestion ignore and confirm post the decision and exit 0', async () => {
+    const api = serve(() => new Response(null, { status: 204 }));
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['suggestion', 'ignore', ID], ctx.io)).toBe(0);
+    expect(api.seen[0]).toMatchObject({
+      method: 'POST',
+      path: `/v1/suggestions/${ID}/decision`,
+      auth: 'Bearer sw_tok',
+    });
+    expect(JSON.parse(api.seen[0]?.body ?? '')).toEqual({ org: 'acme', decision: 'ignored' });
+    expect(JSON.parse(ctx.out.join(''))).toEqual({ id: ID, decision: 'ignored' });
+    const multi = await loggedIn(api.url);
+    expect(await run(['suggestion', 'confirm', ID, '--org', 'beta'], multi.io)).toBe(0);
+    expect(JSON.parse(api.seen[1]?.body ?? '')).toEqual({ org: 'beta', decision: 'confirmed' });
+  });
+
+  test('an unknown id exits 1 with error not_found', async () => {
+    const api = serve(() =>
+      json({ error: { code: 'not_found', message: 'suggestion not found' } }, 404),
+    );
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['suggestion', 'ignore', ID], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain('error not_found: suggestion not found');
+  });
+
+  test('a suggestion decided otherwise exits 1 with error suggestion_already_decided', async () => {
+    const api = serve(() =>
+      json(
+        {
+          error: { code: 'suggestion_already_decided', message: 'suggestion was already decided' },
+        },
+        409,
+      ),
+    );
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['suggestion', 'confirm', ID], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain('error suggestion_already_decided');
+  });
+
+  test('a missing action or id prints the usage and exits 1 without calling the API', async () => {
+    const api = serve(() => new Response(null, { status: 204 }));
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['suggestion', 'maybe', ID], ctx.io)).toBe(1);
+    expect(await run(['suggestion', 'ignore'], ctx.io)).toBe(1);
+    expect(ctx.err.join('')).toContain('standwise suggestion ignore <id>');
+    expect(api.seen).toHaveLength(0);
+  });
+
+  test('the id is path encoded', async () => {
+    const api = serve(() => new Response(null, { status: 204 }));
+    const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
+    expect(await run(['suggestion', 'ignore', '../draft'], ctx.io)).toBe(0);
+    expect(api.seen[0]?.path).toBe('/v1/suggestions/..%2Fdraft/decision');
+  });
+});
+
 describe('submit', () => {
   test('submit validates locally', async () => {
     const api = serve(() => json({}));

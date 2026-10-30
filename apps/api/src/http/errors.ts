@@ -17,6 +17,7 @@ export const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   rate_limited: 429,
   insufficient_scope: 403,
   not_found: 404,
+  suggestion_already_decided: 409,
 };
 
 export function onError(error: Error, c: Context): Response {

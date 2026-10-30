@@ -4,6 +4,7 @@ import {
   createMembershipCheck,
   type Deps,
   DomainError,
+  decideDraftSuggestion,
   endSession,
   getDraft,
   getToday,
@@ -34,6 +35,7 @@ import {
   SessionRequestSchema,
   SessionSchema,
   SubmitResultSchema,
+  SuggestionDecisionSchema,
   TodaySchema,
 } from '../openapi/schemas';
 import { manageRoutes } from './manage';
@@ -243,6 +245,54 @@ const dailies = createRoute({
   },
 });
 
+const suggestionDecision = createRoute({
+  method: 'post',
+  path: '/v1/suggestions/{id}/decision',
+  tags: ['Daily'],
+  summary: 'Confirm or ignore a suggested blocker',
+  description:
+    "Records the person's answer to one of the suggested blockers listed in their own draft. `confirmed` marks it as a real blocker; `ignored` hides it until the signal changes. Repeating the same decision is a no-op. Only the owner of the suggestion can decide it.\n\nRegistra a resposta da pessoa a uma das sugestões de impedimento listadas no próprio rascunho. `confirmed` marca como impedimento real; `ignored` esconde até o sinal mudar. Repetir a mesma decisão não muda nada. Só a dona da sugestão pode decidir.",
+  security: [{ session: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({
+        format: 'uuid',
+        description: 'Suggestion id from the draft.',
+        example: '5f0c2a8e-3b1d-4c7e-9a2f-1d6b8e4c0a17',
+      }),
+    }),
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: SuggestionDecisionSchema,
+          example: { org: 'acme', decision: 'ignored' },
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: 'The decision was recorded.', headers: rateHeaders },
+    401: UNAUTHORIZED,
+    403: errorResponse('The person has no access to the organization.', {
+      forbidden: 'not a member of this organization',
+    }),
+    404: errorResponse('The organization or the suggestion was not found.', {
+      org_not_found: 'organization not found',
+      not_found: 'suggestion not found',
+    }),
+    409: errorResponse('The organization is not ready, or the suggestion was decided otherwise.', {
+      org_not_configured: 'organization has no valid standwise.yml',
+      suggestion_already_decided: 'suggestion was already decided',
+    }),
+    422: errorResponse('The request is not valid.', {
+      invalid_request: 'org and decision are required',
+      not_in_team: 'you are not in any team of this organization',
+    }),
+    429: RATE_LIMITED,
+  },
+});
+
 const CONFIRMATION_HEADER = 'x-standwise-confirmation';
 
 function confirmationOf(value: string | undefined): DailyConfirmation | undefined {
@@ -254,8 +304,14 @@ const BODY_ERRORS: Record<string, DomainError> = {
   '/v1/dailies': new DomainError('invalid_daily', 'request body must be JSON'),
 };
 
+const SUGGESTION_DECISION_PATH = /^\/v1\/suggestions\/[^/]+\/decision$/;
+
 function bodyError(error: Error, path: string): Error {
-  const mapped = BODY_ERRORS[path];
+  const mapped =
+    BODY_ERRORS[path] ??
+    (SUGGESTION_DECISION_PATH.test(path)
+      ? new DomainError('invalid_request', 'request body must be JSON')
+      : undefined);
   if (error instanceof HTTPException && (error.status === 400 || error.status === 415) && mapped) {
     return new DomainError(mapped.code, mapped.message);
   }
@@ -274,6 +330,7 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
     '/v1/draft',
     '/v1/today',
     '/v1/dailies',
+    '/v1/suggestions/*',
     '/v1/manage/*',
   ]) {
     app.use(path, sessionAuth(deps, options.getClientIp), subjectRateLimit(deps));
@@ -326,6 +383,31 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
     (result) => {
       if (!result.success) {
         throw new DomainError('invalid_daily', 'invalid daily', result.error.issues);
+      }
+    },
+  );
+
+  app.openapi(
+    suggestionDecision,
+    async (c) => {
+      const { org, decision } = c.req.valid('json');
+      await decideDraftSuggestion(
+        deps,
+        isMember,
+        c.get('member'),
+        org,
+        c.req.valid('param').id,
+        decision,
+      );
+      return c.body(null, 204);
+    },
+    (result) => {
+      if (!result.success) {
+        throw new DomainError(
+          'invalid_request',
+          'org and decision are required',
+          result.error.issues,
+        );
       }
     },
   );

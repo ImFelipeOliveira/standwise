@@ -103,6 +103,7 @@ describe('public openapi document', () => {
       '/v1/draft',
       '/v1/dailies',
       '/v1/meta',
+      '/v1/suggestions',
     ]) {
       expect(text).not.toContain(path);
     }
@@ -141,6 +142,7 @@ describe('internal openapi document', () => {
       '/v1/meta',
       '/v1/sessions',
       '/v1/sessions/current',
+      '/v1/suggestions/{id}/decision',
       '/v1/today',
     ]);
     expect((await new Validator().validate(doc)).valid).toBe(true);

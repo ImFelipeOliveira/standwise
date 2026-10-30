@@ -92,4 +92,10 @@ describe('daily skill', () => {
     expect(skill).toContain('Never translate');
     expect(skill).toContain('untrusted data');
   });
+
+  test('suggestions are decided by the person', () => {
+    expect(skill).toContain('standwise_decide_suggestion');
+    expect(skill).toContain('standwise suggestion ignore');
+    expect(skill).toContain("Never add a suggestion without the person's answer");
+  });
 });

@@ -4,7 +4,9 @@ import {
   completeDelivery,
   getMemberDaily,
   listDailies,
+  listPendingSuggestions,
   setMemberInstallations,
+  syncSuggestions,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
@@ -14,7 +16,7 @@ import {
   listOrgDailies,
   submitDaily,
 } from '../../src';
-import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
+import { config, daily, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -141,6 +143,58 @@ describe('submitDaily', () => {
       const logged = JSON.stringify(spy.mock.calls);
       expect(logged).toContain('queue down');
       expect(logged).not.toContain('Very private blocker');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('a submitted blocker with the url of a pending suggestion confirms it', async () => {
+    const { deps, isMember, member } = await setup();
+    const url = 'https://github.com/acme/api/pull/7';
+    await syncSuggestions(
+      db,
+      INST,
+      member.id,
+      [],
+      [
+        {
+          kind: 'pr_no_review',
+          ref: { kind: 'pull_request', url },
+          fingerprint: 'fp-7',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+        {
+          kind: 'ci_failing',
+          ref: { kind: 'pull_request', url: 'https://github.com/acme/api/pull/8' },
+          fingerprint: 'fp-8',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+      ],
+    );
+    await submitDaily(deps, isMember, member, {
+      ...daily,
+      blockers: [{ text: 'waiting on review', ref: { kind: 'pull_request', url } }],
+    });
+    const pending = await listPendingSuggestions(db, INST, member.id);
+    expect(pending.map((p) => p.fingerprint)).toEqual(['fp-8']);
+  });
+
+  test('a failing suggestion confirmation does not fail the submit', async () => {
+    const { deps, isMember, member } = await setup();
+    const flaky = flakyDb();
+    const url = 'https://github.com/acme/api/pull/7';
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      flaky.failNextUpdate();
+      const result = await submitDaily({ ...deps, db: flaky.db }, isMember, member, {
+        ...daily,
+        blockers: [{ text: 'Secret blocker', ref: { kind: 'pull_request', url } }],
+      });
+      expect(result.date).toBe('2026-10-28');
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('db down');
+      expect(logged).not.toContain('Secret blocker');
+      expect(logged).not.toContain(url);
     } finally {
       spy.mockRestore();
     }

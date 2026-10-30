@@ -20,6 +20,7 @@ Every error response uses the same envelope:
 | `forbidden` | 403 | The credential is valid but the person or organization is not allowed to perform this action. |
 | `insufficient_scope` | 403 | The API key lacks the scope this operation needs. The error carries `required_scope`. Create a key with that scope. |
 | `not_found` | 404 | The resource does not exist in the key's organization. |
+| `suggestion_already_decided` | 409 | The suggested blocker was already decided the other way. Fetch the draft again; it no longer lists it. |
 | `invalid_state` | 400 | An authorization link expired or was tampered with. Start the flow again. |
 | `installation_pending` | 409 | The installation is still being processed. Retry in a few seconds. |
 | `access_denied` | 403 | The person denied the authorization. Nothing was changed. |
