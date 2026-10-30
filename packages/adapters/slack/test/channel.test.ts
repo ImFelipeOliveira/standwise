@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { ChatDeliveryError, createSlackChannel } from '../src';
+import {
+  CHANNEL_LOOKUP_BUDGET_MS,
+  SLACK_REQUEST_TIMEOUT_MS,
+  slackClientOptions,
+} from '../src/channel';
 
 type Call = { method: string; body: Record<string, unknown> };
 
@@ -116,5 +121,51 @@ describe('createSlackChannel', () => {
     const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
     const err = await ch.postToChannel('C1', msg).catch((e) => e);
     expect(err.code).toBe('invalid_response');
+  });
+
+  test('production client never retries and times out each request', () => {
+    expect(slackClientOptions()).toEqual({ retryConfig: { retries: 0 }, timeout: 15000 });
+    expect(slackClientOptions('http://x/api/')).toEqual({
+      slackApiUrl: 'http://x/api/',
+      retryConfig: { retries: 0 },
+      timeout: SLACK_REQUEST_TIMEOUT_MS,
+    });
+  });
+
+  test('a failing request is sent once', async () => {
+    const calls: string[] = [];
+    server = Bun.serve({
+      port: 0,
+      fetch(req) {
+        calls.push(new URL(req.url).pathname);
+        return new Response('boom', { status: 500 });
+      },
+    });
+    const ch = createSlackChannel('xoxb-t', {
+      slackApiUrl: `http://localhost:${server.port}/api/`,
+    });
+    await expect(ch.postToChannel('C1', msg)).rejects.toBeDefined();
+    expect(calls).toHaveLength(1);
+  });
+
+  test('channel lookup stops paging past its budget and does not post', async () => {
+    let clock = 0;
+    const { calls, url } = fake({
+      'conversations.list': () => {
+        clock += CHANNEL_LOOKUP_BUDGET_MS / 2 + 1;
+        return {
+          ok: true,
+          channels: [{ id: 'C1', name: 'x' }],
+          response_metadata: { next_cursor: 'n' },
+        };
+      },
+      'chat.postMessage': () => ({ ok: true, channel: 'C2', ts: '1.1' }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url, now: () => clock });
+    const err = await ch.postToChannel('#daily', msg).catch((e) => e);
+    expect(err).toBeInstanceOf(ChatDeliveryError);
+    expect(err.code).toBe('timeout');
+    expect(calls.filter((c) => c.method === 'conversations.list')).toHaveLength(2);
+    expect(calls.filter((c) => c.method === 'chat.postMessage')).toHaveLength(0);
   });
 });

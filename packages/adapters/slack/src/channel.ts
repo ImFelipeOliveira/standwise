@@ -1,25 +1,42 @@
-import { WebClient } from '@slack/web-api';
+import { WebClient, type WebClientOptions } from '@slack/web-api';
 import type { ChatChannel, Message, MessageRef } from '@standwise/core';
 import { ChatDeliveryError, mapSlackErrors } from './errors';
 import { renderSlack } from './render';
 
+export const SLACK_REQUEST_TIMEOUT_MS = 15_000;
+export const CHANNEL_LOOKUP_BUDGET_MS = 2 * 60 * 1000;
+
+export function slackClientOptions(slackApiUrl?: string): WebClientOptions {
+  return {
+    ...(slackApiUrl ? { slackApiUrl } : {}),
+    retryConfig: { retries: 0 },
+    timeout: SLACK_REQUEST_TIMEOUT_MS,
+  };
+}
+
 export function createWebClient(token: string | undefined, slackApiUrl?: string): WebClient {
-  return new WebClient(token, slackApiUrl ? { slackApiUrl, retryConfig: { retries: 0 } } : {});
+  return new WebClient(token, slackClientOptions(slackApiUrl));
 }
 
 export function createSlackChannel(
   botToken: string,
-  opts: { slackApiUrl?: string } = {},
+  opts: { slackApiUrl?: string; now?: () => number } = {},
 ): ChatChannel {
   const client = createWebClient(botToken, opts.slackApiUrl);
+  const now = opts.now ?? Date.now;
   const channelIds = new Map<string, string>();
 
   async function resolveChannel(channel: string): Promise<string> {
     if (!channel.startsWith('#')) return channel;
     const name = channel.slice(1);
     if (channelIds.size === 0) {
+      const startedAt = now();
       let cursor: string | undefined;
       do {
+        if (now() - startedAt > CHANNEL_LOOKUP_BUDGET_MS) {
+          channelIds.clear();
+          throw new ChatDeliveryError('timeout', 'channel lookup took too long');
+        }
         const res = await client.conversations.list({
           types: 'public_channel,private_channel',
           exclude_archived: true,

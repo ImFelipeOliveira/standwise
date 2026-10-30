@@ -9,7 +9,7 @@ import {
 } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { sendDigest, sendLateDaily } from '../../src';
+import { DIGEST_POST_DEADLINE_MS, sendDigest, sendLateDaily } from '../../src';
 import { config, daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -172,5 +172,20 @@ describe('sendDigest', () => {
     await expect(sendDigest(deps, job)).rejects.toThrow('db down');
     const row = await getDelivery(db, key);
     expect(row?.status).toBe('pending');
+  });
+
+  test('an attempt past its deadline fails before posting', async () => {
+    const { deps, posted, setNow } = await setup();
+    const resolve = deps.github.resolveTeamMembers;
+    deps.github.resolveTeamMembers = async (...args) => {
+      setNow(new Date(deps.now().getTime() + DIGEST_POST_DEADLINE_MS + 1));
+      return resolve(...args);
+    };
+    const error = await sendDigest(deps, job).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ChatDeliveryError);
+    expect(posted).toHaveLength(0);
+    const row = await getDelivery(db, key);
+    expect(row?.status).toBe('failed');
+    expect(row?.error?.startsWith('deadline_exceeded')).toBe(true);
   });
 });

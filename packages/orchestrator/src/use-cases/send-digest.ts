@@ -16,10 +16,13 @@ import {
   listDailies,
   operationalConfig,
 } from '@standwise/db';
+import { ChatDeliveryError } from '@standwise/slack';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
 import { emitEventSafely } from './emit-event';
+
+export const DIGEST_POST_DEADLINE_MS = 5 * 60 * 1000;
 
 export type SendDigestJob = { installationId: number; teamName: string; date: string };
 
@@ -57,6 +60,7 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
   const key: DeliveryKey = { ...job, kind: 'digest' };
   const claim = await claimDelivery(deps.db, key);
   if (claim.status !== 'claimed') return;
+  const claimedAt = deps.now().getTime();
 
   if (teamConfig.chat.provider !== 'slack') {
     await failDelivery(deps.db, key, claim.token, 'unsupported_provider');
@@ -96,6 +100,9 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
       const found = snapshot.find((d) => d.login.toLowerCase() === login);
       if (found) entries.push({ ...person(found.login), daily: found.payload });
       else missing.push(person(login));
+    }
+    if (deps.now().getTime() - claimedAt > DIGEST_POST_DEADLINE_MS) {
+      throw new ChatDeliveryError('deadline_exceeded', 'digest attempt ran past its deadline');
     }
     ref = await chat.postToChannel(
       team.chat.channel,
