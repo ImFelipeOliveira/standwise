@@ -15,6 +15,7 @@ import type {
 } from '@standwise/github';
 import type { JobQueue } from '@standwise/queue';
 import type { exchangeSlackCode } from '@standwise/slack';
+import type { ProjectTracker } from './project-tracker';
 import type { SafeFetchOptions } from './safe-fetch';
 
 export type Deps = {
@@ -40,6 +41,7 @@ export type Deps = {
     exchangeCode: typeof exchangeSlackCode;
   };
   chatFor: (installationId: number, provider: 'slack') => Promise<ChatChannel | null>;
+  tracker: ProjectTracker;
   webhookTransport?: SafeFetchOptions;
   env: {
     publicUrl: string;
@@ -56,5 +58,5 @@ export type Deps = {
 
 export type WorkerDeps = Pick<
   Deps,
-  'db' | 'queue' | 'now' | 'chatFor' | 'github' | 'encryptionKey' | 'webhookTransport'
+  'db' | 'queue' | 'now' | 'chatFor' | 'github' | 'encryptionKey' | 'webhookTransport' | 'tracker'
 >;

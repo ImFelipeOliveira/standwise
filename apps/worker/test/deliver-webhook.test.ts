@@ -8,6 +8,7 @@ import {
 } from '@standwise/db';
 import {
   emitEvent,
+  nullTracker,
   type SafeFetchOptions,
   verifyWebhookSignature,
   type WorkerDeps,
@@ -68,6 +69,7 @@ function harness(resolved: string[] = ['93.184.216.34']) {
     chatFor: async () => null,
     github: {} as WorkerDeps['github'],
     webhookTransport: transport,
+    tracker: nullTracker,
   };
   return {
     deps,

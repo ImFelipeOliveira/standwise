@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Webhooks } from '@octokit/webhooks';
 import { parseConfig } from '@standwise/core';
 import { getInstallation, setInstallationConfig, upsertInstallation } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import { type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
@@ -58,6 +58,7 @@ function harness(source: Source) {
       },
     },
     chatFor: async () => null,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

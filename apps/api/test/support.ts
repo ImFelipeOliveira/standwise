@@ -1,4 +1,4 @@
-import type { Deps } from '@standwise/orchestrator';
+import { type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import type { Context } from 'hono';
 import { db } from '../../../packages/db/test/setup';
@@ -56,6 +56,7 @@ export function createTestApp(
       },
     },
     chatFor: async () => null,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

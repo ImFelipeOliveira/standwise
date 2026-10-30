@@ -12,10 +12,17 @@ import {
   listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
-import { createChatFor, DELIVER_WEBHOOK_JOB, type WorkerDeps } from '@standwise/orchestrator';
+import {
+  createChatFor,
+  DELIVER_WEBHOOK_JOB,
+  nullTracker,
+  ROUTE_BLOCKER_JOB,
+  type WorkerDeps,
+} from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
+import { routeBlockerJob } from './jobs/route-blocker';
 import { sendDigestJob } from './jobs/send-digest';
 import { sendLateDailyJob } from './jobs/send-late-daily';
 import { sendReminderJob } from './jobs/send-reminder';
@@ -60,6 +67,7 @@ const deps: WorkerDeps = {
       }),
   },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
+  tracker: nullTracker,
 };
 
 await queue.start();
@@ -67,6 +75,7 @@ await queue.work('tick', tickJob(deps));
 await queue.work('send-digest', sendDigestJob(deps));
 await queue.work('send-late-daily', sendLateDailyJob(deps));
 await queue.work('send-reminder', sendReminderJob(deps));
+await queue.work(ROUTE_BLOCKER_JOB, routeBlockerJob(deps));
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
 await queue.schedule('tick', '* * * * *');

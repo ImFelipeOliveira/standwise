@@ -6,6 +6,7 @@ export * from './events';
 export * from './github-installations';
 export * from './identity';
 export * from './membership';
+export * from './project-tracker';
 export * from './safe-fetch';
 export * from './state-token';
 export * from './teams';

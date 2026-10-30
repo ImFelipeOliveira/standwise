@@ -1,9 +1,10 @@
-import type { DailyConfirmation, DailySubmission } from '@standwise/core';
+import type { DailyConfirmation, DailySubmission, Item } from '@standwise/core';
 import { getDelivery, getMemberDaily, type MemberRow, upsertDaily } from '@standwise/db';
 import type { Deps } from '../deps';
-import { newBlockers } from '../events';
+import { blockerHash, newBlockers } from '../events';
 import { emitEventSafely } from './emit-event';
 import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';
+import { ROUTE_BLOCKER_JOB, type RouteBlockerJob } from './route-blocker';
 
 export type SubmitDailyResult = { date: string; teams: string[]; late: boolean };
 
@@ -18,6 +19,34 @@ async function isLate(deps: Deps, ctx: OrgContext): Promise<boolean> {
     if (delivery?.status === 'sent') return true;
   }
   return false;
+}
+
+async function enqueueBlockerRoutes(
+  deps: Deps,
+  installationId: number,
+  dailyId: string,
+  blockers: Item[],
+  fresh: Item[],
+): Promise<void> {
+  for (const blocker of fresh) {
+    const job: RouteBlockerJob = {
+      installationId,
+      dailyId,
+      blockerIndex: blockers.indexOf(blocker),
+    };
+    try {
+      await deps.queue.enqueue(ROUTE_BLOCKER_JOB, job, {
+        singletonKey: `route:${dailyId}:${blockerHash(blocker)}`,
+      });
+    } catch (error) {
+      const e = error as { name?: unknown; code?: unknown; message?: unknown };
+      console.error('blocker route enqueue failed', {
+        name: String(e.name),
+        code: String(e.code),
+        message: String(e.message),
+      });
+    }
+  }
 }
 
 export async function submitDaily(
@@ -45,11 +74,14 @@ export async function submitDaily(
       date: ctx.date,
     });
   }
+  const fresh = newBlockers(previous?.payload.blockers, payload.blockers);
+  await enqueueBlockerRoutes(deps, ctx.installationId, id, payload.blockers, fresh);
   await emitDailyEvents(deps, ctx, {
     id,
     teams,
     payload,
     previous: previous?.payload ?? null,
+    fresh,
   });
   return { date: ctx.date, teams, late };
 }
@@ -57,7 +89,13 @@ export async function submitDaily(
 async function emitDailyEvents(
   deps: Deps,
   ctx: OrgContext,
-  p: { id: string; teams: string[]; payload: DailySubmission; previous: DailySubmission | null },
+  p: {
+    id: string;
+    teams: string[];
+    payload: DailySubmission;
+    previous: DailySubmission | null;
+    fresh: Item[];
+  },
 ): Promise<void> {
   const login = ctx.member.login;
   await emitEventSafely(deps, ctx.installationId, {
@@ -73,7 +111,7 @@ async function emitDailyEvents(
       replaced: p.previous !== null,
     },
   });
-  for (const blocker of newBlockers(p.previous?.blockers, p.payload.blockers)) {
+  for (const blocker of p.fresh) {
     await emitEventSafely(deps, ctx.installationId, {
       type: 'blocker.opened',
       data: {

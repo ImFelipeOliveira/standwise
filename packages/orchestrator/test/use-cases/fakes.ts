@@ -10,7 +10,7 @@ import { setInstallationConfig, upsertInstallation, upsertMember } from '@standw
 import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
-import type { Deps } from '../../src';
+import { type Deps, nullTracker } from '../../src';
 
 export const INST = 11;
 
@@ -167,6 +167,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
           return 'U9';
         },
       }) as never,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

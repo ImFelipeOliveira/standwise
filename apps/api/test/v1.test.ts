@@ -12,7 +12,7 @@ import {
   setInstallationConfig,
   upsertInstallation,
 } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import { type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -125,6 +125,7 @@ function harness(
               return opts.slackUser === undefined ? 'U9' : opts.slackUser;
             },
           } as never),
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

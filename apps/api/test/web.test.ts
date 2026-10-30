@@ -14,7 +14,7 @@ import {
   upsertInstallation,
   upsertMember,
 } from '@standwise/db';
-import { csrfToken, type Deps } from '@standwise/orchestrator';
+import { csrfToken, type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -107,6 +107,7 @@ function harness(
       },
     },
     chatFor: async () => null,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

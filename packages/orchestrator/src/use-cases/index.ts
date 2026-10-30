@@ -19,6 +19,7 @@ export * from './load-installation-config';
 export * from './org-context';
 export * from './pagination';
 export * from './readable-teams';
+export * from './route-blocker';
 export * from './run-tick';
 export * from './send-digest';
 export * from './send-late-daily';

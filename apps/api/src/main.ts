@@ -12,7 +12,7 @@ import {
   listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
-import { createChatFor, type Deps } from '@standwise/orchestrator';
+import { createChatFor, type Deps, nullTracker } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
@@ -60,6 +60,7 @@ const deps: Deps = {
   },
   slack: { exchangeCode: exchangeSlackCode },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
+  tracker: nullTracker,
   env: {
     publicUrl: env.PUBLIC_URL,
     supportEmail: env.SUPPORT_EMAIL,

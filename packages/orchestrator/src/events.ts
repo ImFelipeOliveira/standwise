@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Item, Ref } from '@standwise/core';
 
 export type DailySubmittedData = {
@@ -46,6 +47,10 @@ export type Envelope = {
 
 export function normalizeBlockerText(text: string): string {
   return text.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function blockerHash(blocker: Item): string {
+  return createHash('sha256').update(normalizeBlockerText(blocker.text)).digest('hex').slice(0, 32);
 }
 
 export function newBlockers(previous: Item[] | undefined, current: Item[]): Item[] {

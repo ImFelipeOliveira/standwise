@@ -1,12 +1,19 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
   claimDelivery,
   completeDelivery,
+  getMemberDaily,
   listDailies,
   setMemberInstallations,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { createMembershipCheck, getToday, listOrgDailies, submitDaily } from '../../src';
+import {
+  blockerHash,
+  createMembershipCheck,
+  getToday,
+  listOrgDailies,
+  submitDaily,
+} from '../../src';
 import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -83,5 +90,43 @@ describe('submitDaily', () => {
         data: { installationId: INST, memberId: member.id, date: '2026-10-28' },
       },
     ]);
+  });
+
+  test('enqueues one route-blocker job per new blocker only', async () => {
+    const { deps, isMember, member, queue } = await setup();
+    const blocker = { text: 'Need prod access' };
+    const first = { ...daily, blockers: [blocker] };
+    await submitDaily(deps, isMember, member, first);
+    await submitDaily(deps, isMember, member, {
+      ...daily,
+      blockers: [{ text: '  need PROD access ' }, { text: 'Flaky CI' }],
+    });
+    const row = await getMemberDaily(db, INST, member.id, '2026-10-28');
+    const routes = queue.enqueued.filter((j) => j.name === 'route-blocker');
+    expect(routes).toEqual([
+      { name: 'route-blocker', data: { installationId: INST, dailyId: row?.id, blockerIndex: 0 } },
+      { name: 'route-blocker', data: { installationId: INST, dailyId: row?.id, blockerIndex: 1 } },
+    ]);
+    expect(blockerHash({ text: '  need PROD access ' })).toBe(blockerHash(blocker));
+  });
+
+  test('a failing enqueue does not fail the submit and does not log the payload', async () => {
+    const { deps, isMember, member } = await setup();
+    deps.queue.enqueue = async () => {
+      throw Object.assign(new Error('queue down'), { code: 'ECONNREFUSED' });
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const result = await submitDaily(deps, isMember, member, {
+        ...daily,
+        blockers: [{ text: 'Very private blocker' }],
+      });
+      expect(result.date).toBe('2026-10-28');
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('queue down');
+      expect(logged).not.toContain('Very private blocker');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
