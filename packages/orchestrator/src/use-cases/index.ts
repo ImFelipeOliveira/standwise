@@ -1,5 +1,4 @@
 export * from './authorize-installation';
-export * from './can-read-team';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
 export * from './deliver-webhook';
@@ -19,6 +18,7 @@ export * from './list-org-teams';
 export * from './load-installation-config';
 export * from './org-context';
 export * from './pagination';
+export * from './readable-teams';
 export * from './run-tick';
 export * from './send-digest';
 export * from './send-late-daily';

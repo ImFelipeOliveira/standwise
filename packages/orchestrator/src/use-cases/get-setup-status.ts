@@ -8,6 +8,7 @@ import {
   operationalConfig,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { statusOf } from '../membership';
 import { authorizeInstallation } from './authorize-installation';
 import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
@@ -43,7 +44,7 @@ async function findConfigRepo(octokit: Octokit, owner: string): Promise<SetupSta
     });
     return { exists: true, defaultBranch: response.data.default_branch || 'main' };
   } catch (error) {
-    if ((error as { status?: unknown } | null)?.status === 404) return { exists: false };
+    if (statusOf(error) === 404) return { exists: false };
     throw error;
   }
 }

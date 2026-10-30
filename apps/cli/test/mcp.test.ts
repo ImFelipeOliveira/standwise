@@ -122,9 +122,14 @@ async function connect(io: Io, elicit?: Elicit) {
   return client;
 }
 
-async function loggedIn(orgs = ORGS, elicit?: Elicit, overrides: Record<string, unknown> = {}) {
+async function loggedIn(
+  orgs = ORGS,
+  elicit?: Elicit,
+  overrides: Record<string, unknown> = {},
+  env: Record<string, string> = {},
+) {
   const api = fakeApi(overrides);
-  const ctx = await makeIo();
+  const ctx = await makeIo(env);
   await writeCredentials(ctx.io.env, { apiUrl: api.url, token: 'sw_tok', login: 'alice', orgs });
   return { api, ctx, client: await connect(ctx.io, elicit) };
 }
@@ -370,6 +375,44 @@ describe('mcp server', () => {
     expect(text(result)).toContain(
       'The daily was posted for 2026-10-28, which differs from the date shown to the person (2026-10-29). Tell the person.',
     );
+  });
+
+  test('the elicitation dialog follows the cli language', async () => {
+    const asked: string[] = [];
+    const { client } = await loggedIn(
+      ORGS,
+      (message) => {
+        asked.push(message);
+        return { action: 'accept', content: { confirm: true } };
+      },
+      {},
+      { STANDWISE_LANG: 'pt-BR' },
+    );
+    const schemas: unknown[] = [];
+    const server = mcpServers[mcpServers.length - 1];
+    if (!server) throw new Error('no server');
+    const elicit = server.server.elicitInput.bind(server.server);
+    server.server.elicitInput = (params, options) => {
+      if ('requestedSchema' in params) schemas.push(params.requestedSchema);
+      return elicit(params, options);
+    };
+    const result = await client.callTool({
+      name: 'standwise_submit_daily',
+      arguments: { ...DAILY, blockers: [] },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(asked[0]).toContain('Enviar esta daily para acme? Data: 2026-10-29.');
+    expect(asked[0]).toContain('Ontem:\n');
+    expect(asked[0]).toContain('Hoje:\n- Review PRs');
+    expect(asked[0]).toContain('Impedimentos:\n- (nenhum)');
+    expect(schemas[0]).toMatchObject({
+      properties: {
+        confirm: {
+          title: 'Enviar esta daily',
+          description: 'Marque para enviar a daily exatamente como mostrada.',
+        },
+      },
+    });
   });
 
   test('with elicitation, decline, cancel or an unchecked box sends nothing', async () => {

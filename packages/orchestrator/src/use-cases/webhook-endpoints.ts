@@ -101,16 +101,6 @@ export async function createWebhookEndpoint(
   return { id, secret };
 }
 
-export async function listWebhookEndpoints(
-  deps: Deps,
-  isMember: MembershipCheck,
-  member: MemberRow,
-  installationId: number,
-): Promise<WebhookOverview> {
-  await requireAdmin(deps, isMember, member, installationId);
-  return loadWebhookOverview(deps.db, installationId);
-}
-
 export async function disableWebhookEndpoint(
   deps: Deps,
   isMember: MembershipCheck,

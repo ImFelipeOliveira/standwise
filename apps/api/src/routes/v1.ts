@@ -125,15 +125,26 @@ const endCurrentSession = createRoute({
   },
 });
 
+const orgQuery = z.object({
+  org: z.string().min(1).openapi({
+    description: 'Login of the organization.',
+    example: 'acme',
+  }),
+});
+
+const requireOrg = (result: { success: boolean }): undefined => {
+  if (!result.success) throw new DomainError('invalid_request', 'org is required');
+};
+
 const draft = createRoute({
   method: 'get',
   path: '/v1/draft',
   tags: ['Daily'],
   summary: 'Get the draft for today',
   description:
-    "Builds the draft of yesterday's work from the person's GitHub activity. `org` is optional when the person belongs to a single organization.\n\nMonta o rascunho do que a pessoa fez ontem a partir da atividade no GitHub. `org` é opcional quando a pessoa pertence a uma única organização.",
+    "Builds the draft of yesterday's work from the person's GitHub activity. `org` is required.\n\nMonta o rascunho do que a pessoa fez ontem a partir da atividade no GitHub. `org` é obrigatório.",
   security: [{ session: [] }],
-  request: { query: z.object({ org: z.string().optional().openapi({ example: 'acme' }) }) },
+  request: { query: orgQuery },
   responses: {
     200: {
       description: 'The draft.',
@@ -160,9 +171,9 @@ const today = createRoute({
   tags: ['Daily'],
   summary: 'Get the standup date',
   description:
-    "Returns the date the next daily counts for and the person's teams, without building the draft. Used by the MCP server to show the date before asking for confirmation.\n\nRetorna a data em que a próxima daily conta e os times da pessoa, sem montar o rascunho. Usado pelo servidor MCP para mostrar a data antes de pedir a confirmação.",
+    "Returns the date the next daily counts for and the person's teams, without building the draft. Used by the MCP server to show the date before asking for confirmation. `org` is required.\n\nRetorna a data em que a próxima daily conta e os times da pessoa, sem montar o rascunho. Usado pelo servidor MCP para mostrar a data antes de pedir a confirmação. `org` é obrigatório.",
   security: [{ session: [] }],
-  request: { query: z.object({ org: z.string().optional().openapi({ example: 'acme' }) }) },
+  request: { query: orgQuery },
   responses: {
     200: {
       description: 'The standup date.',
@@ -289,12 +300,18 @@ export function v1Routes(deps: Deps, options: V1Options): OpenAPIHono<Env> {
     return c.body(null, 204);
   });
 
-  app.openapi(draft, async (c) =>
-    c.json(await getDraft(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+  app.openapi(
+    draft,
+    async (c) =>
+      c.json(await getDraft(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+    requireOrg,
   );
 
-  app.openapi(today, async (c) =>
-    c.json(await getToday(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+  app.openapi(
+    today,
+    async (c) =>
+      c.json(await getToday(deps, isMember, c.get('member'), c.req.valid('query').org), 200),
+    requireOrg,
   );
 
   app.openapi(

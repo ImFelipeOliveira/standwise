@@ -136,6 +136,13 @@ const ptBR = {
     'As credenciais guardadas pertencem a outra API. Execute: standwise login --api-url {url}',
   'cli.githubUrlIgnored':
     'STANDWISE_GITHUB_URL ignorada: só localhost é aceito. Usando https://github.com.',
+  'cli.confirm.question': 'Enviar esta daily para {org}? Data: {date}.',
+  'cli.confirm.yesterday': 'Ontem:',
+  'cli.confirm.today': 'Hoje:',
+  'cli.confirm.blockers': 'Impedimentos:',
+  'cli.confirm.none': '(nenhum)',
+  'cli.confirm.title': 'Enviar esta daily',
+  'cli.confirm.description': 'Marque para enviar a daily exatamente como mostrada.',
 } as const;
 
 const en = {
@@ -274,6 +281,13 @@ const en = {
     'The stored credentials belong to a different API. Run: standwise login --api-url {url}',
   'cli.githubUrlIgnored':
     'STANDWISE_GITHUB_URL ignored: only localhost is accepted. Using https://github.com.',
+  'cli.confirm.question': 'Send this daily to {org}? Date: {date}.',
+  'cli.confirm.yesterday': 'Yesterday:',
+  'cli.confirm.today': 'Today:',
+  'cli.confirm.blockers': 'Blockers:',
+  'cli.confirm.none': '(none)',
+  'cli.confirm.title': 'Send this daily',
+  'cli.confirm.description': 'Check to send the daily exactly as shown.',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {

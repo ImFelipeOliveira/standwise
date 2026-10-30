@@ -18,6 +18,12 @@ export async function mapSlackErrors<T>(run: () => Promise<T>): Promise<T> {
       const code = err.data?.error ?? 'unknown_error';
       throw new ChatDeliveryError(code, err.message ?? code);
     }
+    if (err.code === 'slack_webapi_request_error') {
+      throw new ChatDeliveryError('request_failed', err.message ?? 'request failed');
+    }
+    if (err.code === 'slack_webapi_http_error') {
+      throw new ChatDeliveryError('http_error', err.message ?? 'http error');
+    }
     throw e;
   }
 }

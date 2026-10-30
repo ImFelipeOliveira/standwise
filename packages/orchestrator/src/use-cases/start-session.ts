@@ -9,6 +9,7 @@ import {
 import type { Deps } from '../deps';
 import { rememberGitHubInstallations } from '../github-installations';
 import { linkChatIdentities } from '../identity';
+import { statusOf } from '../membership';
 import { DomainError } from './errors';
 
 export type StartSessionResult = {
@@ -24,7 +25,7 @@ export async function syncMemberFromGitHub(
   const profile = await deps.github
     .getUserProfile(githubToken, { appId: Number(deps.env.appId) })
     .catch((error: unknown) => {
-      const status = (error as { status?: unknown } | null)?.status;
+      const status = statusOf(error);
       if (status === 401 || status === 403) {
         throw new DomainError('unauthorized', 'GitHub token invalid or expired');
       }

@@ -5,12 +5,15 @@ import {
   type DailySubmission,
   DailySubmissionSchema,
   hasUnsafeChars,
+  type Language,
+  stripUnsafeChars,
+  t,
 } from '@standwise/core';
 import { z } from 'zod';
 import { ApiError, getDraft, getManage, getToday, NetworkError, postDaily } from '../api';
 import { type Ctx, EXIT, ExitError, type Io } from '../io';
+import { cliLanguage } from '../language';
 import { requireBoundCredentials, requireCredentials, resolveOrg } from '../session';
-import { stripControl } from '../url';
 
 const EXIT_CODES: Record<number, string> = {
   [EXIT.unauthenticated]: 'not_logged_in',
@@ -114,7 +117,7 @@ function toolError(error: unknown): CallToolResult {
   }
   if (error instanceof ApiError) return failure(error.code, error.message);
   if (error instanceof NetworkError) {
-    return failure('network_error', `could not reach ${stripControl(error.url)}`);
+    return failure('network_error', `could not reach ${stripUnsafeChars(error.url)}`);
   }
   throw error;
 }
@@ -154,23 +157,26 @@ async function respond(
 }
 
 function itemLine(item: DailySubmission['today'][number]): string {
-  const text = stripControl(item.text);
+  const text = stripUnsafeChars(item.text);
   if (!item.ref) return `- ${text}`;
-  const kind = stripControl(item.ref.kind);
-  const label = item.ref.title ? `${kind}: ${stripControl(item.ref.title)}` : kind;
-  return `- ${text} [${label}] (${stripControl(item.ref.url)})`;
+  const kind = stripUnsafeChars(item.ref.kind);
+  const label = item.ref.title ? `${kind}: ${stripUnsafeChars(item.ref.title)}` : kind;
+  return `- ${text} [${label}] (${stripUnsafeChars(item.ref.url)})`;
 }
 
-function itemLines(items: DailySubmission['today']): string {
-  return items.length === 0 ? '- (none)' : items.map(itemLine).join('\n');
+function itemLines(lang: Language, items: DailySubmission['today']): string {
+  return items.length === 0 ? `- ${t(lang, 'cli.confirm.none')}` : items.map(itemLine).join('\n');
 }
 
-export function dailySummary(daily: DailySubmission, date: string): string {
+export function dailySummary(lang: Language, daily: DailySubmission, date: string): string {
   return [
-    `Send this daily to ${stripControl(daily.org)}? Date: ${stripControl(date)}.`,
-    `Yesterday:\n${itemLines(daily.yesterday)}`,
-    `Today:\n${itemLines(daily.today)}`,
-    `Blockers:\n${itemLines(daily.blockers)}`,
+    t(lang, 'cli.confirm.question', {
+      org: stripUnsafeChars(daily.org),
+      date: stripUnsafeChars(date),
+    }),
+    `${t(lang, 'cli.confirm.yesterday')}\n${itemLines(lang, daily.yesterday)}`,
+    `${t(lang, 'cli.confirm.today')}\n${itemLines(lang, daily.today)}`,
+    `${t(lang, 'cli.confirm.blockers')}\n${itemLines(lang, daily.blockers)}`,
   ].join('\n\n');
 }
 
@@ -193,6 +199,7 @@ function validDaily(daily: DailySubmission): DailySubmission {
 
 async function confirmSubmission(
   server: McpServer,
+  lang: Language,
   s: Session,
   daily: DailySubmission,
   confirmed: true | undefined,
@@ -205,14 +212,14 @@ async function confirmSubmission(
   const answer = await server.server.elicitInput(
     {
       mode: 'form',
-      message: dailySummary(daily, today.date),
+      message: dailySummary(lang, daily, today.date),
       requestedSchema: {
         type: 'object',
         properties: {
           confirm: {
             type: 'boolean',
-            title: 'Send this daily',
-            description: 'Check to send the daily exactly as shown.',
+            title: t(lang, 'cli.confirm.title'),
+            description: t(lang, 'cli.confirm.description'),
             default: false,
           },
         },
@@ -229,14 +236,14 @@ async function confirmSubmission(
 
 function dateMismatchNote(shown: string | undefined, posted: unknown): string | undefined {
   if (shown === undefined || typeof posted !== 'string' || posted === shown) return undefined;
-  return `The daily was posted for ${stripControl(posted)}, which differs from the date shown to the person (${stripControl(shown)}). Tell the person.`;
+  return `The daily was posted for ${stripUnsafeChars(posted)}, which differs from the date shown to the person (${stripUnsafeChars(shown)}). Tell the person.`;
 }
 
 const AGENT_CONFIRMATION_NOTE =
   'Tell the person this daily was confirmed by you, the agent, because this client cannot ask them directly.';
 
 function toolCtx(io: Io, orgLogin?: string): Ctx {
-  return { io, lang: 'en', flags: { org: orgLogin } };
+  return { io, lang: cliLanguage(io.env), flags: { org: orgLogin } };
 }
 
 async function session(io: Io, orgLogin?: string) {
@@ -328,6 +335,7 @@ export function registerTools(server: McpServer, io: Io): void {
         });
         const { confirmation, shownDate } = await confirmSubmission(
           server,
+          cliLanguage(io.env),
           s,
           daily,
           input.confirmed,

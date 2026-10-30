@@ -9,13 +9,13 @@ import {
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
-  canReadTeam,
   createMembershipCheck,
   DomainError,
   listManagedBlockers,
   listManagedDailies,
   listManagedDigests,
   listManagedTeams,
+  readableTeams,
 } from '../../src';
 import { fakeDeps, INST, seedOrg } from './fakes';
 
@@ -93,7 +93,14 @@ async function submit(login: string, date: string, blockers: string[] = []) {
   });
 }
 
-describe('canReadTeam', () => {
+describe('readableTeams', () => {
+  const canReadTeam = async (
+    deps: ReturnType<typeof harness>['deps'],
+    installationId: number,
+    member: MemberRow,
+    team: string,
+  ) => (await readableTeams(deps, installationId, member)).some((t) => t.name === team);
+
   test('a manager reads only the teams they manage, matched case-insensitively', async () => {
     await seedOrg(teams());
     const { deps } = harness();

@@ -28,7 +28,7 @@ asset="standwise-bun-${os}-${arch}"
 if command -v curl >/dev/null 2>&1; then
   download() { curl --proto '=https' --tlsv1.2 -fsSL -o "$2" "$1"; }
 elif command -v wget >/dev/null 2>&1; then
-  download() { wget -q -O "$2" "$1"; }
+  download() { wget --https-only -q -O "$2" "$1"; }
 else
   fail "curl or wget is required"
 fi

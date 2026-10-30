@@ -12,15 +12,11 @@ export function assertSafeUrl(url: string, lang: Language): URL {
   try {
     parsed = new URL(url);
   } catch {
-    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripControl(url) }));
+    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripUnsafeChars(url) }));
   }
   const safe =
     parsed.protocol === 'https:' || (parsed.protocol === 'http:' && isLocalHost(parsed.hostname));
   if (!safe)
-    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripControl(url) }));
+    throw new ExitError(EXIT.error, t(lang, 'cli.insecureUrl', { url: stripUnsafeChars(url) }));
   return parsed;
-}
-
-export function stripControl(text: string): string {
-  return stripUnsafeChars(text);
 }

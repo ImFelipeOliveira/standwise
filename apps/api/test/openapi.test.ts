@@ -7,6 +7,7 @@ import { createTestApp } from './support';
 type Operation = {
   summary?: string;
   description?: string;
+  parameters?: { name: string; in: string; required?: boolean; description?: string }[];
   responses: Record<string, { content?: Record<string, { example?: unknown; examples?: object }> }>;
 };
 type Doc = {
@@ -110,7 +111,8 @@ describe('public openapi document', () => {
 
   test('errors guide lists every domain error code with its status', async () => {
     const doc = (await (await load('/openapi.json')).json()) as Doc;
-    for (const [code, status] of Object.entries(STATUS)) {
+    const webhookCodes = { invalid_signature: 401, payload_too_large: 413 };
+    for (const [code, status] of Object.entries({ ...STATUS, ...webhookCodes })) {
       const row = doc.info.description.split('\n').find((l) => l.includes(`\`${code}\``));
       expect(row).toBeDefined();
       expect(row).toContain(`| ${status} |`);
@@ -173,6 +175,23 @@ describe('internal openapi document', () => {
     expect(Object.keys(doc.paths['/v1/dailies']?.post?.responses ?? {})).toEqual(
       expect.arrayContaining(['404', '409']),
     );
+  });
+});
+
+describe('org parameter', () => {
+  test('draft and today document org as required', async () => {
+    const { app } = createTestApp();
+    const token = await loginToken(app);
+    const doc = (await (
+      await app.request('/openapi.internal.json', { headers: { authorization: `Bearer ${token}` } })
+    ).json()) as Doc;
+    for (const path of ['/v1/draft', '/v1/today']) {
+      const op = doc.paths[path]?.get;
+      const org = op?.parameters?.find((p) => p.name === 'org' && p.in === 'query');
+      expect(org?.required, path).toBe(true);
+      expect(op?.description).not.toContain('optional');
+      expect(op?.description).not.toContain('opcional');
+    }
   });
 });
 

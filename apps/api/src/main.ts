@@ -13,6 +13,7 @@ import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
 import { parseEnv } from './env';
 import { clientIpResolver } from './middleware/rate-limit';
+import { gracefulShutdown } from './shutdown';
 
 const env = parseEnv();
 const db = createDb(env.DATABASE_URL);
@@ -68,4 +69,16 @@ const api = createApp(deps, {
   getClientIp: clientIpResolver({ trustProxy: env.TRUST_PROXY, hops: env.TRUSTED_PROXY_HOPS }),
 });
 
-Bun.serve({ port: env.PORT, fetch: (request, server) => api.fetch(request, { server }) });
+const server = Bun.serve({
+  port: env.PORT,
+  fetch: (request, server) => api.fetch(request, { server }),
+});
+
+const shutdown = gracefulShutdown({
+  server: { stop: () => server.stop() },
+  queue,
+  exit: (code) => process.exit(code),
+});
+
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);

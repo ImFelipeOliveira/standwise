@@ -15,7 +15,7 @@ import {
   disableWebhookEndpoint,
   type Envelope,
   isInstallationAdmin,
-  listWebhookEndpoints,
+  loadWebhookOverview,
   sendTestEvent,
 } from '../../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -193,7 +193,7 @@ describe('sendTestEvent', () => {
   });
 });
 
-describe('listWebhookEndpoints', () => {
+describe('loadWebhookOverview', () => {
   test('lists endpoints and the latest 20 deliveries of the installation only', async () => {
     const { deps, isMember, member, setNow } = await setup();
     const { id } = await createWebhookEndpoint(deps, isMember, member, input);
@@ -223,7 +223,7 @@ describe('listWebhookEndpoints', () => {
         createdAt: new Date(base + 60_000),
       },
     ]);
-    const overview = await listWebhookEndpoints(deps, isMember, member, INST);
+    const overview = await loadWebhookOverview(db, INST);
     expect(overview.endpoints.map((e) => e.id)).toEqual([id]);
     expect(overview.deliveries).toHaveLength(20);
     expect(overview.deliveries.every((d) => d.endpointUrl === URL_OK)).toBe(true);
@@ -235,10 +235,5 @@ describe('listWebhookEndpoints', () => {
       lastStatusCode: null,
       lastError: null,
     });
-  });
-
-  test('a non-admin cannot list', async () => {
-    const { deps, isMember, member } = await setup(false);
-    expect(await codeOf(listWebhookEndpoints(deps, isMember, member, INST))).toBe('forbidden');
   });
 });

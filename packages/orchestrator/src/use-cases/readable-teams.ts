@@ -23,12 +23,3 @@ export async function readableTeams(
   if (managed.length === teams.length) return managed;
   return (await isInstallationAdmin(deps, installationId, member)) ? teams : managed;
 }
-
-export async function canReadTeam(
-  deps: Deps,
-  installationId: number,
-  member: MemberRow,
-  team: string,
-): Promise<boolean> {
-  return (await readableTeams(deps, installationId, member)).some((t) => t.name === team);
-}

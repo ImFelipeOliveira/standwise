@@ -144,7 +144,9 @@ describe('createSlackChannel', () => {
     const ch = createSlackChannel('xoxb-t', {
       slackApiUrl: `http://localhost:${server.port}/api/`,
     });
-    await expect(ch.postToChannel('C1', msg)).rejects.toBeDefined();
+    const err = await ch.postToChannel('C1', msg).catch((e) => e);
+    expect(err).toBeInstanceOf(ChatDeliveryError);
+    expect(err.code).toBe('http_error');
     expect(calls).toHaveLength(1);
   });
 
@@ -167,5 +169,12 @@ describe('createSlackChannel', () => {
     expect(err.code).toBe('timeout');
     expect(calls.filter((c) => c.method === 'conversations.list')).toHaveLength(2);
     expect(calls.filter((c) => c.method === 'chat.postMessage')).toHaveLength(0);
+  });
+
+  test('an unreachable slack maps to request_failed', async () => {
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: 'http://127.0.0.1:9/api/' });
+    const err = await ch.postToChannel('C1', msg).catch((e) => e);
+    expect(err).toBeInstanceOf(ChatDeliveryError);
+    expect(err.code).toBe('request_failed');
   });
 });

@@ -11,12 +11,17 @@ export const headerIp = (c: Context) => c.req.header('x-test-ip') ?? TEST_IP;
 export type FakeRequest = (route: string, params: Record<string, unknown>) => Promise<unknown>;
 
 export function createTestApp(
-  options: { getClientIp?: (c: Context) => string; request?: FakeRequest; docsDir?: string } = {},
+  options: {
+    getClientIp?: (c: Context) => string;
+    request?: FakeRequest;
+    docsDir?: string;
+    db?: Deps['db'];
+  } = {},
 ) {
   let now = new Date('2026-10-28T15:00:05Z');
   const queue = createMemoryQueue();
   const deps: Deps = {
-    db,
+    db: options.db ?? db,
     queue,
     now: () => now,
     encryptionKey: new Uint8Array(32).fill(7),

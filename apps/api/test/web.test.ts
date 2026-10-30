@@ -820,4 +820,10 @@ describe('install script', () => {
     expect(body).toBe(await Bun.file(`${import.meta.dir}/../../../scripts/install.sh`).text());
     expect(body.startsWith('#!/bin/sh\n')).toBe(true);
   });
+
+  test('downloads only over https with curl and with wget', async () => {
+    const body = await Bun.file(`${import.meta.dir}/../../../scripts/install.sh`).text();
+    expect(body).toContain("curl --proto '=https' --tlsv1.2");
+    expect(body).toMatch(/download\(\) \{ wget --https-only /);
+  });
 });

@@ -2,7 +2,6 @@ import { addCalendarDays, localDate } from '@standwise/core';
 import { listMemberInstallations, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
-import { readableTeams } from './can-read-team';
 import { DomainError } from './errors';
 import { listOrgBlockers, type OrgBlocker } from './list-org-blockers';
 import { listOrgDailies, type OrgDaily } from './list-org-dailies';
@@ -10,6 +9,7 @@ import { listOrgDigests, type OrgDigest } from './list-org-digests';
 import { listOrgTeams, type OrgTeam } from './list-org-teams';
 import type { MembershipCheck } from './org-context';
 import { type Page, parseDay } from './pagination';
+import { readableTeams } from './readable-teams';
 
 export const HISTORY_DAYS = 90;
 

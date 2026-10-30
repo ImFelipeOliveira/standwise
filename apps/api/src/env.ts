@@ -3,7 +3,7 @@ import { z } from 'zod';
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_URL: z.url(),
+  PUBLIC_URL: z.url().transform((url) => url.replace(/\/+$/, '')),
   SUPPORT_EMAIL: z.string().min(1),
   TRUST_PROXY: z
     .enum(['true', 'false'])

@@ -124,6 +124,53 @@ describe('github webhooks', () => {
     expect(await getInstallation(db, INST)).toBeNull();
   });
 
+  test('a signed body that is not json is an invalid request', async () => {
+    const h = harness({ found: true, source: VALID });
+    const body = '{not json';
+    const res = await h.app.request('/webhooks/github', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-github-event': 'installation',
+        'x-hub-signature-256': await signer.sign(body),
+      },
+      body,
+    });
+    expect(res.status).toBe(422);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_request');
+  });
+
+  test('a body over 1 MB is rejected before it is read', async () => {
+    const h = harness({ found: true, source: VALID });
+    const declared = await h.app.request('/webhooks/github', {
+      method: 'POST',
+      headers: { 'x-github-event': 'installation', 'content-length': String(1024 * 1024 + 1) },
+      body: 'x',
+    });
+    expect(declared.status).toBe(413);
+    let pulled = 0;
+    const chunk = new Uint8Array(64 * 1024);
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += chunk.length;
+        if (pulled > 4 * 1024 * 1024) controller.close();
+        else controller.enqueue(chunk);
+      },
+    });
+    const streamed = await h.app.request('/webhooks/github', {
+      method: 'POST',
+      headers: { 'x-github-event': 'installation' },
+      body: stream,
+      duplex: 'half',
+    } as RequestInit);
+    expect(streamed.status).toBe(413);
+    expect(((await streamed.json()) as { error: { code: string } }).error.code).toBe(
+      'payload_too_large',
+    );
+    expect(pulled).toBeLessThan(2 * 1024 * 1024);
+    expect(await getInstallation(db, INST)).toBeNull();
+  });
+
   test('installation created with valid config', async () => {
     const h = harness({ found: true, source: VALID });
     const res = await send(h, 'installation', created);

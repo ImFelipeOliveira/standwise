@@ -1,4 +1,4 @@
-import { t } from '@standwise/core';
+import { stripUnsafeChars, t } from '@standwise/core';
 import { createSession, getMeta } from '../api';
 import { writeCredentials } from '../credentials';
 import {
@@ -10,7 +10,7 @@ import {
 } from '../device-flow';
 import { type Ctx, EXIT, ExitError } from '../io';
 import { loginApiUrl } from '../session';
-import { isLocalHost, stripControl } from '../url';
+import { isLocalHost } from '../url';
 
 function deviceMessage(ctx: Ctx, error: DeviceFlowError): string {
   if (error.reason === 'expired_token') return t(ctx.lang, 'cli.deviceExpired');
@@ -43,7 +43,7 @@ export async function login(ctx: Ctx): Promise<number> {
   try {
     const code = await requestDeviceCode(githubUrl, meta.githubClientId);
     io.stderr(
-      `${t(lang, 'cli.deviceCode', { uri: stripControl(code.verificationUri), code: stripControl(code.userCode) })}\n${t(lang, 'cli.waitingAuth')}\n`,
+      `${t(lang, 'cli.deviceCode', { uri: stripUnsafeChars(code.verificationUri), code: stripUnsafeChars(code.userCode) })}\n${t(lang, 'cli.waitingAuth')}\n`,
     );
     if (canOpen(code.verificationUri, override)) io.openBrowser(code.verificationUri);
     const githubToken = await pollAccessToken(githubUrl, meta.githubClientId, code, io.sleep);

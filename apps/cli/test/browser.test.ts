@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { stripUnsafeChars } from '@standwise/core';
 import { browserCommand } from '../src/device-flow';
-import { stripControl } from '../src/url';
 
 describe('browserCommand', () => {
   test('picks the opener per platform', () => {
@@ -14,8 +14,8 @@ describe('browserCommand', () => {
   });
 });
 
-describe('stripControl', () => {
+describe('stripUnsafeChars', () => {
   test('removes control and bidi characters', () => {
-    expect(stripControl('a\u001bb\u007fc\u202ed\u2066e\u2069f\u202a')).toBe('abcdef');
+    expect(stripUnsafeChars('a\u001bb\u007fc\u202ed\u2066e\u2069f\u202a')).toBe('abcdef');
   });
 });
