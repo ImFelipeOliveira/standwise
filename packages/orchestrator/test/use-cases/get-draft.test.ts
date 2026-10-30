@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
+import { clampTitle, DailySubmissionSchema, TITLE_MAX } from '@standwise/core';
 import {
   decideSuggestion,
+  listPendingSuggestions,
   setMemberInstallations,
   syncSuggestions,
   upsertDaily,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { createMembershipCheck, getDraft } from '../../src';
+import { createMembershipCheck, getDraft, submitDaily } from '../../src';
 import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -92,5 +94,37 @@ describe('getDraft', () => {
         since: byFp('fp-1').createdAt.toISOString(),
       },
     ]);
+  });
+
+  test('suggestion titles are clamped so the ref is valid in a submitted blocker', async () => {
+    const { deps, isMember, member } = await setup();
+    const url = 'https://github.com/acme/api/pull/9';
+    const raw = `Fix\tthe ${'x'.repeat(242)}`;
+    expect(Array.from(raw)).toHaveLength(250);
+    await syncSuggestions(
+      db,
+      INST,
+      member.id,
+      [],
+      [
+        {
+          kind: 'ci_failing',
+          ref: { kind: 'pull_request', url, title: raw },
+          fingerprint: 'fp-long',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+      ],
+    );
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    const ref = draft.suggestions[0]?.ref;
+    if (!ref) throw new Error('missing suggestion');
+    expect(ref.title).toBe(clampTitle(raw));
+    expect(ref.title).not.toContain('\t');
+    expect(Array.from(ref.title ?? '')).toHaveLength(TITLE_MAX);
+    const blocker = { text: 'CI is red on the fix', ref };
+    expect(DailySubmissionSchema.safeParse({ ...daily, blockers: [blocker] }).success).toBe(true);
+    const result = await submitDaily(deps, isMember, member, { ...daily, blockers: [blocker] });
+    expect(result.date).toBe('2026-10-28');
+    expect(await listPendingSuggestions(db, INST, member.id)).toEqual([]);
   });
 });

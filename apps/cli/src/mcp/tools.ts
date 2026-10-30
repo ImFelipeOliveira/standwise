@@ -375,7 +375,7 @@ export function registerTools(server: McpServer, io: Io): void {
     {
       title: 'Confirm or ignore a suggested blocker',
       description:
-        "Records the person's answer to a suggested blocker from their own draft. Call it only after asking the person whether the suggestion is a real blocker. Use decision ignored when they say no. When they say yes, add it to the blockers in their own words with its ref; submitting the daily confirms it, and decision confirmed records the answer right away. Never decide on the person's behalf.",
+        "Records the person's answer to a suggested blocker from their own draft. Call it only after asking the person whether the suggestion is a real blocker. Use decision ignored when they say no. When they say yes, add it to the blockers in their own words with its ref; submitting the daily confirms it, and decision confirmed records the answer right away. Calling with decision confirmed is optional, because submitting a daily with a blocker that carries the suggestion's ref confirms it. Never decide on the person's behalf.",
       inputSchema: {
         org,
         id: z.string().min(1).describe('Suggestion id from the draft.'),

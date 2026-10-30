@@ -94,4 +94,29 @@ describe('decideDraftSuggestion', () => {
       await codeOf(decideDraftSuggestion(deps, isMember, member, 'acme', row.id, 'ignored')),
     ).toBe('suggestion_already_decided');
   });
+
+  test('a suggestion of the same member in another installation is not_found', async () => {
+    const { deps, isMember, member } = await setup();
+    await seedOrg(config(), { id: 12, accountLogin: 'globex' });
+    const { created } = await syncSuggestions(
+      db,
+      12,
+      member.id,
+      [],
+      [
+        {
+          kind: 'ci_failing',
+          ref: { kind: 'pull_request', url: 'https://github.com/globex/api/pull/1' },
+          fingerprint: 'fp-globex',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+      ],
+    );
+    const [other] = created;
+    if (!other) throw new Error('seed failed');
+    expect(
+      await codeOf(decideDraftSuggestion(deps, isMember, member, 'acme', other.id, 'ignored')),
+    ).toBe('not_found');
+    expect(await listPendingSuggestions(db, 12, member.id)).toHaveLength(1);
+  });
 });

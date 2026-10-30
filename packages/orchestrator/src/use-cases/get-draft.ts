@@ -1,4 +1,10 @@
-import { type ActivityItem, activitySince, type Ref, type SignalKind } from '@standwise/core';
+import {
+  type ActivityItem,
+  activitySince,
+  clampTitle,
+  type Ref,
+  type SignalKind,
+} from '@standwise/core';
 import { getLastDaily, listPendingSuggestions, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
 import { type MembershipCheck, resolveOrgContext } from './org-context';
@@ -36,7 +42,7 @@ export async function getDraft(
     suggestions: pending.map((s) => ({
       id: s.id,
       kind: s.kind,
-      ref: s.ref,
+      ref: s.ref.title === undefined ? s.ref : { ...s.ref, title: clampTitle(s.ref.title) },
       since: s.createdAt.toISOString(),
     })),
   };

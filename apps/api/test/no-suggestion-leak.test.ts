@@ -31,6 +31,15 @@ useCleanDb();
 const DATE = '2026-10-28';
 const PENDING_URL = 'https://github.com/acme/api/pull/1';
 const SUBMITTED_URL = 'https://github.com/acme/api/pull/2';
+const PENDING_ONLY = [
+  PENDING_URL,
+  'https://github.com/acme/api/pull/3alice',
+  'https://github.com/acme/api/pull/4alice',
+  'https://github.com/acme/api/pull/3bob',
+  'https://github.com/acme/api/pull/4bob',
+  'Pull alice 1',
+  'Pull bob 1',
+];
 
 type Seeded = { id: string; fingerprint: string };
 
@@ -72,6 +81,9 @@ function expectNoLeak(label: string, output: unknown, seeded: Seeded[]): void {
   }
   expect(text.includes('pr_no_review'), `${label} leaks pr_no_review`).toBe(false);
   expect(text.includes('ci_failing'), `${label} leaks ci_failing`).toBe(false);
+  for (const fragment of PENDING_ONLY) {
+    expect(text.includes(fragment), `${label} leaks ${fragment}`).toBe(false);
+  }
 }
 
 async function setup() {
@@ -145,21 +157,21 @@ describe('suggestions never leak outside the person', () => {
     const routes = [
       ...new Set(
         app.routes
-          .filter((r) => r.method === 'GET')
-          .map((r) => r.path)
-          .filter((p) => p.startsWith('/v1/org/') || p.startsWith('/v1/manage/')),
+          .filter((r) => r.method !== 'ALL')
+          .filter((r) => r.path.startsWith('/v1/org/') || r.path.startsWith('/v1/manage/'))
+          .map((r) => `${r.method} ${r.path}`),
       ),
     ].sort();
     expect(routes).toEqual([
-      '/v1/manage/blockers',
-      '/v1/manage/dailies',
-      '/v1/manage/digests',
-      '/v1/manage/teams',
-      '/v1/org/blockers',
-      '/v1/org/dailies',
-      '/v1/org/dailies/:id',
-      '/v1/org/digests',
-      '/v1/org/teams',
+      'GET /v1/manage/blockers',
+      'GET /v1/manage/dailies',
+      'GET /v1/manage/digests',
+      'GET /v1/manage/teams',
+      'GET /v1/org/blockers',
+      'GET /v1/org/dailies',
+      'GET /v1/org/dailies/:id',
+      'GET /v1/org/digests',
+      'GET /v1/org/teams',
     ]);
     const submitted = envelopes.find((e) => e.event === 'daily.submitted')?.payload as
       | { data: { id: string } }
@@ -173,10 +185,13 @@ describe('suggestions never leak outside the person', () => {
     });
     const session = await createSession(db, alice.id, 'cli');
     for (const route of routes) {
-      const path = route.replace(':id', submitted.data.id);
-      const token = route.startsWith('/v1/org/') ? key.key : session;
+      const [method = 'GET', template = ''] = route.split(' ');
+      const path = template.replace(':id', submitted.data.id);
+      const token = template.startsWith('/v1/org/') ? key.key : session;
       const res = await app.request(`${path}?org=acme&team=Alpha`, {
-        headers: { authorization: `Bearer ${token}` },
+        method,
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        ...(method === 'GET' ? {} : { body: JSON.stringify({ org: 'acme', team: 'Alpha' }) }),
       });
       const body = await res.text();
       expect(res.status, `${route} ${body}`).toBe(200);
