@@ -62,8 +62,11 @@ Standwise keeps the writing where people already work, inside their agent, and t
 - **Works in any MCP client.** A Claude Code plugin with the `/daily` skill, an MCP server for Cursor, Codex, Claude Desktop and VS Code, and a plain CLI for the terminal.
 - **One digest per team.** Posted to Slack at `digest_at`, in the team's time zone and only on workdays, with blockers first and the people who did not send listed at the end.
 - **Late dailies.** Sent after the digest, they are posted as a reply in the digest thread.
+- **Reminders.** At `remind_at`, people who have not sent their daily get one direct message, at most once a day, and never after the digest.
+- **Blocker routing.** A new blocker goes by direct message to whoever can help: the pull request's reviewers, then its CODEOWNERS, then the team managers.
+- **Suggested blockers, only for you.** A pull request waiting too long for review or with CI failing for a day shows up in your own draft. You confirm or ignore it; nobody else ever sees it.
 - **Several teams, one daily.** People in two teams write once and appear in both digests.
-- **Configuration as code.** A single `standwise.yml` in your `.github` repository. An invalid push never breaks anything: the last valid version stays in effect.
+- **Configuration as code.** A single `standwise.yml` in your `.github` repository. Every change is validated by a `Standwise config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
 - **Manager tools.** Managers read their team's dailies, digests and blockers from their own AI agent.
 - **Read-only API and webhooks.** API keys (`swk_…`), an OpenAPI reference, and signed outgoing webhooks such as `daily.submitted` and `blocker.opened`.
 - **Bilingual.** English and Brazilian Portuguese across the CLI, Slack messages, web pages and documentation.
@@ -91,13 +94,14 @@ flowchart LR
     DB --> W
 ```
 
-A day with `digest_at: "10:00"`:
+A day with `remind_at: "09:30"` and `digest_at: "10:00"`:
 
-| Time  | What happens                                                                                                                         |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 08:50 | Alice runs `/daily`. Her agent fetches a draft of yesterday's GitHub work; she edits it, writes today and one blocker, and confirms. |
-| 10:00 | Standwise posts the team digest to `#daily-backend`: blockers first, then each person's yesterday and today, then who did not send.  |
-| 10:40 | Bob sends a late daily. It is posted as a reply in the digest thread.                                                                |
+| Time  | What happens                                                                                                                                                                                                  |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 08:50 | Alice runs `/daily`. Her agent fetches a draft of yesterday's GitHub work; she edits it, writes today and one blocker, and confirms. Her blocker links a pull request, so its reviewer gets a direct message. |
+| 09:30 | Bob has not sent yet, so he gets a reminder.                                                                                                                                                                  |
+| 10:00 | Standwise posts the team digest to `#daily-backend`: blockers first, then each person's yesterday and today, then who did not send.                                                                           |
+| 10:40 | Bob sends a late daily. It is posted as a reply in the digest thread.                                                                                                                                         |
 
 The full walkthrough is in [How it works](docs/site/how-it-works.md).
 
@@ -234,10 +238,10 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for commit co
 - [x] Drafts from GitHub activity, through the skill, the MCP server and the CLI
 - [x] Team digest and late dailies in Slack
 - [x] Manager tools, read-only API and outgoing webhooks
-- [ ] Reminder for people who have not sent their daily
-- [ ] Blocker routing to reviewers, CODEOWNERS or managers
-- [ ] Suggested blockers (pull request without review, failing CI), visible only to you
-- [ ] `standwise.yml` validation as a GitHub check run
+- [x] Reminder for people who have not sent their daily
+- [x] Blocker routing to reviewers, CODEOWNERS or managers
+- [x] Suggested blockers (pull request without review, failing CI), visible only to you
+- [x] `standwise.yml` validation as a GitHub check run
 - [ ] Linear integration
 - [ ] Jira and Google Chat
 
