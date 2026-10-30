@@ -75,4 +75,20 @@ describe('detectPullRequestSignals', () => {
       ciFailingFingerprint('acme/api', 7, 'b'),
     );
   });
+
+  test('thresholds are inclusive', () => {
+    expect(detectPullRequestSignals([pr({ readyAt: hoursAgo(48) })], now, 48)).toHaveLength(1);
+    expect(
+      detectPullRequestSignals([pr({ failingChecksSince: hoursAgo(24) })], now, 48),
+    ).toHaveLength(1);
+  });
+
+  test('one PR can yield both signals', () => {
+    const out = detectPullRequestSignals(
+      [pr({ readyAt: hoursAgo(50), failingChecksSince: hoursAgo(30) })],
+      now,
+      48,
+    );
+    expect(out.map((s) => s.kind)).toEqual(['pr_no_review', 'ci_failing']);
+  });
 });
