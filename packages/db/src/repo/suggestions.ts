@@ -1,5 +1,5 @@
 import type { Ref, Signal, SignalKind } from '@standwise/core';
-import { and, asc, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type SuggestionState, suggestions } from '../schema';
 
@@ -85,26 +85,29 @@ export async function listPendingSuggestions(
     .orderBy(asc(suggestions.createdAt), asc(suggestions.id));
 }
 
+export type DecideSuggestionResult = 'applied' | 'unchanged' | 'conflict' | 'not_found';
+
 export async function decideSuggestion(
   db: Db,
   installationId: number,
   memberId: string,
   id: string,
   decision: 'confirmed' | 'ignored',
-): Promise<boolean> {
+): Promise<DecideSuggestionResult> {
+  const scope = and(
+    eq(suggestions.id, id),
+    eq(suggestions.installationId, installationId),
+    eq(suggestions.memberId, memberId),
+  );
   const rows = await db
     .update(suggestions)
     .set({ state: decision, decidedAt: sql`now()` })
-    .where(
-      and(
-        eq(suggestions.id, id),
-        eq(suggestions.installationId, installationId),
-        eq(suggestions.memberId, memberId),
-        eq(suggestions.state, 'pending'),
-      ),
-    )
+    .where(and(scope, eq(suggestions.state, 'pending')))
     .returning({ id: suggestions.id });
-  return rows.length > 0;
+  if (rows.length > 0) return 'applied';
+  const [row] = await db.select({ state: suggestions.state }).from(suggestions).where(scope);
+  if (!row) return 'not_found';
+  return row.state === decision ? 'unchanged' : 'conflict';
 }
 
 export async function confirmSuggestionsByUrl(
@@ -133,7 +136,7 @@ export async function markSuggestionNotified(db: Db, id: string): Promise<boolea
   const rows = await db
     .update(suggestions)
     .set({ notifiedAt: sql`now()` })
-    .where(eq(suggestions.id, id))
+    .where(and(eq(suggestions.id, id), isNull(suggestions.notifiedAt)))
     .returning({ id: suggestions.id });
   return rows.length > 0;
 }

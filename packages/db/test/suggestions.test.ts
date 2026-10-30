@@ -55,7 +55,10 @@ describe('suggestions', () => {
   test('ignored suggestion stays ignored on same fingerprint', async () => {
     const { ana } = await seed();
     const { created } = await syncSuggestions(db, INST, ana.id, [...K], [sig(1)]);
-    expect(await decideSuggestion(db, INST, ana.id, created[0]?.id ?? '', 'ignored')).toBe(true);
+    expect(created).toHaveLength(1);
+    expect(await decideSuggestion(db, INST, ana.id, created[0]?.id ?? '', 'ignored')).toBe(
+      'applied',
+    );
     const again = await syncSuggestions(db, INST, ana.id, [...K], [sig(1)]);
     expect(again.created).toHaveLength(0);
     expect(await listPendingSuggestions(db, INST, ana.id)).toHaveLength(0);
@@ -93,14 +96,22 @@ describe('suggestions', () => {
     expect(await listPendingSuggestions(db, INST, ana.id)).toHaveLength(1);
   });
 
-  test('decideSuggestion on another member or installation returns false', async () => {
+  test('decideSuggestion is idempotent and reports conflicts', async () => {
     const { ana, bob } = await seed();
-    const { created } = await syncSuggestions(db, INST, ana.id, [...K], [sig(1)]);
+    const { created } = await syncSuggestions(db, INST, ana.id, [...K], [sig(1), sig(2)]);
+    expect(created).toHaveLength(2);
     const id = created[0]?.id ?? '';
-    expect(await decideSuggestion(db, INST, bob.id, id, 'confirmed')).toBe(false);
-    expect(await decideSuggestion(db, 200, ana.id, id, 'confirmed')).toBe(false);
-    expect(await decideSuggestion(db, INST, ana.id, id, 'confirmed')).toBe(true);
-    expect(await decideSuggestion(db, INST, ana.id, id, 'ignored')).toBe(false);
+    expect(await decideSuggestion(db, INST, ana.id, id, 'confirmed')).toBe('applied');
+    expect(await decideSuggestion(db, INST, ana.id, id, 'confirmed')).toBe('unchanged');
+    expect(await decideSuggestion(db, INST, ana.id, id, 'ignored')).toBe('conflict');
+    expect(await decideSuggestion(db, INST, bob.id, id, 'confirmed')).toBe('not_found');
+    expect(await decideSuggestion(db, 200, ana.id, id, 'confirmed')).toBe('not_found');
+    expect(
+      await decideSuggestion(db, INST, ana.id, '00000000-0000-0000-0000-000000000000', 'ignored'),
+    ).toBe('not_found');
+    await syncSuggestions(db, INST, ana.id, [...K], [sig(1)]);
+    const resolvedId = created[1]?.id ?? '';
+    expect(await decideSuggestion(db, INST, ana.id, resolvedId, 'confirmed')).toBe('conflict');
   });
 
   test('confirmSuggestionsByUrl confirms only that member pending rows with the url', async () => {
@@ -130,7 +141,9 @@ describe('suggestions', () => {
   test('markSuggestionNotified', async () => {
     const { ana } = await seed();
     const { created } = await syncSuggestions(db, INST, ana.id, [...K], [sig(1)]);
+    expect(created).toHaveLength(1);
     expect(await markSuggestionNotified(db, created[0]?.id ?? '')).toBe(true);
+    expect(await markSuggestionNotified(db, created[0]?.id ?? '')).toBe(false);
     expect(await markSuggestionNotified(db, '00000000-0000-0000-0000-000000000000')).toBe(false);
   });
 });
