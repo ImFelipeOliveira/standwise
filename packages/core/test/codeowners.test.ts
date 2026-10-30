@@ -83,4 +83,13 @@ describe('codeowners', () => {
     const rules = parseCodeowners('* @alice @acme/backend\n');
     expect(ownersForFiles(rules, ['x'])).toEqual(['@alice', '@acme/backend']);
   });
+
+  test('directory-only patterns match repeated segment names', () => {
+    const foo = parseCodeowners('foo/ @d\n');
+    expect(ownersForFiles(foo, ['foo/foo'])).toEqual(['@d']);
+    expect(ownersForFiles(foo, ['a/foo/foo'])).toEqual(['@d']);
+    expect(ownersForFiles(foo, ['foo'])).toEqual([]);
+    const src = parseCodeowners('src/ @s\n');
+    expect(ownersForFiles(src, ['src/src/x.ts'])).toEqual(['@s']);
+  });
 });

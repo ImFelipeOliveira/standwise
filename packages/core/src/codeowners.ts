@@ -101,8 +101,8 @@ function matches(rule: CompiledRule, path: string[]): boolean {
     }
     if (j < n && matchSegment(seg, path[j] as string)) push(i + 1, j + 1);
   }
-  if (fileMatch) return !rule.dirOnly;
-  return dirMatch && (rule.dirOnly || rule.coversContents);
+  if (rule.dirOnly) return dirMatch;
+  return fileMatch || (dirMatch && rule.coversContents);
 }
 
 export function ownersForFiles(rules: CodeownersRule[], files: string[]): string[] {
