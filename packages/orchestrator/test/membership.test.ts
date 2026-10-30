@@ -1,8 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { getMemberById } from '@standwise/db';
 import { db, useCleanDb } from '../../db/test/setup';
-import { createMembershipCheck, currentLogin, LOGIN_CACHE_TTL_MS } from '../src';
-import { fakeDeps, INST, seedMember } from './use-cases/fakes';
+import {
+  createMembershipCheck,
+  currentLogin,
+  LOGIN_CACHE_TTL_MS,
+  startSession,
+  syncMemberFromGitHub,
+} from '../src';
+import { fakeDeps, INST, seedMember, seedOrg } from './use-cases/fakes';
 
 useCleanDb();
 
@@ -142,6 +148,33 @@ describe('membership negative cache', () => {
     await isMember(orgAccount, member);
     await isMember(orgAccount, member);
     expect(calls.users).toEqual([1]);
+  });
+});
+
+describe('membership cache and login', () => {
+  test('device login clears a cached negative so a new member gets in at once', async () => {
+    await seedOrg();
+    const member = await seedMember('Alice', 1);
+    const { deps, orgMembers } = fakeDeps();
+    orgMembers.clear();
+    const isMember = createMembershipCheck(deps);
+    expect(await isMember(orgAccount, member)).toBeNull();
+    orgMembers.add('alice');
+    expect(await isMember(orgAccount, member)).toBeNull();
+    await startSession(deps, { githubToken: 'gho_x' });
+    expect((await isMember(orgAccount, member))?.id).toBe(member.id);
+  });
+
+  test('web login clears a cached negative too', async () => {
+    await seedOrg();
+    const member = await seedMember('Alice', 1);
+    const { deps, orgMembers } = fakeDeps();
+    orgMembers.clear();
+    const isMember = createMembershipCheck(deps);
+    expect(await isMember(orgAccount, member)).toBeNull();
+    orgMembers.add('alice');
+    await syncMemberFromGitHub(deps, 'gho_x');
+    expect((await isMember(orgAccount, member))?.id).toBe(member.id);
   });
 });
 

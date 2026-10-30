@@ -123,11 +123,36 @@ describe('createSlackChannel', () => {
     expect(err.code).toBe('invalid_response');
   });
 
+  test('a 429 maps to ratelimited immediately without waiting for retry-after', async () => {
+    const calls: string[] = [];
+    server = Bun.serve({
+      port: 0,
+      fetch(req) {
+        calls.push(new URL(req.url).pathname);
+        return new Response('slow down', { status: 429, headers: { 'retry-after': '30' } });
+      },
+    });
+    const ch = createSlackChannel('xoxb-t', {
+      slackApiUrl: `http://localhost:${server.port}/api/`,
+    });
+    const started = Date.now();
+    const err = await ch.postToChannel('C1', msg).catch((e) => e);
+    expect(err).toBeInstanceOf(ChatDeliveryError);
+    expect(err.code).toBe('ratelimited');
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(calls).toHaveLength(1);
+  });
+
   test('production client never retries and times out each request', () => {
-    expect(slackClientOptions()).toEqual({ retryConfig: { retries: 0 }, timeout: 15000 });
+    expect(slackClientOptions()).toEqual({
+      retryConfig: { retries: 0 },
+      rejectRateLimitedCalls: true,
+      timeout: 15000,
+    });
     expect(slackClientOptions('http://x/api/')).toEqual({
       slackApiUrl: 'http://x/api/',
       retryConfig: { retries: 0 },
+      rejectRateLimitedCalls: true,
       timeout: SLACK_REQUEST_TIMEOUT_MS,
     });
   });

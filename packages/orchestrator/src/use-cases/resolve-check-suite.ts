@@ -1,5 +1,6 @@
 import { getInstallation, operationalConfig } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { enqueueMemberScan } from './scan-member-signals';
 
@@ -12,15 +13,6 @@ export type ResolveCheckSuiteJob = {
   repo: string;
   numbers: number[];
 };
-
-function logLookupFailure(error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error('check suite author lookup failed', {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
-  });
-}
 
 export async function resolveCheckSuite(
   deps: WorkerDeps,
@@ -50,7 +42,7 @@ export async function resolveCheckSuite(
       enqueued.add(login);
       await enqueueMemberScan(deps, installation.id, login);
     } catch (error) {
-      logLookupFailure(error);
+      logError('check suite author lookup failed', error);
       failure ??= error;
     }
   }

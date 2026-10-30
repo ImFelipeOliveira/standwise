@@ -101,6 +101,8 @@ O idioma do consolidado e das dailies atrasadas publicadas na thread dele: `en` 
 
 Logins do GitHub dos gestores do time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor do MCP](/pt-BR/members/mcp#tools-de-gestor). Admins da organização leem todos os times sem precisar estar listados. Em breve: impedimentos sem outra pessoa para encaminhar vão para os gestores.
 
+Cada item precisa ser um login simples. Nomes que começam com `@`, como `@acme/leads`, não são aceitos: o Standwise não expande times do GitHub, então liste os logins um a um.
+
 ### `members`
 
 Quem escreve dailies neste time. Cada item é:
@@ -217,6 +219,7 @@ Estas são as mensagens que a página de setup mostra, no formato `caminho: mens
 | `teams.0.language: Invalid option: expected one of "pt-BR"\|"en"` | `pt`, `pt_BR`, `portugues` | Use `pt-BR` ou `en` |
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (o mesmo vale para `managers`) | Liste pelo menos uma pessoa |
+| `teams.0.managers.0: managers must be GitHub logins, not teams or @-prefixed names` | `managers: ["@acme/leads"]` | Liste os logins, como `[alice, bob]` |
 | `teams.0: Unrecognized key: "reminder"` | Uma chave escrita errado ou desconhecida | Confira a chave nas tabelas acima |
 | `members.alice.slack: must be a Slack user id like U0123ABCD` | Um nome, um e-mail, um id de canal ou `<!channel>` | Use o id de membro, que começa com `U` ou `W` |
 | `members.alice: Unrecognized key: "slak"` | Uma chave de identidade escrita errado | Use `slack`, `google_chat`, `linear` ou `jira` |

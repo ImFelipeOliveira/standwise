@@ -15,6 +15,7 @@ import {
 } from '@standwise/db';
 import { chatUserIdFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 import { describeDeliveryError } from './delivery-error';
 
 export const CI_FAILING_HOURS = 24;
@@ -30,15 +31,6 @@ export type NotifySuggestionsInput = {
 
 function hoursFor(kind: SuggestionDmKind, team: TeamConfig): number {
   return kind === 'ci_failing' ? CI_FAILING_HOURS : team.signals.prReviewHours;
-}
-
-function logSendFailure(error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error('suggestion dm failed', {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
-  });
 }
 
 export async function notifySuggestions(
@@ -82,7 +74,7 @@ export async function notifySuggestions(
       await markSuggestionNotified(deps.db, suggestion.id);
     } catch (error) {
       await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
-      logSendFailure(error);
+      logError('suggestion dm failed', error);
     }
   }
 }

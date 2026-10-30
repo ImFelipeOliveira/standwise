@@ -8,6 +8,7 @@ import {
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { blockerHash, newBlockers } from '../events';
+import { logError } from '../log-error';
 import { emitEventSafely } from './emit-event';
 import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';
 import { ROUTE_BLOCKER_JOB, type RouteBlockerJob } from './route-blocker';
@@ -27,15 +28,6 @@ async function isLate(deps: Deps, ctx: OrgContext): Promise<boolean> {
   return false;
 }
 
-function logFailure(label: string, error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error(label, {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
-  });
-}
-
 async function confirmBlockerSuggestions(
   deps: Deps,
   ctx: OrgContext,
@@ -46,7 +38,7 @@ async function confirmBlockerSuggestions(
   try {
     await confirmSuggestionsByUrl(deps.db, ctx.installationId, ctx.member.id, urls);
   } catch (error) {
-    logFailure('suggestion confirmation failed', error);
+    logError('suggestion confirmation failed', error);
   }
 }
 
@@ -70,7 +62,7 @@ async function enqueueBlockerRoutes(
         singletonKey: `route:${dailyId}:${hash}`,
       });
     } catch (error) {
-      logFailure('blocker route enqueue failed', error);
+      logError('blocker route enqueue failed', error);
     }
   }
 }

@@ -347,3 +347,11 @@ export async function listOverdueWebhookDeliveries(
     .limit(limit);
   return rows.map((r) => r.id);
 }
+
+export async function deleteWebhookDeliveriesBefore(db: Db, cutoff: Date): Promise<number> {
+  const rows = await db
+    .delete(webhookDeliveries)
+    .where(lt(webhookDeliveries.createdAt, cutoff))
+    .returning({ id: webhookDeliveries.id });
+  return rows.length;
+}

@@ -718,6 +718,14 @@ describe('web rate limit', () => {
     expect((await app.request('/oauth/slack/callback')).status).toBe(429);
     expect((await app.request('/install.sh')).status).toBe(200);
   });
+
+  test('each setup request counts once', async () => {
+    const { app } = harness();
+    for (let i = 0; i < 60; i++) {
+      expect((await app.request('/setup')).status).not.toBe(429);
+    }
+    expect((await app.request('/setup')).status).toBe(429);
+  });
 });
 
 describe('browser error pages', () => {

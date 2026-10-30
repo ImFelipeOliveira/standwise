@@ -8,6 +8,7 @@ import {
   type WebhookAttemptOutcome,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 import { SafeFetchError, safeFetch } from '../safe-fetch';
 import { signWebhook } from '../webhook-sign';
 import { DELIVER_WEBHOOK_JOB } from './emit-event';
@@ -51,7 +52,7 @@ async function attempt(
     }
     return { ok: false, statusCode: response.status, error: `http_${response.status}` };
   } catch (error) {
-    if (!(error instanceof SafeFetchError)) console.error('webhook attempt failed', error);
+    if (!(error instanceof SafeFetchError)) logError('webhook attempt failed', error);
     return { ok: false, statusCode: null, error: describeFailure(error) };
   }
 }

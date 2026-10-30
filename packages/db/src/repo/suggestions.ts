@@ -140,3 +140,16 @@ export async function markSuggestionNotified(db: Db, id: string): Promise<boolea
     .returning({ id: suggestions.id });
   return rows.length > 0;
 }
+
+export async function deleteDecidedSuggestionsBefore(db: Db, cutoff: Date): Promise<number> {
+  const rows = await db
+    .delete(suggestions)
+    .where(
+      and(
+        inArray(suggestions.state, ['confirmed', 'ignored', 'resolved']),
+        sql`coalesce(${suggestions.decidedAt}, ${suggestions.createdAt}) < ${cutoff.toISOString()}::timestamptz`,
+      ),
+    )
+    .returning({ id: suggestions.id });
+  return rows.length;
+}

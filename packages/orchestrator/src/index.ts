@@ -5,6 +5,7 @@ export * from './deps';
 export * from './events';
 export * from './github-installations';
 export * from './identity';
+export * from './log-error';
 export * from './membership';
 export * from './project-tracker';
 export * from './safe-fetch';

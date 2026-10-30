@@ -7,6 +7,7 @@ import {
   syncSuggestions,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { CI_FAILING_HOURS, notifySuggestions } from './notify-suggestions';
 
@@ -25,15 +26,6 @@ export async function enqueueMemberScan(
   const job: ScanMemberSignalsJob = { installationId, login: lower };
   await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
     singletonKey: `scan:${installationId}:${lower}`,
-  });
-}
-
-function logGitHubFailure(error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error('signal scan github lookup failed', {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
   });
 }
 
@@ -65,7 +57,7 @@ export async function scanMemberSignals(
       login,
     );
   } catch (error) {
-    logGitHubFailure(error);
+    logError('signal scan github lookup failed', error);
     throw error;
   }
 

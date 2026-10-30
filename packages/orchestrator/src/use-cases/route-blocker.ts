@@ -22,6 +22,7 @@ import {
 import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { blockerHash } from '../events';
+import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
 
@@ -80,16 +81,6 @@ async function expandOwners(
   return logins;
 }
 
-function logGitHubFailure(error: unknown): void {
-  const e = error as { name?: unknown; status?: unknown; code?: unknown; message?: unknown };
-  console.error('blocker route github lookup failed', {
-    name: String(e.name),
-    status: String(e.status),
-    code: String(e.code),
-    message: String(e.message),
-  });
-}
-
 async function pullRequestTarget(
   deps: WorkerDeps,
   ctx: RouteContext,
@@ -98,7 +89,9 @@ async function pullRequestTarget(
   try {
     return await lookupPullRequestTarget(deps, ctx, pull);
   } catch (error) {
-    logGitHubFailure(error);
+    logError('blocker route github lookup failed', error, {
+      status: String((error as { status?: unknown }).status),
+    });
     return null;
   }
 }

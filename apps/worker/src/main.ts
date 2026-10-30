@@ -17,6 +17,7 @@ import {
   DELIVER_WEBHOOK_JOB,
   LOAD_CONFIG_JOB,
   nullTracker,
+  PRUNE_DATA_JOB,
   RESOLVE_CHECK_SUITE_JOB,
   ROUTE_BLOCKER_JOB,
   SCAN_MEMBER_SIGNALS_JOB,
@@ -27,6 +28,7 @@ import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { loadConfigJob } from './jobs/load-config';
+import { pruneDataJob } from './jobs/prune-data';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
 import { routeBlockerJob } from './jobs/route-blocker';
 import { scanMemberSignalsJob } from './jobs/scan-member-signals';
@@ -90,8 +92,10 @@ await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps));
 await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps));
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
+await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps));
 await queue.schedule('tick', '* * * * *');
 await queue.schedule('requeue-webhooks', '*/5 * * * *');
+await queue.schedule(PRUNE_DATA_JOB, '17 3 * * *');
 
 async function shutdown(): Promise<void> {
   await queue.stop();

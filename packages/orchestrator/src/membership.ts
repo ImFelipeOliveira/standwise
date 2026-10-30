@@ -6,6 +6,16 @@ const TTL_MS = 10 * 60 * 1000;
 export const LOGIN_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const loginCache = scopedTtlCache<string>(LOGIN_CACHE_TTL_MS);
+const membershipCache = scopedTtlCache<boolean>(TTL_MS);
+
+export function forgetMembership(
+  deps: Pick<Deps, 'github'>,
+  installationIds: number[],
+  memberId: string,
+): void {
+  const cache = membershipCache(deps.github);
+  for (const id of installationIds) cache.delete(`${id}:${memberId}`);
+}
 
 type Account = Pick<InstallationRow, 'id' | 'accountLogin' | 'accountType' | 'accountId'>;
 export type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
@@ -59,16 +69,14 @@ async function isOrgMember(octokit: Octokit, org: string, username: string): Pro
 export function createMembershipCheck(
   deps: Deps,
 ): (account: Account, member: MemberRow) => Promise<MemberRow | null> {
-  const cache = new Map<string, { checkedAt: number; member: boolean }>();
+  const cache = membershipCache(deps.github);
   return async (account, member) => {
     if (account.accountType === 'User') return isUserAccountOwner(account, member) ? member : null;
     const key = `${account.id}:${member.id}`;
     const now = deps.now().getTime();
-    const cached = cache.get(key);
-    if (cached !== undefined && now - cached.checkedAt < TTL_MS) {
-      return cached.member ? member : null;
-    }
-    const remember = (isMember: boolean) => cache.set(key, { checkedAt: now, member: isMember });
+    const cached = cache.get(key, now);
+    if (cached !== undefined) return cached ? member : null;
+    const remember = (isMember: boolean) => cache.set(key, isMember, now);
     const octokit = await deps.github.installationOctokit(account.id);
     const login = await currentLogin(deps, octokit, member.githubUserId);
     if (login === null) {

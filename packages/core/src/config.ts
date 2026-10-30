@@ -49,6 +49,9 @@ const timezone = z.string().refine((tz) => {
 
 const weekday = z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const login = z.string().min(1);
+const manager = login.refine((value) => !value.startsWith('@'), {
+  message: 'managers must be GitHub logins, not teams or @-prefixed names',
+});
 
 const teamSchema = z.strictObject({
   name: z.string().min(1),
@@ -57,7 +60,7 @@ const teamSchema = z.strictObject({
   remind_at: time,
   digest_at: time,
   language: z.enum(['pt-BR', 'en']).default('en'),
-  managers: z.array(login).min(1),
+  managers: z.array(manager).min(1),
   members: z.array(login).min(1),
   chat: z.strictObject({
     provider: z.enum(['slack', 'google-chat']),

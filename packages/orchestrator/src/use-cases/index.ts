@@ -20,6 +20,7 @@ export * from './load-installation-config';
 export * from './notify-suggestions';
 export * from './org-context';
 export * from './pagination';
+export * from './prune-data';
 export * from './readable-teams';
 export * from './resolve-check-suite';
 export * from './route-blocker';

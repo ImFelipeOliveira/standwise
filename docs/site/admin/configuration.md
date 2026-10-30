@@ -100,6 +100,8 @@ The language of the digest and of the late dailies posted in its thread: `en` or
 
 GitHub logins of the team managers. Managers can read the team's digests, dailies and blockers through the [MCP manager tools](/members/mcp#manager-tools). Organization admins can read every team without being listed. Coming soon: blockers with no one else to route to will go to the managers.
 
+Each entry must be a plain login. Names starting with `@`, such as `@acme/leads`, are not accepted: Standwise does not expand GitHub teams, so list the logins one by one.
+
 ### `members`
 
 Who writes dailies in this team. Each entry is either:
@@ -216,6 +218,7 @@ These are the messages the setup page shows, as `path: message`. `teams.0` is th
 | `teams.0.language: Invalid option: expected one of "pt-BR"\|"en"` | `pt`, `pt_BR`, `english` | Use `pt-BR` or `en` |
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (same for `managers`) | List at least one person |
+| `teams.0.managers.0: managers must be GitHub logins, not teams or @-prefixed names` | `managers: ["@acme/leads"]` | List the logins, such as `[alice, bob]` |
 | `teams.0: Unrecognized key: "reminder"` | A misspelled or unknown key | Check the key against the tables above |
 | `members.alice.slack: must be a Slack user id like U0123ABCD` | A name, an email, a channel id or `<!channel>` | Use the member id, which starts with `U` or `W` |
 | `members.alice: Unrecognized key: "slak"` | A misspelled identity key | Use `slack`, `google_chat`, `linear` or `jira` |

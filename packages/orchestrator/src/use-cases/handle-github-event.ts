@@ -5,6 +5,7 @@ import {
   upsertInstallation,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { logError } from '../log-error';
 import { enqueueLoadConfig } from './load-installation-config';
 import {
   MAX_CHECK_SUITE_LOOKUPS,
@@ -117,15 +118,6 @@ async function onConfigPullRequest(deps: Deps, payload: GitHubEventPayload): Pro
   });
 }
 
-function logSignalFailure(error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error('signal scan enqueue failed', {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
-  });
-}
-
 async function enqueueSignalScans(
   deps: Deps,
   name: string,
@@ -161,7 +153,7 @@ async function onSignalEvent(deps: Deps, name: string, payload: GitHubEventPaylo
   try {
     await enqueueSignalScans(deps, name, payload);
   } catch (error) {
-    logSignalFailure(error);
+    logError('signal scan enqueue failed', error);
   }
 }
 

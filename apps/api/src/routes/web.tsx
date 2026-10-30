@@ -45,7 +45,7 @@ const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_den
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
 export const WEB_IP_LIMIT = 60;
 const RESYNC_CODES = ['forbidden', 'installation_pending'];
-const PAGE_PATHS = ['/setup', '/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
+const PAGE_PATHS = ['/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
 const STYLE_HASH = `'sha256-${new Bun.CryptoHasher('sha256').update(PAGE_CSS).digest('base64')}'`;
 
 const pageHeaders = secureHeaders({

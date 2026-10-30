@@ -2,6 +2,7 @@ import { type ConfigError, type Language, locateConfigPath, parseConfig, t } fro
 import { getInstallation } from '@standwise/db';
 import type { CheckRunInput, Octokit } from '@standwise/github';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 
 export const VALIDATE_CONFIG_JOB = 'validate-config';
 export const CONFIG_REPO = '.github';
@@ -37,15 +38,6 @@ function locateLine(source: string, path: string): number {
 
 function describeError(error: ConfigError): string {
   return error.path === '' ? error.message : `${error.path}: ${error.message}`;
-}
-
-function logFailure(label: string, error: unknown): void {
-  const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error(label, {
-    name: String(e.name),
-    code: String(e.code),
-    message: String(e.message),
-  });
 }
 
 async function touchesConfig(
@@ -107,7 +99,7 @@ export async function validateConfigAtRef(
   const source = await deps.github.fetchConfigSource(octokit, owner, { ref: job.headSha });
   if (!source.found) {
     if (source.reason === 'no_access') {
-      logFailure('config validation skipped', {
+      logError('config validation skipped', {
         name: 'ConfigAccessError',
         code: source.reason,
         message: 'no access to the config repository',
@@ -124,7 +116,7 @@ export async function validateConfigAtRef(
   try {
     await deps.github.createCheckRun(octokit, input);
   } catch (error) {
-    logFailure('config check run failed', error);
+    logError('config check run failed', error);
     throw error;
   }
   return input.conclusion;

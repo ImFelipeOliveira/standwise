@@ -15,6 +15,7 @@ import {
   MAX_DELIVERY_ATTEMPTS,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
+import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { SCAN_MEMBER_SIGNALS_JOB, type ScanMemberSignalsJob } from './scan-member-signals';
 
@@ -136,12 +137,7 @@ async function isolated(label: string, run: () => Promise<void>): Promise<void> 
   try {
     await run();
   } catch (error) {
-    const e = error as { name?: unknown; code?: unknown; message?: unknown };
-    console.error(label, {
-      name: String(e.name),
-      code: String(e.code),
-      message: String(e.message),
-    });
+    logError(label, error);
   }
 }
 

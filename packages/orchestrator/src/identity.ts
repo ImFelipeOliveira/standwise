@@ -1,6 +1,7 @@
 import { memberOverrides } from '@standwise/core';
 import { getInstallation, getMemberById, operationalConfig, setIdentity } from '@standwise/db';
 import type { Deps } from './deps';
+import { logError } from './log-error';
 
 export async function linkChatIdentities(
   deps: Deps,
@@ -21,6 +22,8 @@ export async function linkChatIdentities(
       const externalId =
         memberOverrides(config, login).slack ?? (email ? await chat.findUserByEmail(email) : null);
       if (externalId) await setIdentity(deps.db, installationId, memberId, 'slack', externalId);
-    } catch {}
+    } catch (error) {
+      logError('chat identity link failed', error);
+    }
   }
 }
