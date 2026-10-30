@@ -5,7 +5,6 @@ import {
   upsertInstallation,
 } from '@standwise/db';
 import type { Deps } from '../deps';
-import { resolveTeams } from '../teams';
 import { enqueueLoadConfig } from './load-installation-config';
 import {
   MAX_CHECK_SUITE_LOOKUPS,
@@ -22,6 +21,7 @@ export type GitHubEventPayload = {
   ref?: string;
   after?: string;
   deleted?: boolean;
+  forced?: boolean;
   installation?: { id?: number; account?: Account };
   repository?: { name?: string; default_branch?: string; owner?: { login?: string } };
   commits?: { added?: string[]; modified?: string[]; removed?: string[] }[];
@@ -78,23 +78,25 @@ async function onInstallationRepositories(deps: Deps, payload: GitHubEventPayloa
   await syncInstallation(deps, installationId, { ...account, login: account.login });
 }
 
-function sameLogin(a: string | undefined, b: string): boolean {
-  return a === undefined || a.toLowerCase() === b.toLowerCase();
+function sameLogin(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 async function onPush(deps: Deps, payload: GitHubEventPayload): Promise<void> {
   const installationId = payload.installation?.id;
   const repository = payload.repository;
   if (installationId === undefined || !repository || !payload.after) return;
-  if (repository.name !== CONFIG_REPO || payload.deleted) return;
-  if (!touchesConfig(payload)) return;
+  if (repository.name !== CONFIG_REPO || payload.deleted || !repository.owner?.login) return;
+  const onDefaultBranch = payload.ref === `refs/heads/${repository.default_branch}`;
+  const validate =
+    payload.forced === true || (payload.commits ?? []).length === 0 || touchesConfig(payload);
+  if (!validate && !onDefaultBranch) return;
   const installation = await getInstallation(deps.db, installationId);
-  if (!installation) return;
+  if (!installation || !sameLogin(repository.owner.login, installation.accountLogin)) return;
   const owner = installation.accountLogin;
-  if (!sameLogin(repository.owner?.login, owner)) return;
-  await enqueueValidateConfig(deps, { installationId, owner, headSha: payload.after });
-  if (payload.ref !== `refs/heads/${repository.default_branch}`) return;
-  await enqueueLoadConfig(deps, { installationId, owner });
+  if (validate)
+    await enqueueValidateConfig(deps, { installationId, owner, headSha: payload.after });
+  if (onDefaultBranch) await enqueueLoadConfig(deps, { installationId, owner });
 }
 
 async function onConfigPullRequest(deps: Deps, payload: GitHubEventPayload): Promise<void> {
@@ -152,8 +154,6 @@ async function enqueueSignalScans(
 
   const author = payload.pull_request?.user?.login?.toLowerCase();
   if (!author) return;
-  const teams = await resolveTeams(deps, installationId, installation.accountLogin, config);
-  if (!teams.some((team) => team.memberLogins.includes(author))) return;
   await enqueueMemberScan(deps, installationId, author);
 }
 

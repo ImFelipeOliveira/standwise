@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { getInstallation, upsertInstallation } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { handleGitHubEvent, loadConfig } from '../../src';
+import { handleGitHubEvent, loadConfig, scanMemberSignals } from '../../src';
 import { config, fakeDeps, seedOrg } from './fakes';
 
 const INST = 21;
@@ -123,6 +123,42 @@ describe('handleGitHubEvent', () => {
     ]);
   });
 
+  test('a forced push with empty commits on the default branch validates and loads', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const { deps, queue } = fakeDeps();
+    noGitHub(deps);
+    await handleGitHubEvent(deps, 'push', {
+      ...push('.github', 'refs/heads/main', {}),
+      forced: true,
+      commits: [],
+    });
+    expect(configJobs(queue).map((j) => j.name)).toEqual(['validate-config', 'load-config']);
+  });
+
+  test('a default branch push that does not touch the file still loads, without validating', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const { deps, queue } = fakeDeps();
+    noGitHub(deps);
+    await handleGitHubEvent(
+      deps,
+      'push',
+      push('.github', 'refs/heads/main', { modified: ['README.md'] }),
+    );
+    expect(configJobs(queue)).toEqual([
+      { name: 'load-config', data: { installationId: INST, owner: 'acme' } },
+    ]);
+  });
+
+  test('a forced push on another branch validates but does not load', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    const { deps, queue } = fakeDeps();
+    await handleGitHubEvent(deps, 'push', {
+      ...push('.github', 'refs/heads/dev', { modified: ['README.md'] }),
+      forced: true,
+    });
+    expect(configJobs(queue).map((j) => j.name)).toEqual(['validate-config']);
+  });
+
   test('push filters out other repos, owners, files, deletions and unknown installations', async () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const { deps, calls, queue } = fakeDeps({ source: { found: true, source: VALID } });
@@ -134,8 +170,13 @@ describe('handleGitHubEvent', () => {
     await handleGitHubEvent(
       deps,
       'push',
-      push('.github', 'refs/heads/main', { modified: ['README.md'] }),
+      push('.github', 'refs/heads/dev', { modified: ['README.md'] }),
     );
+    const ownerless = push('.github', 'refs/heads/main', { modified: ['standwise.yml'] });
+    await handleGitHubEvent(deps, 'push', {
+      ...ownerless,
+      repository: { name: '.github', default_branch: 'main' },
+    });
     const foreign = push('.github', 'refs/heads/main', { modified: ['standwise.yml'] });
     await handleGitHubEvent(deps, 'push', {
       ...foreign,
@@ -221,11 +262,31 @@ describe('handleGitHubEvent signal scans', () => {
     expect(scans(queue)).toEqual([{ installationId: INST, login: 'alice' }]);
   });
 
-  test('a pull_request_review for a non-member enqueues nothing', async () => {
+  test('a non-member author is enqueued without GitHub calls and the scan job no-ops', async () => {
     await seedOrg(config(), { id: INST });
-    const { deps, queue } = fakeDeps();
+    const { deps, queue, calls } = fakeDeps();
+    let resolves = 0;
+    const resolve = deps.github.resolveTeamMembers;
+    deps.github.resolveTeamMembers = async (...args) => {
+      resolves++;
+      return resolve(...args);
+    };
+    const octokit = deps.github.installationOctokit;
+    let octokits = 0;
+    deps.github.installationOctokit = async (id) => {
+      octokits++;
+      return octokit(id);
+    };
     await handleGitHubEvent(deps, 'pull_request_review', pullRequest('submitted', 'carol'));
-    expect(scans(queue)).toEqual([]);
+    await handleGitHubEvent(deps, 'pull_request', pullRequest('opened', 'carol'));
+    expect(resolves).toBe(0);
+    expect(octokits).toBe(0);
+    expect(scans(queue)).toEqual([{ installationId: INST, login: 'carol' }]);
+    await queue.work('scan-member-signals', (data) =>
+      scanMemberSignals(deps, data as { installationId: number; login: string }),
+    );
+    await queue.drain();
+    expect(calls.snapshots).toEqual([]);
   });
 
   test('pull_request actions that change signals enqueue a scan, others do not', async () => {
@@ -287,17 +348,17 @@ describe('handleGitHubEvent signal scans', () => {
     expect(queue.enqueued).toEqual([]);
   });
 
-  test('a GitHub failure while resolving members is logged and does not throw', async () => {
+  test('a failure while enqueueing the scan is logged and does not throw', async () => {
     await seedOrg(config(), { id: INST });
     const { deps, queue } = fakeDeps();
-    deps.github.resolveTeamMembers = async () => {
-      throw new Error('github down');
+    deps.queue.enqueue = async () => {
+      throw new Error('queue down');
     };
     const spy = spyOn(console, 'error').mockImplementation(() => {});
     await handleGitHubEvent(deps, 'pull_request', pullRequest('opened', 'alice'));
     const logged = JSON.stringify(spy.mock.calls);
     spy.mockRestore();
-    expect(logged).toContain('github down');
+    expect(logged).toContain('queue down');
     expect(scans(queue)).toEqual([]);
   });
 });

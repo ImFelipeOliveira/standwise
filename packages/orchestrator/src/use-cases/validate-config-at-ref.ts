@@ -39,9 +39,9 @@ function describeError(error: ConfigError): string {
   return error.path === '' ? error.message : `${error.path}: ${error.message}`;
 }
 
-function logCheckRunFailure(error: unknown): void {
+function logFailure(label: string, error: unknown): void {
   const e = error as { name?: unknown; code?: unknown; message?: unknown };
-  console.error('config check run failed', {
+  console.error(label, {
     name: String(e.name),
     code: String(e.code),
     message: String(e.message),
@@ -105,7 +105,16 @@ export async function validateConfigAtRef(
     return 'skipped';
   }
   const source = await deps.github.fetchConfigSource(octokit, owner, { ref: job.headSha });
-  if (!source.found) return 'skipped';
+  if (!source.found) {
+    if (source.reason === 'no_access') {
+      logFailure('config validation skipped', {
+        name: 'ConfigAccessError',
+        code: source.reason,
+        message: 'no access to the config repository',
+      });
+    }
+    return 'skipped';
+  }
   const input = checkRunFor(source.source, {
     owner,
     repo: CONFIG_REPO,
@@ -115,7 +124,7 @@ export async function validateConfigAtRef(
   try {
     await deps.github.createCheckRun(octokit, input);
   } catch (error) {
-    logCheckRunFailure(error);
+    logFailure('config check run failed', error);
     throw error;
   }
   return input.conclusion;

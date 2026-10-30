@@ -1,7 +1,14 @@
 import { DEFAULT_RETRY_LIMIT, type EnqueueOptions, type JobQueue } from './index';
 
 type Handler = (data: object) => Promise<void>;
-type Job = { name: string; data: object; retryLimit: number; attempts: number; key?: string };
+type Job = {
+  name: string;
+  data: object;
+  retryLimit: number;
+  attempts: number;
+  key?: string;
+  statelyKey?: string;
+};
 
 type Enqueued = { name: string; data: object; startAfter?: Date };
 
@@ -24,7 +31,10 @@ export function createMemoryQueue(): MemoryQueue {
     async start() {},
     async stop() {},
     async enqueue<T extends object>(name: string, data: T, opts: EnqueueOptions = {}) {
-      const key = opts.singletonKey === undefined ? undefined : `${name}:${opts.singletonKey}`;
+      const scoped = opts.singletonKey === undefined ? undefined : `${name}:${opts.singletonKey}`;
+      const statelyKey = opts.policy === 'stately' ? scoped : undefined;
+      const key = opts.policy === 'stately' ? undefined : scoped;
+      if (statelyKey !== undefined && pending.some((job) => job.statelyKey === statelyKey)) return;
       if (key !== undefined) {
         if (inFlightKeys.has(key)) return;
         inFlightKeys.add(key);
@@ -40,6 +50,7 @@ export function createMemoryQueue(): MemoryQueue {
         retryLimit: opts.retryLimit ?? DEFAULT_RETRY_LIMIT,
         attempts: 0,
         key,
+        statelyKey,
       });
     },
     async schedule(name, cron) {

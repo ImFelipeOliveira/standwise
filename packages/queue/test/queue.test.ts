@@ -101,4 +101,29 @@ describe.each(implementations)('JobQueue (%s)', (_label, make) => {
     await h.settle(() => calls >= 1);
     expect(calls).toBe(1);
   });
+
+  test('stately keeps one queued job behind an active one', async () => {
+    let calls = 0;
+    await h.queue.work('stately-active', async () => {
+      calls++;
+      if (calls === 1) {
+        await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+        await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+      }
+    });
+    await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.settle(() => calls >= 2);
+    expect(calls).toBe(2);
+  });
+
+  test('stately dedupes queued jobs with the same key', async () => {
+    let calls = 0;
+    await h.queue.work('stately-queued', async () => {
+      calls++;
+    });
+    await h.queue.enqueue('stately-queued', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.queue.enqueue('stately-queued', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.settle(() => calls >= 1);
+    expect(calls).toBe(1);
+  });
 });

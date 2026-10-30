@@ -1,5 +1,8 @@
+export type SingletonPolicy = 'exclusive' | 'stately';
+
 export type EnqueueOptions = {
   singletonKey?: string;
+  policy?: SingletonPolicy;
   startAfter?: Date;
   retryLimit?: number;
 };

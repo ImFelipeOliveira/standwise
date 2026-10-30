@@ -21,6 +21,7 @@ export async function enqueueLoadConfig(
 ): Promise<void> {
   await deps.queue.enqueue(LOAD_CONFIG_JOB, job, {
     singletonKey: `load-config:${job.installationId}`,
+    policy: 'stately',
   });
 }
 

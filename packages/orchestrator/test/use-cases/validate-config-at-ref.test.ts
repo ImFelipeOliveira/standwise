@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { getInstallation } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { loadConfig, validateConfigAtRef } from '../../src';
+import { enqueueLoadConfig, loadConfig, validateConfigAtRef } from '../../src';
 import { config, type FakeOptions, fakeDeps, INST, seedOrg } from './fakes';
 
 useCleanDb();
@@ -105,6 +105,26 @@ describe('validateConfigAtRef', () => {
     expect(calls.createCheckRun).toEqual([]);
   });
 
+  test('no access to the config repo is logged and skipped', async () => {
+    await seedOrg();
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const { result, calls } = await run({ found: false, reason: 'no_access' });
+    const logged = spy.mock.calls;
+    spy.mockRestore();
+    expect(result).toBe('skipped');
+    expect(calls.createCheckRun).toEqual([]);
+    expect(logged).toEqual([
+      [
+        'config validation skipped',
+        {
+          name: 'ConfigAccessError',
+          code: 'no_access',
+          message: 'no access to the config repository',
+        },
+      ],
+    ]);
+  });
+
   test('a PR that does not touch standwise.yml is skipped without check-run calls', async () => {
     await seedOrg();
     const { result, calls } = await run(
@@ -172,6 +192,25 @@ describe('loadConfig', () => {
     await loadConfig(fake.deps, { installationId: INST, owner: 'acme' });
     expect((await getInstallation(db, INST))?.status).toBe('configured');
     expect(fake.calls.configRefs).toEqual([undefined]);
+  });
+
+  test('a load enqueued while one is active is kept, and a second queued one is dropped', async () => {
+    await seedOrg(null);
+    const fake = fakeDeps({ source: { found: true, source: VALID } });
+    const loadJob = { installationId: INST, owner: 'acme' };
+    let runs = 0;
+    await fake.queue.work('load-config', async (data) => {
+      runs++;
+      if (runs === 1) {
+        await enqueueLoadConfig(fake.deps, loadJob);
+        await enqueueLoadConfig(fake.deps, loadJob);
+      }
+      await loadConfig(fake.deps, data as typeof loadJob);
+    });
+    await enqueueLoadConfig(fake.deps, loadJob);
+    await fake.queue.drain();
+    expect(runs).toBe(2);
+    expect(fake.calls.config).toEqual(['acme', 'acme']);
   });
 
   test('an unknown installation or a foreign owner is ignored', async () => {
