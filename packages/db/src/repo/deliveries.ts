@@ -117,6 +117,23 @@ export async function getDelivery(db: Db, k: DeliveryKey): Promise<DeliveryRow |
   return row ?? null;
 }
 
+export async function listReminderDeliveries(
+  db: Db,
+  installationId: number,
+  date: string,
+): Promise<DeliveryRow[]> {
+  return db
+    .select()
+    .from(deliveries)
+    .where(
+      and(
+        eq(deliveries.installationId, installationId),
+        eq(deliveries.date, date),
+        eq(deliveries.kind, 'reminder'),
+      ),
+    );
+}
+
 export async function listFailedDeliveries(
   db: Db,
   installationId: number,

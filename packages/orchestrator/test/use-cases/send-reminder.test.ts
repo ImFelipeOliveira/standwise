@@ -196,6 +196,66 @@ describe('sendReminder', () => {
     expect(directs).toHaveLength(1);
   });
 
+  test('no DM or claim once the digest instant has passed even if the digest is only claimed', async () => {
+    const { deps, directs, setNow } = await setup();
+    await identify('alice', 'U1');
+    await claimDelivery(db, digestKey());
+    setNow(new Date(local('2026-10-28T10:00:30')));
+    await sendReminder(deps, job('alice'));
+    expect(directs).toEqual([]);
+    expect(await getDelivery(db, reminderKey('alice'))).toBeNull();
+  });
+
+  test('copy uses the digest time of the earliest pending eligible team', async () => {
+    const { deps, directs, setNow } = await setup(twoTeamsWithAlice());
+    await identify('alice', 'U1');
+    await markSent('Alpha');
+    setNow(local('2026-10-28T10:30:00'));
+    await sendReminder(deps, job('alice'));
+    expect(directs).toHaveLength(1);
+    expect(directs[0]?.msg.fallbackText).toContain('11:00');
+  });
+
+  test('a team where the date is not a workday does not keep the reminder alive', async () => {
+    const parsed = parseConfig(`
+teams:
+  - name: Alpha
+    timezone: America/Sao_Paulo
+    remind_at: "09:00"
+    digest_at: "10:00"
+    managers: [alice]
+    members: [alice]
+    chat: { provider: slack, channel: "#alpha" }
+  - name: Beta
+    timezone: America/Sao_Paulo
+    workdays: [mon, thu, fri]
+    remind_at: "09:30"
+    digest_at: "11:00"
+    managers: [alice]
+    members: [alice]
+    chat: { provider: slack, channel: "#beta" }
+`);
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+    const { deps, directs, setNow } = await setup(parsed.config);
+    await identify('alice', 'U1');
+    await markSent('Alpha');
+    setNow(local('2026-10-28T10:30:00'));
+    await sendReminder(deps, job('alice'));
+    expect(directs).toEqual([]);
+  });
+
+  test('a reminder already sent or exhausted is not enqueued again by the tick', async () => {
+    const fake = await setup();
+    const key = reminderKey('alice');
+    const claim = await claimDelivery(db, key);
+    if (claim.status !== 'claimed') throw new Error('not claimed');
+    await completeDelivery(db, key, claim.token, { channel: 'D1', id: '1' });
+    await runTick(fake.deps);
+    expect(
+      fake.queue.enqueued.filter((j) => j.name === 'send-reminder').map((j) => j.data),
+    ).toEqual([{ installationId: INST, login: 'bob', date: DATE }]);
+  });
+
   test('person outside every team is skipped', async () => {
     const { deps, directs } = await setup();
     await sendReminder(deps, job('carol'));

@@ -1,4 +1,4 @@
-import { buildReminder, teamsForMember } from '@standwise/core';
+import { buildReminder, isWorkday, localInstant, teamsForMember } from '@standwise/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -32,17 +32,23 @@ export async function sendReminder(deps: WorkerDeps, job: SendReminderJob): Prom
   const dailies = await listDailies(deps.db, job.installationId, job.date);
   if (dailies.some((d) => d.login.toLowerCase() === login)) return;
 
-  let pendingDigest = false;
+  const now = deps.now().getTime();
+  const eligible: { team: (typeof teams)[number]; at: number }[] = [];
   for (const team of teams) {
+    if (!isWorkday(job.date, team)) continue;
+    const at = localInstant(job.date, team.digestAt, team.timezone).getTime();
+    if (now >= at) continue;
     const digest = await getDelivery(deps.db, {
       installationId: job.installationId,
       teamName: team.name,
       date: job.date,
       kind: 'digest',
     });
-    if (digest?.status !== 'sent') pendingDigest = true;
+    if (digest?.status === 'sent') continue;
+    eligible.push({ team, at });
   }
-  if (!pendingDigest) return;
+  const earliest = eligible.sort((x, y) => x.at - y.at)[0];
+  if (!earliest) return;
 
   const key: DeliveryKey = {
     installationId: job.installationId,
@@ -54,20 +60,20 @@ export async function sendReminder(deps: WorkerDeps, job: SendReminderJob): Prom
   const claim = await claimDelivery(deps.db, key);
   if (claim.status !== 'claimed') return;
 
-  const chat = await deps.chatFor(job.installationId, 'slack');
-  if (!chat) {
-    await failDelivery(deps.db, key, claim.token, 'no_chat_connection');
-    return;
-  }
-  const chatUserId = await chatUserIdFor(deps, job.installationId, config, login);
-  if (!chatUserId) {
-    await failDelivery(deps.db, key, claim.token, `no_chat_identity: ${login}`);
-    return;
-  }
   try {
+    const chat = await deps.chatFor(job.installationId, 'slack');
+    if (!chat) {
+      await failDelivery(deps.db, key, claim.token, 'no_chat_connection');
+      return;
+    }
+    const chatUserId = await chatUserIdFor(deps, job.installationId, config, login);
+    if (!chatUserId) {
+      await failDelivery(deps.db, key, claim.token, `no_chat_identity: ${login}`);
+      return;
+    }
     const ref = await chat.sendDirect(
       chatUserId,
-      buildReminder({ team: first, date: job.date, digestAt: first.digestAt }),
+      buildReminder({ team: first, date: job.date, digestAt: earliest.team.digestAt }),
     );
     await completeDelivery(deps.db, key, claim.token, ref);
   } catch (error) {

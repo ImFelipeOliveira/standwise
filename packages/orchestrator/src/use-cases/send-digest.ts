@@ -16,7 +16,7 @@ import {
   operationalConfig,
 } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
-import { chatUserIdFor } from '../chat-identity';
+import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
@@ -85,14 +85,7 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
     if (!resolved) throw new Error('team not resolved');
     team = resolved;
     snapshot = teamDailies(team, await listDailies(deps.db, job.installationId, job.date));
-    const chatIds = new Map(
-      await Promise.all(
-        team.memberLogins.map(
-          async (login) =>
-            [login, await chatUserIdFor(deps, job.installationId, config, login)] as const,
-        ),
-      ),
-    );
+    const chatIds = await chatUserIdsFor(deps, job.installationId, config, team.memberLogins);
     const stored = await getMemberLogins(deps.db, team.memberLogins);
     const written = new Map(teamConfig.members.map((m) => [m.toLowerCase(), m]));
     const person = (login: string): Person => {

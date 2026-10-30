@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { parseConfig, type StandwiseConfig } from '@standwise/core';
 import {
   claimDelivery,
@@ -171,5 +171,27 @@ describe('runTick', () => {
         data: { installationId: INST, teamName: 'Alpha', date: '2026-03-08' },
       },
     ]);
+  });
+
+  test('a failing reminder enqueue is logged without payload and does not break the tick', async () => {
+    await seedOrg();
+    const fake = fakeDeps();
+    fake.setNow(local('2026-10-28T09:30:00'));
+    let attempts = 0;
+    fake.deps.github.resolveTeamMembers = async () => {
+      attempts++;
+      throw new Error('github down');
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    await runTick(fake.deps);
+    const logged = JSON.stringify(spy.mock.calls);
+    spy.mockRestore();
+    expect(attempts).toBe(1);
+    expect(logged).toContain('github down');
+    expect(fake.queue.enqueued).toEqual([]);
+
+    fake.setNow(local('2026-10-28T10:00:00'));
+    await runTick(fake.deps);
+    expect(digests(fake)).toHaveLength(1);
   });
 });

@@ -1,8 +1,16 @@
-import { addCalendarDays, isDue, isWorkday, localDate, type TeamConfig } from '@standwise/core';
+import {
+  addCalendarDays,
+  isDue,
+  isWorkday,
+  localDate,
+  localInstant,
+  type TeamConfig,
+} from '@standwise/core';
 import {
   getDelivery,
   listDailies,
   listOperationalInstallations,
+  listReminderDeliveries,
   MAX_DELIVERY_ATTEMPTS,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
@@ -25,6 +33,7 @@ function dueReminderDates(now: Date, team: TeamConfig): string[] {
   return [today, yesterday].filter(
     (date) =>
       isWorkday(date, team) &&
+      now.getTime() < localInstant(date, team.digestAt, team.timezone).getTime() &&
       isDue(now, date, team.remindAt, team.timezone, REMINDER_GRACE_MINUTES),
   );
 }
@@ -51,8 +60,16 @@ async function enqueueReminders(
     const submitted = new Set(
       (await listDailies(deps.db, installation.id, date)).map((d) => d.login.toLowerCase()),
     );
+    const settled = new Set(
+      (await listReminderDeliveries(deps.db, installation.id, date))
+        .filter(
+          (r) =>
+            r.status === 'sent' || (r.status === 'failed' && r.attempts >= MAX_DELIVERY_ATTEMPTS),
+        )
+        .map((r) => r.subject),
+    );
     for (const login of resolved.memberLogins) {
-      if (submitted.has(login)) continue;
+      if (submitted.has(login) || settled.has(login)) continue;
       await deps.queue.enqueue(
         'send-reminder',
         { installationId: installation.id, login, date },
@@ -68,8 +85,13 @@ export async function runTick(deps: WorkerDeps): Promise<void> {
     for (const team of installation.config.teams) {
       try {
         await enqueueReminders(deps, installation, team, now);
-      } catch {
-        continue;
+      } catch (error) {
+        const e = error as { name?: unknown; code?: unknown; message?: unknown };
+        console.error('reminder enqueue failed', {
+          name: String(e.name),
+          code: String(e.code),
+          message: String(e.message),
+        });
       }
       const date = dueDigestDate(now, team);
       if (!date) continue;

@@ -144,8 +144,7 @@ const ptBR = {
   'cli.confirm.title': 'Enviar esta daily',
   'cli.confirm.description': 'Marque para enviar a daily exatamente como mostrada.',
   'reminder.title': 'Lembrete da daily',
-  'reminder.body':
-    'Bom dia! O consolidado do time sai às {digestAt}. Envie a sua com /daily quando puder.',
+  'reminder.body': 'O consolidado do time sai às {digestAt}. Envie a sua com /daily quando puder.',
   'blockerRouted.title': 'Impedimento de {name}',
   'blockerRouted.body':
     '{name} confirmou um impedimento na daily: {blocker}. Você pode ajudar a destravar?',
@@ -305,8 +304,7 @@ const en = {
   'cli.confirm.title': 'Send this daily',
   'cli.confirm.description': 'Check to send the daily exactly as shown.',
   'reminder.title': 'Daily reminder',
-  'reminder.body':
-    'Good morning! The team digest goes out at {digestAt}. Send yours with /daily when you can.',
+  'reminder.body': 'The team digest goes out at {digestAt}. Send yours with /daily when you can.',
   'blockerRouted.title': "{name}'s blocker",
   'blockerRouted.body':
     '{name} confirmed a blocker in their daily: {blocker}. Can you help unblock it?',
