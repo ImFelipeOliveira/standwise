@@ -1,4 +1,4 @@
-import { buildLateDaily, type MessageRef, teamsForMember } from '@standwise/core';
+import { buildLateDaily, type MessageRef, memberOverrides, teamsForMember } from '@standwise/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -30,9 +30,9 @@ export async function sendLateDaily(deps: WorkerDeps, job: SendLateDailyJob): Pr
   const chat = await deps.chatFor(job.installationId, 'slack');
 
   const teams = await resolveTeams(deps, installation.id, installation.accountLogin, config);
-  const chatUserId = (await getIdentities(deps.db, job.installationId, 'slack')).get(
-    member.login.toLowerCase(),
-  );
+  const chatUserId =
+    memberOverrides(config, member.login).slack ??
+    (await getIdentities(deps.db, job.installationId, 'slack')).get(member.login.toLowerCase());
   const entry = {
     login: member.login,
     ...(chatUserId ? { chatUserId } : {}),

@@ -3,13 +3,14 @@ import {
   claimDelivery,
   completeDelivery,
   getDelivery,
+  setIdentity,
   setInstallationConfig,
   upsertDaily,
 } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { sendLateDaily } from '../../src';
-import { daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
+import { config, daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -112,5 +113,16 @@ describe('sendLateDaily', () => {
       subject: job.memberId,
     });
     expect(row?.status).toBe('pending');
+  });
+
+  test('late daily mentions the config slack id first', async () => {
+    const { deps, replies, job } = await setup();
+    await setIdentity(db, INST, job.memberId, 'slack', 'UALICE');
+    await setInstallationConfig(db, INST, {
+      status: 'configured',
+      config: config('[alice, bob]', 'members:\n  Alice: { slack: U0CONF }'),
+    });
+    await sendLateDaily(deps, job);
+    expect(replies[0]?.msg.fallbackText).toContain('@U0CONF');
   });
 });

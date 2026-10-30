@@ -12,7 +12,7 @@ O consolidado mostra `@` e o seu login do GitHub, em texto, quando o Standwise n
 
 1. **Você entrou depois que o Slack foi conectado.** Rode `standwise login` de novo.
 2. **O `standwise.yml` tinha uma versão válida quando você entrou.** Se não existia ou nunca tinha sido válido, rode `standwise login` de novo depois de corrigido.
-3. **Os seus e-mails batem.** O Standwise busca o seu usuário do Slack pelo e-mail principal verificado da sua conta do GitHub. Se a sua conta do Slack usa outro e-mail, peça ao admin para adicionar `members.<seu-login>.slack` com o seu id de membro do Slack no `standwise.yml` (veja [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades)) e rode `standwise login` de novo.
+3. **Os seus e-mails batem.** O Standwise busca o seu usuário do Slack pelo e-mail principal verificado da sua conta do GitHub. Se a sua conta do Slack usa outro e-mail, peça ao admin para adicionar `members.<seu-login>.slack` com o seu id de membro do Slack no `standwise.yml` (veja [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades)). O mapeamento vale a partir do próximo consolidado.
 
 ## O consolidado não chegou
 

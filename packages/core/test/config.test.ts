@@ -47,6 +47,23 @@ describe('parseConfig', () => {
     expect(r.config.members.alice?.slack).toBe('U0123');
   });
 
+  test('rejects a slack id that is not a slack user id', () => {
+    for (const slack of ['<!channel>', 'u0123', 'U1', 'C0123']) {
+      const r = parseConfig(JSON.stringify({ teams: [team()], members: { alice: { slack } } }));
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.errors[0]?.path).toBe('members.alice.slack');
+      expect(r.errors[0]?.message).toContain('Slack user id');
+    }
+  });
+
+  test('accepts U and W slack user ids', () => {
+    for (const slack of ['U0123', 'W0ABC9']) {
+      const r = parseConfig(JSON.stringify({ teams: [team()], members: { alice: { slack } } }));
+      expect(r.ok).toBe(true);
+    }
+  });
+
   test('applies defaults', () => {
     const r = parseConfig(toYaml([team()]));
     expect(r.ok).toBe(true);

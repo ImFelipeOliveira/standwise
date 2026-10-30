@@ -200,7 +200,7 @@ members:
 | `linear` | coming soon | Linear user email |
 | `jira` | coming soon | Jira account |
 
-Identities are linked when the person signs in with `standwise login` or on the setup page. After you add or change a mapping, ask the person to run `standwise login` again.
+A `slack` mapping is used from the next digest on, even for people who have never signed in. People without a mapping are linked by email when they sign in with `standwise login` or on the setup page. If you connect a different Slack workspace, the email links are cleared and made again at the next sign-in.
 
 ## Common validation errors
 
@@ -217,6 +217,7 @@ These are the messages the setup page shows, as `path: message`. `teams.0` is th
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (same for `managers`) | List at least one person |
 | `teams.0: Unrecognized key: "reminder"` | A misspelled or unknown key | Check the key against the tables above |
+| `members.alice.slack: must be a Slack user id like U0123ABCD` | A name, an email, a channel id or `<!channel>` | Use the member id, which starts with `U` or `W` |
 | `members.alice: Unrecognized key: "slak"` | A misspelled identity key | Use `slack`, `google_chat`, `linear` or `jira` |
 | `teams.1.name: duplicate team name "backend"` | Two teams with the same name | Rename one of them |
 | `teams.0.signals.pr_review_hours: Too small: expected number to be >0` | `0` or a negative number | Use a positive number |

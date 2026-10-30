@@ -201,7 +201,7 @@ members:
 | `linear` | em breve | E-mail do usuário no Linear |
 | `jira` | em breve | Conta no Jira |
 
-As identidades são ligadas quando a pessoa entra com `standwise login` ou na página de setup. Depois de adicionar ou mudar um mapeamento, peça para a pessoa rodar `standwise login` de novo.
+Um mapeamento `slack` vale a partir do próximo consolidado, mesmo para quem nunca entrou. Quem não tem mapeamento é ligado pelo e-mail ao entrar com `standwise login` ou na página de setup. Se você conectar outro workspace do Slack, as ligações por e-mail são apagadas e refeitas no próximo login.
 
 ## Erros de validação comuns
 
@@ -218,6 +218,7 @@ Estas são as mensagens que a página de setup mostra, no formato `caminho: mens
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (o mesmo vale para `managers`) | Liste pelo menos uma pessoa |
 | `teams.0: Unrecognized key: "reminder"` | Uma chave escrita errado ou desconhecida | Confira a chave nas tabelas acima |
+| `members.alice.slack: must be a Slack user id like U0123ABCD` | Um nome, um e-mail, um id de canal ou `<!channel>` | Use o id de membro, que começa com `U` ou `W` |
 | `members.alice: Unrecognized key: "slak"` | Uma chave de identidade escrita errado | Use `slack`, `google_chat`, `linear` ou `jira` |
 | `teams.1.name: duplicate team name "backend"` | Dois times com o mesmo nome | Renomeie um deles |
 | `teams.0.signals.pr_review_hours: Too small: expected number to be >0` | `0` ou um número negativo | Use um número positivo |

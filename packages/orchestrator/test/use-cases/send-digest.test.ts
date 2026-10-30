@@ -188,4 +188,16 @@ describe('sendDigest', () => {
     expect(row?.status).toBe('failed');
     expect(row?.error?.startsWith('deadline_exceeded')).toBe(true);
   });
+
+  test('a member who never logged in is mentioned by the config slack id', async () => {
+    const { deps, posted } = await setup(
+      config('[alice, bob]', 'members:\n  Bob: { slack: U0BOB }\n  alice: { slack: U0CONF }'),
+    );
+    await sendDigest(deps, job);
+    const text = posted[0]?.msg.fallbackText ?? '';
+    expect(text).toContain('@U0BOB');
+    expect(text).toContain('@U0CONF');
+    expect(text).not.toContain('@UALICE');
+    expect(text).not.toContain('@bob');
+  });
 });

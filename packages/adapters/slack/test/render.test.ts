@@ -28,7 +28,7 @@ describe('renderSlack', () => {
         {
           type: 'paragraph',
           content: [
-            { mention: 'U1' },
+            { mention: 'U123' },
             ' a & b < c > d ',
             { link: { text: 't', url: 'https://x' } },
           ],
@@ -37,8 +37,19 @@ describe('renderSlack', () => {
     });
     expect(out.blocks[0]).toEqual({
       type: 'section',
-      text: { type: 'mrkdwn', text: '<@U1> a &amp; b &lt; c &gt; d <https://x/|t>' },
+      text: { type: 'mrkdwn', text: '<@U123> a &amp; b &lt; c &gt; d <https://x/|t>' },
     });
+  });
+
+  test('a mention with an invalid id renders as escaped text', () => {
+    const out = renderSlack({
+      fallbackText: 'fb',
+      blocks: [{ type: 'paragraph', content: [{ mention: '<!channel>' }, ' ', { mention: 'u1' }] }],
+    });
+    const text = (out.blocks[0] as { text: { text: string } }).text.text;
+    expect(text).toBe('@&lt;!channel&gt; @u1');
+    expect(text).not.toContain('<@');
+    expect(text).not.toContain('<!');
   });
 
   test('header truncated to 150 chars', () => {

@@ -77,8 +77,19 @@ const teamSchema = z.strictObject({
     .default({ pr_review_hours: 48, card_stale_days: 5 }),
 });
 
+export const SLACK_USER_ID = /^[UW][A-Z0-9]{2,}$/;
+
+export function isSlackUserId(id: string): boolean {
+  return SLACK_USER_ID.test(id);
+}
+
+export function memberOverrides(config: StandwiseConfig, login: string): MemberOverrides {
+  const lower = login.toLowerCase();
+  return Object.entries(config.members).find(([key]) => key.toLowerCase() === lower)?.[1] ?? {};
+}
+
 const overridesSchema = z.strictObject({
-  slack: z.string().optional(),
+  slack: z.string().regex(SLACK_USER_ID, 'must be a Slack user id like U0123ABCD').optional(),
   google_chat: z.string().optional(),
   linear: z.string().optional(),
   jira: z.string().optional(),

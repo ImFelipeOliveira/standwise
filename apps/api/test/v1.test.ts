@@ -212,10 +212,10 @@ describe('sessions', () => {
   });
 
   test('config override wins over email', async () => {
-    await seed(config('members:\n  alice:\n    slack: U1\n'));
+    await seed(config('members:\n  alice:\n    slack: U0CONF\n'));
     const h = harness();
     await login(h);
-    expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U1');
+    expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U0CONF');
   });
 
   test('sessions link slack with the last valid config while standwise.yml is invalid', async () => {

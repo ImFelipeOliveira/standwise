@@ -1,3 +1,4 @@
+import { memberOverrides } from '@standwise/core';
 import { getInstallation, getMemberById, operationalConfig, setIdentity } from '@standwise/db';
 import type { Deps } from './deps';
 
@@ -17,10 +18,8 @@ export async function linkChatIdentities(
       if (!config) continue;
       const chat = await deps.chatFor(installationId, 'slack');
       if (!chat) continue;
-      const overrides = Object.entries(config.members).find(
-        ([key]) => key.toLowerCase() === login,
-      )?.[1];
-      const externalId = overrides?.slack ?? (email ? await chat.findUserByEmail(email) : null);
+      const externalId =
+        memberOverrides(config, login).slack ?? (email ? await chat.findUserByEmail(email) : null);
       if (externalId) await setIdentity(deps.db, installationId, memberId, 'slack', externalId);
     } catch {}
   }

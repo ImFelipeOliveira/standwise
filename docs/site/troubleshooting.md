@@ -12,7 +12,7 @@ The digest shows `@` and your GitHub login, as plain text, when Standwise does n
 
 1. **You signed in after Slack was connected.** Run `standwise login` again.
 2. **`standwise.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standwise login` again after it is fixed.
-3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)), then run `standwise login` again.
+3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)). The mapping is used from the next digest on.
 
 ## The digest did not arrive
 

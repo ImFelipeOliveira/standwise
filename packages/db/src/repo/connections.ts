@@ -46,3 +46,15 @@ export async function getConnection(
       }
     : null;
 }
+
+export async function getConnectionExternalId(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+): Promise<string | null> {
+  const [row] = await db
+    .select({ externalId: connections.externalId })
+    .from(connections)
+    .where(and(eq(connections.installationId, installationId), eq(connections.provider, provider)));
+  return row?.externalId ?? null;
+}

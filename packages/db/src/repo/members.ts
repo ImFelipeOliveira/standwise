@@ -100,6 +100,21 @@ export async function setIdentity(
     });
 }
 
+export async function deleteIdentities(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+): Promise<void> {
+  await db
+    .delete(memberIdentities)
+    .where(
+      and(
+        eq(memberIdentities.installationId, installationId),
+        eq(memberIdentities.provider, provider),
+      ),
+    );
+}
+
 export async function getIdentities(
   db: Db,
   installationId: number,

@@ -1,4 +1,4 @@
-import type { Block, Inline, Message } from '@standwise/core';
+import { type Block, type Inline, isSlackUserId, type Message } from '@standwise/core';
 
 const HEADER_LIMIT = 150;
 const SECTION_LIMIT = 3000;
@@ -9,7 +9,9 @@ function escapeText(text: string): string {
 
 function renderInline(i: Inline): string {
   if (typeof i === 'string') return escapeText(i);
-  if ('mention' in i) return `<@${i.mention}>`;
+  if ('mention' in i) {
+    return isSlackUserId(i.mention) ? `<@${i.mention}>` : escapeText(`@${i.mention}`);
+  }
   const url = safeUrl(i.link.url);
   return url ? `<${url}|${escapeText(i.link.text)}>` : escapeText(i.link.text);
 }

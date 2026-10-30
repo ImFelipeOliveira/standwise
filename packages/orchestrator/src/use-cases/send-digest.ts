@@ -2,6 +2,7 @@ import {
   buildDigest,
   type DigestEntry,
   type MessageRef,
+  memberOverrides,
   type Person,
   type ResolvedTeam,
 } from '@standwise/core';
@@ -91,7 +92,7 @@ export async function sendDigest(deps: WorkerDeps, job: SendDigestJob): Promise<
     const person = (login: string): Person => {
       const lower = login.toLowerCase();
       const display = stored.get(lower) ?? written.get(lower) ?? login;
-      const chatUserId = identities.get(lower);
+      const chatUserId = memberOverrides(config, lower).slack ?? identities.get(lower);
       return chatUserId ? { login: display, chatUserId } : { login: display };
     };
     entries = [];

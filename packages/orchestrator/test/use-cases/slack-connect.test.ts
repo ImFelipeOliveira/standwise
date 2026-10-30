@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { getConnection, setMemberInstallations, upsertInstallation } from '@standwise/db';
+import {
+  getConnection,
+  getIdentities,
+  saveConnection,
+  setIdentity,
+  setMemberInstallations,
+  upsertInstallation,
+} from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
@@ -71,6 +78,38 @@ describe('completeSlackConnect', () => {
       externalName: 'Acme Workspace',
       secret: 'xoxb-1',
     });
+  });
+
+  test('connecting another workspace clears the slack identities', async () => {
+    const { deps, member, isMember } = await setup();
+    await saveConnection(db, INST, 'slack', 'T0OLD', 'xoxb-old', KEY, 'Old');
+    await setIdentity(db, INST, member.id, 'slack', 'U0OLD');
+    const { url } = await startSlackConnect(deps, isMember, member, {
+      sessionToken: 'tok',
+      installationId: INST,
+    });
+    await completeSlackConnect(deps, isMember, member, {
+      sessionToken: 'tok',
+      code: 'c',
+      state: stateOf(url),
+    });
+    expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
+  });
+
+  test('reconnecting the same workspace keeps the slack identities', async () => {
+    const { deps, member, isMember } = await setup();
+    await saveConnection(db, INST, 'slack', 'T1', 'xoxb-old', KEY, 'Acme Workspace');
+    await setIdentity(db, INST, member.id, 'slack', 'U0SAME');
+    const { url } = await startSlackConnect(deps, isMember, member, {
+      sessionToken: 'tok',
+      installationId: INST,
+    });
+    await completeSlackConnect(deps, isMember, member, {
+      sessionToken: 'tok',
+      code: 'c',
+      state: stateOf(url),
+    });
+    expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U0SAME');
   });
 
   test('forbids a non admin callback and saves nothing', async () => {
