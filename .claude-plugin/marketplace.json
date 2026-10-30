@@ -1,0 +1,16 @@
+{
+  "name": "standwise",
+  "owner": {
+    "name": "Felipe Oliveira"
+  },
+  "plugins": [
+    {
+      "name": "standwise",
+      "source": "./packages/plugin",
+      "description": "Standwise daily standup skill (/daily) for Claude Code."
+    }
+  ],
+  "metadata": {
+    "description": "Standwise plugins for Claude Code."
+  }
+}

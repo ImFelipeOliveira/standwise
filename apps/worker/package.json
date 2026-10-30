@@ -1,0 +1,14 @@
+{
+  "name": "@standwise/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.ts",
+  "dependencies": {
+    "@standwise/db": "workspace:*",
+    "@standwise/github": "workspace:*",
+    "@standwise/orchestrator": "workspace:*",
+    "@standwise/queue": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

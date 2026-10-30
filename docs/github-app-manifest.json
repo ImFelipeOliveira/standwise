@@ -1,0 +1,34 @@
+{
+  "name": "Standwise",
+  "url": "https://standwise.example.com",
+  "hook_attributes": {
+    "url": "https://standwise.example.com/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://standwise.example.com/docs/",
+  "setup_url": "https://standwise.example.com/setup",
+  "callback_urls": [
+    "https://standwise.example.com/auth/github/callback"
+  ],
+  "setup_on_update": true,
+  "public": true,
+  "request_oauth_on_install": false,
+  "default_permissions": {
+    "metadata": "read",
+    "contents": "read",
+    "pull_requests": "read",
+    "checks": "write",
+    "statuses": "read",
+    "members": "read",
+    "emails": "read"
+  },
+  "default_events": [
+    "installation",
+    "installation_repositories",
+    "push",
+    "pull_request",
+    "pull_request_review",
+    "check_suite",
+    "check_run"
+  ]
+}

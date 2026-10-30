@@ -109,6 +109,21 @@ members:                        # opcional: mapeamento manual de identidades
 ```
 Mudanças no arquivo chegam por webhook `push` e são validadas. Se a configuração for inválida, o app cria um **check run** com falha no commit, mostrando os erros, e mantém a última versão válida. O mesmo check roda em PRs que alteram o arquivo.
 
+### 4.5 API pública (adicionado em 2026-10-28)
+A API é um produto para integradores, com documentação de primeira classe. Ela tem três tipos de integrador:
+
+1. **Agentes de IA** (Cursor, Codex, Copilot, Claude Desktop…) escrevem a daily **só pelo MCP (`standwise mcp`) ou pela skill/CLI**, que garantem a confirmação explícita da pessoa. As rotas de escrita (`/v1/sessions`, `/v1/draft`, `/v1/dailies`) são **internas**: usadas pela CLI, pela skill e pelo MCP, tipadas e testadas, mas **fora da documentação pública** e sem garantia de compatibilidade para terceiros. *(Decisão do Felipe, 2026-10-28: a regra anti-vigilância fica num lugar só, e o contrato público é menor.)*
+2. **Sistemas da organização (leitura)** com **API key da instalação** (`swk_…`), criada e revogada por um admin na página de setup. As keys têm escopos (`teams:read`, `dailies:read`, `digests:read`, `blockers:read`). Elas leem só o que já aparece no consolidado: dailies e impedimentos confirmados. Nunca há sugestões, métricas por pessoa, ranking ou agregados por pessoa.
+3. **Webhooks de saída** configurados pelo admin, com URL https e eventos `daily.submitted`, `blocker.opened` e `digest.sent`. A assinatura é HMAC-SHA256 no header `Standwise-Signature: t=<unix>,v1=<hex>`. As entregas são feitas com retentativa e backoff. Há proteção contra SSRF (só https; IPs privados, de loopback e link-local são bloqueados depois da resolução de DNS).
+
+**MCP:** `standwise mcp` (servidor MCP local por stdio, no mesmo binário da CLI) expõe as tools `standwise_whoami`, `standwise_get_draft` e `standwise_submit_daily`. Esta última exige `confirmed: true`, que só pode ser passado depois de a pessoa confirmar. Assim qualquer cliente MCP (Cursor, Codex, Claude Desktop…) escreve a daily sem uma skill própria. Gestores (os `managers` do time) e admins também têm tools de **leitura** no MCP: times, consolidados, dailies e impedimentos dos times que podem ver, com histórico de até 90 dias. Assim usam a própria IA para resumir e destravar o time. São só dados já confirmados, sem métricas por pessoa. O MCP remoto (HTTP + OAuth) fica para a fase 2.
+
+**Admin da instalação** = dono da conta (conta pessoal) ou membro com papel `admin` na organização do GitHub.
+
+**Documentação do produto:** um site completo em `/docs` (pt-BR e en). Ele traz o overview do que é o Standwise e para que serve, conceitos, como funciona, privacidade, guias para admin e membro, a referência completa do `standwise.yml`, CLI, skill, MCP, API, webhooks, FAQ, solução de problemas e changelog.
+
+**Documentação da API:** OpenAPI 3.1 gerado a partir dos schemas Zod das rotas, servido em `GET /openapi.json`, com a referência navegável em `GET /docs/api`. Cada rota tem descrição, exemplos de request e response e todos os códigos de erro. A documentação pública cobre só as rotas de leitura (API key) e os webhooks. Ela inclui os guias: autenticação por API key, "agentes de IA: use o MCP ou a skill" (com a configuração do MCP), erros (envelope `{ error: { code, message } }`), paginação por cursor, limites de taxa (headers `RateLimit-*`), verificação de assinatura de webhook (com exemplo em TypeScript e Python), versionamento (`/v1`, mudanças incompatíveis só em `/v2`) e changelog.
+
 ## 5. Arquitetura
 
 ```
@@ -170,7 +185,7 @@ packages/plugin plugin do Claude Code (skill /daily + manifest)
 - **Multi-tenant:** todo dado tem o escopo da instalação do GitHub App.
 - **Google Chat:** mensagens diretas e posts em espaços exigem um Chat app configurado num projeto do Google Cloud e instalado no Workspace do cliente. Isso é mais atrito que no Slack e precisa estar documentado no setup.
 - **Developer Program:** o README e a página do app têm e-mail de suporte.
-- **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início).
+- **Idioma:** código e identificadores em inglês; mensagens ao usuário em pt-BR e en (i18n desde o início). **Sem idioma definido, o padrão é inglês** (CLI pelo `LANG`, web pelo `Accept-Language`, consolidado pelo `language` do time). *(Decisão do Felipe, 2026-10-28.)*
 
 ## 7. Decisões tomadas por mim (Claude) — revisar
 - **Hospedagem (decidido pelo Felipe):** serviço multi-tenant **hospedado apenas pelo Felipe**. Não há opção de rodar no próprio servidor. Segredos e URLs vêm de variáveis de ambiente (boa prática, não promessa de self-host).
@@ -185,7 +200,38 @@ Sem prazo: o projeto anda no ritmo do autor. A fase 1a é construída por comple
 
 - **1a (MVP):** GitHub App + API + worker + CLI/skill; Slack + Linear; lembrete, consolidado, encaminhamento, sugestões e check run de validação do config. Deploy no Railway, README com e-mail de suporte. Inscrição no Developer Program.
 - **1b:** Google Chat + Jira (completa a v1 prometida).
-- **2:** Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
+- **2:** **Análise com IA por organização** *(pedido do Felipe, 2026-10-28; detalhado na §8.1)*. Painel Next.js (histórico, tendências, edição de configuração), listagem na GitHub Marketplace, outros agentes e adaptadores.
+
+**UI (decisão do Felipe, 2026-10-28):** no plano 1, as poucas páginas web (login, setup, erros) continuam em Hono JSX com estilos simples. A biblioteca de componentes é decidida na fase 2, junto com o painel Next.js. Candidata preferida: shadcn/ui (Radix + Tailwind), com os tokens do protótipo do painel.
+
+
+### 8.1 Fase 2: análise com IA por organização (pedido do Felipe, 2026-10-28)
+
+**O que é:** o admin configura uma chave de API de LLM da própria organização (Anthropic, OpenAI…, BYOK). A chave fica criptografada como as demais conexões. A partir dela, o Standwise analisa o conteúdo das dailies **confirmadas**, junto com os sinais do GitHub e do gerenciador, e publica relatórios nos canais configurados (Slack, Google Chat, comentários em cards do Linear e do Jira…).
+
+**Escopo da chave:** **uma chave por organização** (instalação do GitHub App), cadastrada, trocada e removida só pelo admin, na página de setup ou no painel. Não existe chave por pessoa nem por time. Os times que ativam a análise usam a chave da organização, e o limite de custo mensal também é da organização.
+
+**O que a IA classifica e reporta (exemplos):**
+- impedimentos escritos em texto livre que não foram ligados a um PR ou card, para encaminhar a quem pode ajudar;
+- PRs que precisam de revisão, branches paradas ou divergentes da principal e PRs com conflito;
+- dependências entre pessoas ou times citadas nas dailies ("esperando o X do time Y");
+- riscos ao prazo de um card ou épico, com base no que o próprio time escreveu;
+- resumo do consolidado quando ele for longo.
+
+**Regras (herdam os anti-objetivos da §3):**
+- A IA classifica **trabalho** (PRs, branches, cards, impedimentos, dependências), nunca pessoas. Não há nota, ranking, "produtividade", sentimento ou comparação individual, e o prompt do sistema proíbe isso explicitamente.
+- Entrada: só o que cada pessoa confirmou, mais sinais objetivos do GitHub e do gerenciador. Nunca as sugestões não confirmadas.
+- O que fala de uma pessoa específica (por exemplo, "seu PR está parado") vai **primeiro para ela**, como os impedimentos sugeridos. O canal do time recebe só o que é do time ou já foi confirmado.
+- **Opt-in** por organização e por time, com escolha dos tipos de relatório e dos canais. O admin pode desligar a qualquer momento.
+- Transparência: cada relatório indica que foi gerado por IA, com qual provedor e modelo, e traz links para as fontes (PR, card, daily).
+- Privacidade: o conteúdo vai para o provedor que a organização escolheu, com a chave dela. A página de privacidade e o DPA documentam isso. Sem chave configurada, nada é enviado a LLM nenhum.
+- Custo: é da organização (BYOK). O Standwise mostra uso estimado e limite mensal configurável.
+
+**Perguntas em aberto:**
+- Quais provedores suportar no lançamento.
+- Se haverá também uma opção sem BYOK (chave do Standwise, no plano pago).
+- Frequência dos relatórios: junto do consolidado, contínuo por evento, ou os dois.
+- Como o membro corrige uma classificação errada ("isso não é impedimento").
 
 ## 9. Deixado para o builder
 - Formato visual exato das mensagens (dentro das regras: impedimentos no topo, uma mensagem por consolidado).

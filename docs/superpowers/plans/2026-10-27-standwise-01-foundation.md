@@ -20,12 +20,14 @@
 - Toda requisição de webhook tem a assinatura verificada antes de qualquer processamento.
 - Permissões do GitHub App exatamente as da spec §6: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read), conta: Email addresses (read). Eventos: `installation`, `installation_repositories`, `push`, `pull_request`, `pull_request_review`, `check_suite`, `check_run`.
 - Config: arquivo `standwise.yml` na **raiz** do repositório `.github` do dono da instalação, branch padrão.
-- Padrões de config: `language: pt-BR`, `workdays: [mon,tue,wed,thu,fri]`, `signals.pr_review_hours: 48`, `signals.card_stale_days: 5`.
+- Padrões de config: `language: en` (regra do Felipe, 2026-10-28: sem idioma definido, inglês; vale para CLI, web e config), `workdays: [mon,tue,wed,thu,fri]`, `signals.pr_review_hours: 48`, `signals.card_stale_days: 5`.
 - Reenvio da daily no mesmo dia **substitui** a anterior. A daily pertence a pessoa + instalação + data.
 - "Hoje" e "último dia útil" usam o fuso e os dias úteis do **primeiro time** (ordem do config) em que a pessoa aparece.
 - Uma `/daily` aparece no consolidado de **todos** os times da pessoa.
 - Consolidado: **uma** mensagem por time por dia, impedimentos no topo, lista de quem não enviou no fim; daily enviada depois do consolidado vai como **resposta na thread**.
 - Nada é enviado em nome da pessoa sem confirmação explícita dela (anti-vigilância).
+- **Camadas (regra do Felipe, 2026-10-28):** as regras de negócio vivem em casos de uso em `packages/orchestrator/src/use-cases/`, que recebem `Deps` e entradas já validadas, devolvem resultados tipados e lançam `DomainError(code, message, details?)`, sem importar Hono nem conhecer HTTP. Rotas (`apps/api/src/routes/*`), jobs do worker e comandos da CLI/MCP são **finos**: autenticam, validam a entrada (Zod), chamam o caso de uso e traduzem o resultado. O mapeamento `DomainError.code` → status HTTP fica numa tabela única em `apps/api/src/http/errors.ts`. Casos de uso têm testes próprios, sem HTTP.
+- **Sem comentários no código** (regra do Felipe).
 - Testes: `bun test`. Testes de `db`, `api` e `worker` usam Postgres real via `TEST_DATABASE_URL` (docker compose). APIs externas (GitHub, Slack) são substituídas por fakes injetados, nunca chamadas reais.
 
 ## Review Focus
@@ -507,6 +509,7 @@
   6. `standwise submit --file <tmp>`; informar se foi `late` (vai para a thread).
   Regras escritas na skill: nunca inventar atividade que não esteja no draft ou que a pessoa não tenha dito; nunca enviar sem confirmação.
 
+- **Plugin com MCP (decisão do Felipe, 2026-10-28):** o plugin também declara o servidor MCP (`standwise` com args `["mcp"]`, no formato atual de plugins do Claude Code, conferido na documentação antes de implementar). Assim, instalar o plugin traz a skill `/daily` e as tools do MCP juntas. A skill prefere as tools do MCP (confirmação por elicitation) e usa a CLI como alternativa. O plugin não instala o binário: a skill detecta binário ou login ausentes e orienta. O teste valida também a declaração do MCP.
 - [ ] **Step 1: Write the failing test** → `plugin.json` é JSON válido com `name: "standwise"`; o `SKILL.md` tem frontmatter com `name` e `description`, e contém os comandos `standwise draft` e `standwise submit` e a regra de confirmação.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Write the files.** **Step 4: Run** → PASS.
 - [ ] **Step 5: Manual check** → `claude --plugin-dir packages/plugin`, rodar `/daily` contra a API local, conferir o fluxo até o envio.
@@ -532,3 +535,203 @@
 - [ ] **Step 3:** CI verde num PR de teste.
 - [ ] **Step 4 (manual, Felipe):** registrar o GitHub App e o Slack App, criar o projeto no Railway (api, worker e Postgres), configurar as variáveis, instalar o app numa org de teste, criar o `standwise.yml` e rodar `/daily` de ponta a ponta até o consolidado chegar no Slack.
 - [ ] **Step 5: Commit** `chore: deploy, release pipeline and docs`
+
+---
+
+## Extensão: API pública (adicionada em 2026-10-28, spec §4.5)
+
+**Ordem de execução:** 9 → 10 → 11 → 12 → **16 → 17 → 18** → 13 → **19** → 14 → **20** → 15. Os webhooks de saída dependem do worker, e o deploy (15) sai com a API documentada.
+**Regra do usuário que vale para todas as tasks:** não há comentários no código. A documentação vive no OpenAPI e nos guias em markdown, nunca em comentários.
+
+### Task 16: OpenAPI 3.1, `/docs` e guias para integradores
+
+**Files:**
+- Modify: `apps/api/src/routes/v1.ts`, `apps/api/src/routes/webhooks.ts`, `apps/api/src/app.ts` (migrar as rotas JSON para `@hono/zod-openapi` com `createRoute`; as rotas HTML de `web.tsx` ficam de fora do OpenAPI)
+- Create: `apps/api/src/openapi/schemas.ts` (schemas Zod reutilizáveis com `.openapi({ example })`: `Error`, `ActivityItem`, `Draft`, `DailySubmission`, `SubmitResult`, `Session`), `apps/api/src/openapi/document.ts`, `apps/api/src/routes/docs.ts`, `docs/api/guides/{authentication,ai-agents,errors,pagination,rate-limits,versioning}.md`, `docs/api/CHANGELOG.md`
+- Create: `apps/api/src/middleware/rate-limit.ts`, `packages/db/src/repo/rate-limits.ts` (tabela `rate_limits(key text, window_start timestamptz, count int, pk(key, window_start))`, com migração)
+- Test: `apps/api/test/openapi.test.ts`, `apps/api/test/rate-limit.test.ts`
+
+**Interfaces:**
+- **Rotas internas vs públicas (decisão do Felipe):** `/v1/meta`, `/v1/sessions`, `/v1/draft` e `/v1/dailies` são **internas** (CLI, skill, MCP). Elas também usam `createRoute` e schemas Zod (tipagem e validação), mas ficam **fora** do `/openapi.json` público, registradas com `hide: true` ou equivalente. Um segundo documento, `GET /openapi.internal.json`, exige sessão `sw_` e serve à CLI e aos testes. O documento público contém só `Organization` (Task 17), `Webhooks` (Task 18) e `GET /health`.
+- `GET /openapi.json` → documento OpenAPI 3.1 com `info` (título "Standwise API", versão `1.0.0`, `contact.email` = `SUPPORT_EMAIL`, descrição que inclui o conteúdo dos guias), `servers: [{ url: PUBLIC_URL }]`, `securitySchemes`: `apiKey` (bearer `swk_…`, Task 17), e as tags `Organization` (Task 17), `Webhooks` (Task 18) e `Meta` (`/health`).
+- `GET /docs/api` → página HTML com a referência Scalar (`@scalar/hono-api-reference`) apontando para `/openapi.json`, título "Standwise API". Até a Task 20 existir, `GET /docs` redireciona para `/docs/api`.
+- Toda rota documentada tem: `summary`, `description` (pt-BR e en no mesmo texto, en primeiro), schema de request e response com `example`, e **todas** as respostas de erro possíveis (`401`, `404`, `409`, `422`, `429`) com o schema `Error` e um exemplo de cada `code`.
+- Os guias em `docs/api/guides/*.md` são importados como texto e montados na `description` do documento (seções `## Authentication`, `## Integrating an AI agent` etc.), para aparecerem no `/docs`. Conteúdo mínimo:
+  - `authentication.md`: API key `swk_` (Task 17): criação pelo admin, escopos, revogação e boas práticas de armazenamento.
+  - `ai-agents.md`: "Agentes de IA escrevem a daily pelo MCP ou pela skill, não pela API". Traz o porquê (confirmação explícita da pessoa garantida num só lugar), um link para `mcp.md` (Task 19) e para a skill do Claude Code (Task 14), e a configuração do MCP pronta para Cursor, Codex, Claude Desktop e VS Code.
+  - `errors.md`: envelope `{ error: { code, message, issues? } }` e tabela de todos os `code` com status HTTP e o que fazer.
+  - `pagination.md`: cursor opaco (`cursor`/`next_cursor`, `limit` de 1 a 100, padrão 50).
+  - `rate-limits.md`: limites e headers `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`.
+  - `versioning.md`: `/v1` estável; campos novos podem aparecer; mudança incompatível só em `/v2`, com aviso de 90 dias no changelog.
+- Rate limit: janela fixa de 60 s em Postgres, por token (hash) ou por IP quando não há token. Limites: sessões 120/min, API keys 600/min, `POST /v1/sessions` 10/min por IP. Excedeu → `429 rate_limited` com `Retry-After`.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `openapi is valid` → `GET /openapi.json` responde 200, `openapi === "3.1.0"`, e o documento passa no validador (`@seriousme/openapi-schema-validator` ou equivalente).
+  - `every public route documented` → cada rota pública registrada aparece em `paths`, e cada operação tem `summary`, `description`, ao menos um `example` de resposta 2xx e as respostas de erro listadas acima.
+  - `guides embedded` → `info.description` contém `## AI agents` e aponta para o MCP.
+  - `internal routes hidden` → `/openapi.json` não contém `/v1/sessions`, `/v1/draft` nem `/v1/dailies`; `/openapi.internal.json` sem sessão dá 401 e, com sessão, contém as três.
+  - `docs page` → `GET /docs/api` responde 200 HTML e referencia `/openapi.json`.
+  - `rate limit` → a 11ª chamada a `POST /v1/sessions` do mesmo IP em 60 s dá 429 com `Retry-After`; os headers `RateLimit-*` aparecem nas respostas 2xx.
+  - Todos os testes existentes de `v1` e `webhooks` continuam passando sem mudar as asserções de comportamento.
+- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `feat(api): openapi 3.1, /docs reference, integrator guides and rate limits`
+
+### Task 17: API keys da instalação e endpoints de leitura
+
+**Files:**
+- Create: `packages/db/src/repo/api-keys.ts` (tabela `api_keys`: `id uuid pk`, `installation_id` (FK, cascata), `name`, `prefix text` (primeiros 8 caracteres, para exibir), `secret_hash text unique` (sha256 hex), `scopes text[]`, `created_by uuid` (member), `created_at`, `last_used_at null`, `revoked_at null`, com migração), `apps/api/src/routes/org.ts`, `apps/api/src/middleware/api-key.ts`, `apps/api/src/services/admin.ts`
+- Modify: `apps/api/src/web/setup.tsx`, `apps/api/src/routes/web.tsx` (seção "API keys": criar, listar e revogar), `docs/api/guides/authentication.md`, `docs/api/CHANGELOG.md`
+- Test: `packages/db/test/api-keys.test.ts`, `apps/api/test/org.test.ts`, `apps/api/test/admin.test.ts`
+
+**Interfaces:**
+  ```ts
+  type ApiKeyScope = 'teams:read'|'dailies:read'|'digests:read'|'blockers:read'
+  createApiKey(db, p: { installationId: number; name: string; scopes: ApiKeyScope[]; createdBy: string }): Promise<{ id: string; key: string }> // key = "swk_" + 32 bytes base64url; só o hash é gravado; o texto puro aparece uma única vez
+  resolveApiKey(db, key: string): Promise<{ id: string; installationId: number; scopes: ApiKeyScope[] } | null> // ignora revogadas; atualiza last_used_at
+  listApiKeys(db, installationId: number): Promise<{ id; name; prefix; scopes; createdAt; lastUsedAt; revokedAt }[]>
+  revokeApiKey(db, installationId: number, id: string): Promise<boolean>
+  isInstallationAdmin(deps, installationId: number, login: string): Promise<boolean> // User: login === dono da conta; Organization: GET /orgs/{org}/memberships/{login} com role === 'admin'
+  ```
+- Rotas (`security: apiKey`, tag `Organization`, todas com escopo da instalação da key, paginadas por cursor e documentadas como na Task 16):
+  - `GET /v1/org/teams` (`teams:read`) → times do config: `name`, `timezone`, `workdays`, `remindAt`, `digestAt`, `memberLogins`.
+  - `GET /v1/org/dailies?date=&team=&cursor=&limit=` (`dailies:read`) → `{ data: [{ id, login, date, submittedAt, teams, yesterday, today, blockers }], next_cursor }`.
+  - `GET /v1/org/dailies/{id}` (`dailies:read`).
+  - `GET /v1/org/digests?team=&from=&to=&cursor=` (`digests:read`) → `{ data: [{ team, date, status, sentAt, missing: string[] }] }`.
+  - `GET /v1/org/blockers?date=&team=&cursor=` (`blockers:read`) → impedimentos **confirmados** extraídos das dailies: `{ text, ref, author, date, teams }`.
+  - Sem key, key inválida ou revogada → 401. Escopo ausente → `403 insufficient_scope`, com `required_scope` no `error`. Nenhuma rota devolve sugestões, contagens por pessoa ou rankings.
+- Setup page: só um admin (`isInstallationAdmin`) vê e usa a seção. Ao criar a key, o texto puro aparece uma vez, com o aviso "copie agora". A lista mostra prefixo, escopos, criação, último uso e o botão revogar. Os formulários POST usam um token CSRF ligado à sessão web.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `key stored as hash` → a tabela não contém o texto puro; `resolveApiKey` com a key certa devolve a instalação.
+  - `revoked key rejected` → 401.
+  - `scope enforced` → key só com `teams:read` em `/v1/org/dailies` dá 403 `insufficient_scope`.
+  - `tenant isolation` → key da instalação A nunca vê dailies da B, mesmo passando `team` de B.
+  - `pagination` → 120 dailies com `limit=50` dão 3 páginas sem repetição nem perda.
+  - `no surveillance fields` → as respostas não têm chaves fora do schema documentado (o teste valida contra o schema OpenAPI da rota com `additionalProperties: false`).
+  - `only admins manage keys` → membro comum no `/setup` não vê a seção e recebe 403 no POST; admin cria e a key aparece uma única vez.
+  - `csrf required` → POST de criação sem o token CSRF dá 403.
+- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `feat(api): installation api keys and read-only organization endpoints`
+
+### Task 18: Webhooks de saída
+
+**Files:**
+- Create: `packages/db/src/repo/webhooks.ts` (tabelas `webhook_endpoints`: `id uuid pk`, `installation_id` (FK, cascata), `url`, `secret_ciphertext`, `events text[]`, `active bool`, `created_at`; e `webhook_deliveries`: `id uuid pk`, `endpoint_id` (FK, cascata), `event`, `event_id uuid`, `payload jsonb`, `status ('pending'|'delivered'|'failed')`, `attempts int`, `next_attempt_at`, `last_status_code int null`, `last_error text null`, `created_at`; `unique(endpoint_id, event_id)`; com migração), `packages/orchestrator/src/events.ts`, `packages/orchestrator/src/webhook-sign.ts`, `packages/orchestrator/src/safe-fetch.ts`, `apps/worker/src/jobs/deliver-webhook.ts`, `docs/api/guides/webhooks.md`
+- Modify: `apps/api/src/routes/v1.ts` (emitir `daily.submitted` e `blocker.opened`), `apps/worker/src/jobs/send-digest.ts` (emitir `digest.sent`), `apps/worker/src/main.ts`, `apps/api/src/routes/web.tsx` e `apps/api/src/web/setup.tsx` (seção "Webhooks": criar, listar, desativar, "enviar evento de teste", últimas 20 entregas), `apps/api/src/openapi/document.ts` (seção `webhooks` do OpenAPI 3.1, com o payload de cada evento), `docs/api/CHANGELOG.md`
+- Test: `packages/orchestrator/test/{webhook-sign,safe-fetch,events}.test.ts`, `apps/worker/test/deliver-webhook.test.ts`, `apps/api/test/webhooks-admin.test.ts`
+
+**Interfaces:**
+  ```ts
+  type WebhookEvent =
+    | { type: 'daily.submitted'; data: { id: string; login: string; date: string; teams: string[]; yesterday: Item[]; today: Item[]; blockers: Item[]; replaced: boolean } }
+    | { type: 'blocker.opened'; data: { dailyId: string; login: string; date: string; text: string; ref?: Ref; teams: string[] } }
+    | { type: 'digest.sent'; data: { team: string; date: string; submitted: string[]; missing: string[] } }
+  type Envelope = { id: string; type: WebhookEvent['type']; created_at: string; installation: { id: number; login: string }; data: WebhookEvent['data'] }
+  function emitEvent(deps: Deps, installationId: number, event: WebhookEvent): Promise<void> // cria 1 delivery por endpoint ativo inscrito e enfileira 'deliver-webhook'
+  function signWebhook(secret: string, body: string, t: number): string                     // "t=<t>,v1=<hex hmac-sha256(secret, `${t}.${body}`)>"
+  function verifyWebhookSignature(secret: string, body: string, header: string, now: number, toleranceSeconds?: number): boolean // padrão 300 s, comparação em tempo constante
+  function safeFetch(url: string, init: RequestInit, opts?: { resolve?: (host: string) => Promise<string[]>; fetch?: typeof fetch; timeoutMs?: number }): Promise<Response>
+  ```
+  - Envio: `POST` com JSON, headers `Standwise-Signature`, `Standwise-Event`, `Standwise-Delivery` (id da delivery), `User-Agent: Standwise-Webhooks/1`. Timeout de 10 s, sem seguir redirects. Qualquer resposta 2xx conta como entregue.
+  - Retentativas: até 8 tentativas com backoff (1 min, 5 min, 30 min, 2 h, 6 h, 12 h, 24 h), via `startAfter` da fila. Depois disso, `failed`. Um endpoint com 20 falhas seguidas é desativado e a falha aparece no setup.
+  - `safeFetch`: só `https:`; resolve o DNS e recusa IPs privados, de loopback, link-local, CGNAT, multicast e metadata (`169.254.169.254`), em IPv4 e IPv6; conecta ao IP validado, sem resolver de novo (contra DNS rebinding).
+  - O segredo do endpoint (`whsec_` + 32 bytes) aparece uma única vez na criação e fica criptografado com AES-256-GCM (mesma chave da Task 5).
+  - Só admins (`isInstallationAdmin`) gerenciam webhooks; os formulários usam CSRF, como na Task 17.
+  - O `daily.submitted` com `replaced: true` sai quando a pessoa reenvia no mesmo dia. `blocker.opened` sai uma vez por impedimento novo, comparando o texto normalizado com o da versão anterior da daily.
+  - `webhooks.md`: lista de eventos com payload de exemplo, cabeçalhos, verificação da assinatura com código completo em **TypeScript (Node/Bun) e Python**, idempotência pelo `id` do envelope, política de retentativas e como testar com "enviar evento de teste".
+
+- [ ] **Step 1: Write the failing tests:**
+  - `signature roundtrip` → `verifyWebhookSignature` aceita a própria assinatura, recusa body alterado, segredo errado e `t` fora da tolerância.
+  - `ssrf blocked` → `http://`, `https://127.0.0.1`, `https://10.0.0.5`, `https://[::1]`, `https://169.254.169.254` e um host cujo resolver fake devolve `192.168.1.10` são todos recusados sem chamar o `fetch`.
+  - `delivery succeeds` → o servidor fake recebe o POST com os 4 headers, e a assinatura verifica com o segredo do endpoint.
+  - `retry with backoff` → 500 reagenda com `startAfter` de +1 min; na 8ª falha fica `failed`.
+  - `no duplicate per event` → emitir o mesmo `event_id` duas vezes cria uma delivery por endpoint.
+  - `events emitted` → `POST /v1/dailies` com 1 impedimento gera `daily.submitted` e `blocker.opened`; reenviar com o mesmo impedimento gera só `daily.submitted` com `replaced: true`; `sendDigest` gera `digest.sent`.
+  - `tenant isolation` → um endpoint da instalação A nunca recebe evento da B.
+  - `admin only and csrf` → membro comum recebe 403; POST sem CSRF recebe 403.
+  - `openapi webhooks` → `GET /openapi.json` tem `webhooks` com os 3 eventos.
+- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `feat(webhooks): signed outbound webhooks with retries and ssrf protection`
+
+### Task 19: Servidor MCP local (`standwise mcp`)
+
+**Files:**
+- Create: `apps/cli/src/commands/mcp.ts`, `apps/cli/src/mcp/tools.ts`, `docs/api/guides/mcp.md`
+- Modify: `apps/cli/src/main.ts` (subcomando `mcp`), `apps/cli/package.json` (`@modelcontextprotocol/sdk`), `docs/api/CHANGELOG.md`, `README.md` (seção "Usar com Cursor, Codex, Claude Desktop…")
+- Test: `apps/cli/test/mcp.test.ts` (cliente MCP do SDK conectado por transporte em memória; API falsa com `Bun.serve`)
+
+**Interfaces:**
+- `standwise mcp` sobe um servidor MCP por **stdio** (nome `standwise`, versão do pacote) e usa as credenciais gravadas pelo `standwise login`. Sem login, toda tool responde com erro instruindo a rodar `standwise login`.
+- Tools (com `inputSchema` e `outputSchema` em JSON Schema derivados dos schemas Zod existentes; descrições em en):
+  - `standwise_whoami` → `{ login, orgs }`.
+  - `standwise_get_draft` `{ org?: string }` → o JSON de `GET /v1/draft`. Com org ambígua, devolve erro listando as orgs.
+  - `standwise_submit_daily` `{ org?: string; yesterday; today; blockers; confirmed: true }` → `POST /v1/dailies`. O campo `confirmed` é obrigatório e precisa ser o literal `true`. A descrição da tool diz que o agente **deve mostrar a daily final à pessoa e obter confirmação explícita** antes de chamar; com qualquer outro valor, a tool recusa sem chamar a API.
+- **Tools de gestor (decisão do Felipe, 2026-10-28)**, apoiadas em rotas **internas** novas `GET /v1/manage/teams`, `/v1/manage/digests`, `/v1/manage/dailies` e `/v1/manage/blockers`. As rotas usam sessão `sw_`, ficam no `/openapi.internal.json` e reusam os casos de uso de leitura da Task 17, com autorização própria:
+  - `canReadTeam(deps, installationId, member, team)` → verdadeiro se o login (atual, por id) está em `managers` do time no config, ou se a pessoa é admin da instalação (`isInstallationAdmin`). Caso contrário, `403 forbidden`.
+  - Histórico limitado a **90 dias** a partir de hoje no fuso do time. Fora disso, `422 invalid_request`.
+  - Mesmos dados das rotas de API key: só o que foi confirmado, sem sugestões nem agregados por pessoa.
+  - Tools MCP: `standwise_list_teams` (só os times que a pessoa pode ler), `standwise_get_digest { org?, team, date }`, `standwise_list_dailies { org?, team, from, to }` e `standwise_list_blockers { org?, team, from?, to? }`.
+  - As `instructions` do servidor MCP dizem que os dados servem para destravar o time (impedimentos, contexto, resumos do time). Dizem também que o Standwise não oferece nem incentiva comparação, ranking ou avaliação individual.
+  - Testes: um gestor de `backend` lê `backend` e recebe 403 em `platform`; um admin lê os dois; um membro comum recebe 403; a janela de 90 dias é respeitada; as tools listam e devolvem os dados da API falsa.
+- Prompt MCP `daily` com o mesmo fluxo da skill da Task 14 (rascunho → perguntar "hoje" e impedimentos → confirmar → enviar), para clientes que suportam prompts.
+- **Idioma (decisão do Felipe, 2026-10-28):** descrições de tools, `instructions` do servidor e mensagens de erro ficam em inglês, com `code` estável. As `instructions` e o prompt `daily` mandam o agente **conversar no idioma da pessoa** e **nunca traduzir nem reescrever** o texto da daily: o que a pessoa disser vai como ela disse. Teste: o texto do prompt `daily` contém essas duas regras.
+- `mcp.md`: configuração pronta para copiar em Claude Desktop, Cursor, Codex e VS Code (`{"command": "standwise", "args": ["mcp"]}`), as tools e a regra de confirmação.
+- Fase 2 (fora deste plano): MCP remoto em `/mcp` (Streamable HTTP + OAuth 2.1).
+
+- [ ] **Step 1: Write the failing tests:**
+  - `lists tools` → `tools/list` devolve as 3 tools com `inputSchema`.
+  - `draft passthrough` → `standwise_get_draft` devolve o JSON da API falsa.
+  - `submit requires confirmation` → sem `confirmed`, ou com `confirmed: false`, dá erro e a API falsa não recebe nada; com `confirmed: true`, recebe o POST.
+  - `not logged in` → sem credenciais, as tools devolvem erro com "standwise login".
+  - `daily prompt` → `prompts/get daily` devolve mensagens que citam a confirmação explícita.
+- [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `feat(cli): local mcp server with draft and confirmed submit tools`
+
+### Task 20: Site de documentação completo (`/docs`)
+
+**Files:**
+- Create: `docs/site/` (VitePress): `.vitepress/config.ts` (pt-BR como padrão e en via i18n do VitePress, sidebar, busca local, logo SVG da marca, cores `#3B4BC8`/`#15171C`), e as páginas em pt-BR e en (`docs/site/<página>.md` e `docs/site/en/<página>.md`):
+  - `index.md`: **Overview**.
+    - O que é o Standwise e o problema que resolve: dailies soltas, gestor sem visão consolidada, ninguém orquestrando.
+    - Para quem é: membro, gestor e admin.
+    - Como funciona, em diagrama: agente/skill/MCP → API → consolidado no Slack, com lembrete, encaminhamento e sugestões.
+    - O que **não** é (vigilância, métricas de produtividade).
+    - Links de "comece aqui" por perfil.
+  - `concepts.md`: glossário com instalação, organização, time, membro, gestor, admin, daily, "ontem/hoje/impedimentos", rascunho, consolidado, daily atrasada (thread), lembrete, impedimento sugerido, encaminhamento, entrega, API key e webhook.
+  - `how-it-works.md`: o ciclo de um dia com horários de exemplo:
+    - rascunho a partir do GitHub;
+    - lembrete no `remind_at`;
+    - consolidado no `digest_at`;
+    - atrasadas na thread;
+    - encaminhamento de impedimentos (PR → revisores/CODEOWNERS; card → bloqueador; senão gestor);
+    - fuso, dias úteis e pessoa em vários times.
+  - `privacy.md`: o que é lido no GitHub, Slack e Linear, o que é guardado (com criptografia), o que **nunca** é feito, quem vê o quê, retenção, remoção de dados ao desinstalar e o e-mail de suporte.
+  - `admin/install.md`: passo a passo para instalar o GitHub App, abrir a página de setup, conectar o Slack, criar o `standwise.yml` (link pré-preenchido) e resolver os estados "não configurado" e "inválido".
+  - `admin/configuration.md`: referência **completa** do `standwise.yml`. Cada chave com tipo, padrão, exemplo e erros de validação comuns (com a mensagem real do check run). Inclui o exemplo da spec §4.4, times do GitHub (`@org/slug`) e mapeamento manual de identidades.
+  - `admin/slack.md`: permissões do bot, canais privados (convidar o bot) e a tabela dos erros de entrega com a solução de cada um.
+  - `admin/api-keys.md` e `admin/webhooks.md`: criação, escopos, rotação e revogação.
+  - `members/getting-started.md`: instalar a CLI, `standwise login`, `/daily` no Claude Code e o que acontece depois de enviar.
+  - `members/cli.md`: todos os comandos, flags, códigos de saída e o local das credenciais.
+  - `members/claude-code.md`: a skill `/daily`, com o fluxo, a regra de confirmação e exemplos de conversa.
+  - `members/mcp.md`: a configuração do `standwise mcp` em Claude Desktop, Cursor, Codex e VS Code, as tools e a confirmação explícita.
+  - `api/overview.md`: o que a API pública oferece (leitura e webhooks) e o que não oferece (escrita de daily: use MCP/skill, com o porquê). Inclui os guias da Task 16 (autenticação, erros, paginação, limites, versionamento) e um link para a referência em `/docs/api`.
+  - `api/webhooks.md`: o guia da Task 18.
+  - `faq.md`, `troubleshooting.md` (problemas mais prováveis: "não recebi lembrete", "meu nome aparece como @login", "consolidado não chegou", "org ambígua", "token expirado") e `changelog.md` (inclui o `docs/api/CHANGELOG.md`).
+- Modify: os guias `docs/api/guides/*.md` da Task 16 passam a ser a fonte única. O site os inclui com o `<!--@include: ...-->` do VitePress, e o `/openapi.json` continua montando a `description` a partir deles. O `/docs/api` ganha um link de volta para o site.
+- Modify: `apps/api/src/routes/docs.ts` passa a servir o build estático do VitePress em `/docs/*` (com `serveStatic`), e `/docs/api` continua com o Scalar. Mudam também `package.json` (scripts `docs:dev`, `docs:build`) e o `Dockerfile` da Task 15 (o build do site entra na imagem da api). O `README.md` resume o produto e linka o site.
+- Test: `apps/api/test/docs-site.test.ts`, mais um script `scripts/check-docs.ts` rodado no CI.
+
+**Regras de conteúdo:**
+- Tudo em **pt-BR e en**, com o mesmo conteúdo.
+- Exemplos reais e copiáveis (YAML, `curl`, JSON de webhook, config do MCP) que batem com o código. Os exemplos de `standwise.yml` da documentação passam pelo `parseConfig` num teste.
+- Sem placeholders vazios. O e-mail de suporte vem de `SUPPORT_EMAIL` no build.
+- Tom direto, "você", frases curtas e sem marketing.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `site builds` → `bun run docs:build` termina sem erro e sem links quebrados (o `ignoreDeadLinks` do VitePress fica desligado).
+  - `served` → `GET /docs/` responde 200 com o título "Standwise"; `GET /docs/en/` responde 200; `GET /docs/api` continua com o Scalar.
+  - `config examples valid` → `scripts/check-docs.ts` extrai todo bloco ```yaml de `admin/configuration.md` (pt e en) e todos passam no `parseConfig`.
+  - `parity` → cada página em pt-BR tem a equivalente em en, e vice-versa.
+  - `overview present` → `index.md` contém as seções "O que é", "Para quem é", "Como funciona" e "O que o Standwise não faz".
+- [ ] **Step 2: Run** → FAIL. **Step 3: Write the site.** **Step 4: Run** → PASS.
+- [ ] **Step 5: Commit** `docs: complete documentation site with overview, guides and api reference`

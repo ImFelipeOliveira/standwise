@@ -1,0 +1,7 @@
+{
+  "installations": [
+    { "id": 1, "app_id": 100 },
+    { "id": 2, "app_id": 999 },
+    { "id": 3, "app_id": 100 }
+  ]
+}

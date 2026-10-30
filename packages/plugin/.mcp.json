@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "standwise": {
+      "command": "standwise",
+      "args": ["mcp"]
+    }
+  }
+}
