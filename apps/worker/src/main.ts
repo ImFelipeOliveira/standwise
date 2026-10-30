@@ -15,15 +15,18 @@ import {
 import {
   createChatFor,
   DELIVER_WEBHOOK_JOB,
+  LOAD_CONFIG_JOB,
   nullTracker,
   RESOLVE_CHECK_SUITE_JOB,
   ROUTE_BLOCKER_JOB,
   SCAN_MEMBER_SIGNALS_JOB,
+  VALIDATE_CONFIG_JOB,
   type WorkerDeps,
 } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
+import { loadConfigJob } from './jobs/load-config';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
 import { routeBlockerJob } from './jobs/route-blocker';
 import { scanMemberSignalsJob } from './jobs/scan-member-signals';
@@ -31,6 +34,7 @@ import { sendDigestJob } from './jobs/send-digest';
 import { sendLateDailyJob } from './jobs/send-late-daily';
 import { sendReminderJob } from './jobs/send-reminder';
 import { tickJob } from './jobs/tick';
+import { validateConfigJob } from './jobs/validate-config';
 
 const env = parseEnv();
 const db = createDb(env.DATABASE_URL);
@@ -82,6 +86,8 @@ await queue.work('send-reminder', sendReminderJob(deps));
 await queue.work(ROUTE_BLOCKER_JOB, routeBlockerJob(deps));
 await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps));
 await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps));
+await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps));
+await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps));
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
 await queue.schedule('tick', '* * * * *');

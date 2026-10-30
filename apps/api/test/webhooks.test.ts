@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Webhooks } from '@octokit/webhooks';
 import { parseConfig } from '@standwise/core';
 import { getInstallation, setInstallationConfig, upsertInstallation } from '@standwise/db';
-import { type Deps, nullTracker } from '@standwise/orchestrator';
+import { type Deps, loadConfig, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
@@ -26,9 +26,10 @@ type Source = Awaited<ReturnType<Deps['github']['fetchConfigSource']>>;
 
 function harness(source: Source) {
   const calls: string[] = [];
+  const queue = createMemoryQueue();
   const deps: Deps = {
     db,
-    queue: createMemoryQueue(),
+    queue,
     now: () => new Date('2026-10-28T15:00:00Z'),
     encryptionKey: new Uint8Array(32).fill(7),
     github: {
@@ -71,7 +72,13 @@ function harness(source: Source) {
       slackClientSecret: 'ssecret',
     },
   };
-  return { app: createApp(deps, { getClientIp: () => '192.0.2.1' }), calls };
+  const worker = async () => {
+    await queue.work('load-config', (data) =>
+      loadConfig(deps, data as { installationId: number; owner: string }),
+    );
+    await queue.drain();
+  };
+  return { app: createApp(deps, { getClientIp: () => '192.0.2.1' }), calls, queue, worker };
 }
 
 async function send(
@@ -103,7 +110,8 @@ const push = (
   files: Partial<Record<'added' | 'modified' | 'removed', string[]>>,
 ) => ({
   ref,
-  repository: { name: repo, default_branch: 'main' },
+  after: 'sha-after',
+  repository: { name: repo, default_branch: 'main', owner: { login: 'acme' } },
   installation: { id: INST },
   commits: [{ added: [], modified: [], removed: [], ...files }],
 });
@@ -177,19 +185,31 @@ describe('github webhooks', () => {
     expect(await getInstallation(db, INST)).toBeNull();
   });
 
-  test('installation created with valid config', async () => {
+  test('installation created only enqueues jobs and returns 202', async () => {
     const h = harness({ found: true, source: VALID });
     const res = await send(h, 'installation', created);
     expect(res.status).toBe(202);
     const row = await getInstallation(db, INST);
-    expect(row?.status).toBe('configured');
     expect(row?.accountLogin).toBe('acme');
+    expect(row?.status).not.toBe('configured');
+    expect(h.calls).toEqual([]);
+    expect(h.queue.enqueued).toEqual([
+      { name: 'load-config', data: { installationId: INST, owner: 'acme' } },
+    ]);
+  });
+
+  test('installation created with valid config is configured by the job', async () => {
+    const h = harness({ found: true, source: VALID });
+    await send(h, 'installation', created);
+    await h.worker();
+    expect((await getInstallation(db, INST))?.status).toBe('configured');
     expect(h.calls).toEqual(['acme']);
   });
 
   test('installation created without .github repo', async () => {
     const h = harness({ found: false, reason: 'no_repo' });
     await send(h, 'installation', created);
+    await h.worker();
     const row = await getInstallation(db, INST);
     expect(row?.status).toBe('unconfigured');
     expect(row?.unconfiguredReason).toBe('no_repo');
@@ -198,10 +218,11 @@ describe('github webhooks', () => {
   test('installation_repositories reloads config', async () => {
     const h = harness({ found: true, source: VALID });
     await send(h, 'installation_repositories', { ...created, action: 'added' });
+    await h.worker();
     expect((await getInstallation(db, INST))?.status).toBe('configured');
   });
 
-  test('push with invalid config keeps last valid', async () => {
+  test('push with invalid config only enqueues jobs, and the load keeps the last valid', async () => {
     const good = parseConfig(VALID);
     if (!good.ok) throw new Error('bad fixture');
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
@@ -213,6 +234,10 @@ describe('github webhooks', () => {
       push('.github', 'refs/heads/main', { modified: ['standwise.yml'] }),
     );
     expect(res.status).toBe(202);
+    expect(h.calls).toEqual([]);
+    expect(h.queue.enqueued.map((j) => j.name)).toEqual(['validate-config', 'load-config']);
+    expect((await getInstallation(db, INST))?.status).toBe('configured');
+    await h.worker();
     const row = await getInstallation(db, INST);
     expect(row?.status).toBe('invalid');
     expect(row?.config).toEqual(good.config);
@@ -223,6 +248,7 @@ describe('github webhooks', () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const h = harness({ found: false, reason: 'no_file' });
     await send(h, 'push', push('.github', 'refs/heads/main', { removed: ['standwise.yml'] }));
+    await h.worker();
     const row = await getInstallation(db, INST);
     expect(row?.status).toBe('unconfigured');
     expect(row?.unconfiguredReason).toBe('no_file');
@@ -234,10 +260,12 @@ describe('github webhooks', () => {
     expect(h.calls).toEqual([]);
   });
 
-  test('push to non default branch ignored', async () => {
+  test('push to non default branch only enqueues a validation', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const h = harness({ found: true, source: VALID });
     await send(h, 'push', push('.github', 'refs/heads/dev', { modified: ['standwise.yml'] }));
     expect(h.calls).toEqual([]);
+    expect(h.queue.enqueued.map((j) => j.name)).toEqual(['validate-config']);
   });
 
   test('push not touching standwise.yml ignored', async () => {

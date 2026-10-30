@@ -32,4 +32,5 @@ export * from './start-session';
 export * from './start-slack-connect';
 export * from './start-web-login';
 export * from './submit-daily';
+export * from './validate-config-at-ref';
 export * from './webhook-endpoints';

@@ -6,28 +6,30 @@ import {
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { resolveTeams } from '../teams';
-import { loadInstallationConfig } from './load-installation-config';
+import { enqueueLoadConfig } from './load-installation-config';
 import {
   MAX_CHECK_SUITE_LOOKUPS,
   RESOLVE_CHECK_SUITE_JOB,
   type ResolveCheckSuiteJob,
 } from './resolve-check-suite';
 import { enqueueMemberScan } from './scan-member-signals';
-
-const CONFIG_REPO = '.github';
-const CONFIG_FILE = 'standwise.yml';
+import { CONFIG_FILE, CONFIG_REPO, enqueueValidateConfig } from './validate-config-at-ref';
 
 type Account = { id?: number; login?: string; type?: string };
 
 export type GitHubEventPayload = {
   action?: string;
   ref?: string;
+  after?: string;
+  deleted?: boolean;
   installation?: { id?: number; account?: Account };
   repository?: { name?: string; default_branch?: string; owner?: { login?: string } };
   commits?: { added?: string[]; modified?: string[]; removed?: string[] }[];
-  pull_request?: { number?: number; user?: { login?: string } };
+  pull_request?: { number?: number; head?: { sha?: string }; user?: { login?: string } };
   check_suite?: { pull_requests?: { number?: number }[] };
 };
+
+const CONFIG_PR_ACTIONS = ['opened', 'synchronize', 'reopened'];
 
 const SIGNAL_ACTIONS: Record<string, string[]> = {
   pull_request: ['opened', 'ready_for_review', 'synchronize', 'closed', 'reopened'],
@@ -54,7 +56,7 @@ async function syncInstallation(
     accountType: account.type === 'Organization' ? 'Organization' : 'User',
     accountId: account.id ?? null,
   });
-  await loadInstallationConfig(deps, installationId, account.login);
+  await enqueueLoadConfig(deps, { installationId, owner: account.login });
 }
 
 async function onInstallation(deps: Deps, payload: GitHubEventPayload): Promise<void> {
@@ -76,16 +78,41 @@ async function onInstallationRepositories(deps: Deps, payload: GitHubEventPayloa
   await syncInstallation(deps, installationId, { ...account, login: account.login });
 }
 
+function sameLogin(a: string | undefined, b: string): boolean {
+  return a === undefined || a.toLowerCase() === b.toLowerCase();
+}
+
 async function onPush(deps: Deps, payload: GitHubEventPayload): Promise<void> {
   const installationId = payload.installation?.id;
   const repository = payload.repository;
-  if (installationId === undefined || !repository) return;
-  if (repository.name !== CONFIG_REPO) return;
-  if (payload.ref !== `refs/heads/${repository.default_branch}`) return;
+  if (installationId === undefined || !repository || !payload.after) return;
+  if (repository.name !== CONFIG_REPO || payload.deleted) return;
   if (!touchesConfig(payload)) return;
   const installation = await getInstallation(deps.db, installationId);
   if (!installation) return;
-  await loadInstallationConfig(deps, installationId, installation.accountLogin);
+  const owner = installation.accountLogin;
+  if (!sameLogin(repository.owner?.login, owner)) return;
+  await enqueueValidateConfig(deps, { installationId, owner, headSha: payload.after });
+  if (payload.ref !== `refs/heads/${repository.default_branch}`) return;
+  await enqueueLoadConfig(deps, { installationId, owner });
+}
+
+async function onConfigPullRequest(deps: Deps, payload: GitHubEventPayload): Promise<void> {
+  const installationId = payload.installation?.id;
+  const repository = payload.repository;
+  const pullNumber = payload.pull_request?.number;
+  const headSha = payload.pull_request?.head?.sha;
+  if (installationId === undefined || repository?.name !== CONFIG_REPO) return;
+  if (!CONFIG_PR_ACTIONS.includes(payload.action ?? '')) return;
+  if (typeof pullNumber !== 'number' || !headSha || !repository.owner?.login) return;
+  const installation = await getInstallation(deps.db, installationId);
+  if (!installation || !sameLogin(repository.owner.login, installation.accountLogin)) return;
+  await enqueueValidateConfig(deps, {
+    installationId,
+    owner: installation.accountLogin,
+    headSha,
+    pullNumber,
+  });
 }
 
 function logSignalFailure(error: unknown): void {
@@ -146,5 +173,8 @@ export async function handleGitHubEvent(
   if (name === 'installation') await onInstallation(deps, payload);
   else if (name === 'installation_repositories') await onInstallationRepositories(deps, payload);
   else if (name === 'push') await onPush(deps, payload);
-  else if (name && Object.hasOwn(SIGNAL_ACTIONS, name)) await onSignalEvent(deps, name, payload);
+  else if (name === 'pull_request') {
+    await onConfigPullRequest(deps, payload);
+    await onSignalEvent(deps, name, payload);
+  } else if (name && Object.hasOwn(SIGNAL_ACTIONS, name)) await onSignalEvent(deps, name, payload);
 }

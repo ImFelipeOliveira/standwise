@@ -9,8 +9,30 @@ import { invalidateResolvedTeams } from '../teams';
 
 export type ConfigStatus = 'configured' | 'invalid' | 'unconfigured';
 
+export const LOAD_CONFIG_JOB = 'load-config';
+
+export type LoadConfigJob = { installationId: number; owner: string };
+
+type ConfigDeps = Pick<Deps, 'db' | 'github'>;
+
+export async function enqueueLoadConfig(
+  deps: Pick<Deps, 'queue'>,
+  job: LoadConfigJob,
+): Promise<void> {
+  await deps.queue.enqueue(LOAD_CONFIG_JOB, job, {
+    singletonKey: `load-config:${job.installationId}`,
+  });
+}
+
+export async function loadConfig(deps: ConfigDeps, job: LoadConfigJob): Promise<void> {
+  const installation = await getInstallation(deps.db, job.installationId);
+  if (!installation) return;
+  if (installation.accountLogin.toLowerCase() !== job.owner.toLowerCase()) return;
+  await loadInstallationConfig(deps, installation.id, installation.accountLogin);
+}
+
 export async function loadInstallationConfig(
-  deps: Deps,
+  deps: ConfigDeps,
   installationId: number,
   owner: string,
 ): Promise<ConfigStatus> {
@@ -37,7 +59,7 @@ export async function loadInstallationConfig(
 }
 
 async function storeConfig(
-  deps: Deps,
+  deps: ConfigDeps,
   installationId: number,
   state: Parameters<typeof setInstallationConfig>[2],
 ): Promise<void> {
