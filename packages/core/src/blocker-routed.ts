@@ -13,10 +13,11 @@ export function buildBlockerRouted(input: {
   date: string;
 }): Message {
   const { lang, author, blocker } = input;
-  const body = t(lang, 'blockerRouted.body', { blocker: blocker.text });
+  const template = t(lang, 'blockerRouted.body');
   const content: Inline[] = [];
-  body.split('{name}').forEach((part, index) => {
+  template.split('{name}').forEach((raw, index) => {
     if (index > 0) content.push(personInline(author));
+    const part = raw.split('{blocker}').join(blocker.text);
     if (part) content.push(part);
   });
   const blocks: Message['blocks'] = [

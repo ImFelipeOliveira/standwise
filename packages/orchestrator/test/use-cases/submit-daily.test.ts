@@ -104,8 +104,24 @@ describe('submitDaily', () => {
     const row = await getMemberDaily(db, INST, member.id, '2026-10-28');
     const routes = queue.enqueued.filter((j) => j.name === 'route-blocker');
     expect(routes).toEqual([
-      { name: 'route-blocker', data: { installationId: INST, dailyId: row?.id, blockerIndex: 0 } },
-      { name: 'route-blocker', data: { installationId: INST, dailyId: row?.id, blockerIndex: 1 } },
+      {
+        name: 'route-blocker',
+        data: {
+          installationId: INST,
+          dailyId: row?.id,
+          blockerIndex: 0,
+          blockerHash: blockerHash(blocker),
+        },
+      },
+      {
+        name: 'route-blocker',
+        data: {
+          installationId: INST,
+          dailyId: row?.id,
+          blockerIndex: 1,
+          blockerHash: blockerHash({ text: 'Flaky CI' }),
+        },
+      },
     ]);
     expect(blockerHash({ text: '  need PROD access ' })).toBe(blockerHash(blocker));
   });

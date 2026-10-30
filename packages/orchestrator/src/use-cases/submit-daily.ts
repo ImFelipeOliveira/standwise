@@ -29,14 +29,16 @@ async function enqueueBlockerRoutes(
   fresh: Item[],
 ): Promise<void> {
   for (const blocker of fresh) {
+    const hash = blockerHash(blocker);
     const job: RouteBlockerJob = {
       installationId,
       dailyId,
       blockerIndex: blockers.indexOf(blocker),
+      blockerHash: hash,
     };
     try {
       await deps.queue.enqueue(ROUTE_BLOCKER_JOB, job, {
-        singletonKey: `route:${dailyId}:${blockerHash(blocker)}`,
+        singletonKey: `route:${dailyId}:${hash}`,
       });
     } catch (error) {
       const e = error as { name?: unknown; code?: unknown; message?: unknown };

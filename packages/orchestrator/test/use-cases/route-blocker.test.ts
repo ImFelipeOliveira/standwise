@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
   buildBlockerRouted,
   type Item,
@@ -6,25 +6,38 @@ import {
   type ResolvedTeam,
   type StandwiseConfig,
 } from '@standwise/core';
-import { getDelivery, upsertDaily, upsertMember } from '@standwise/db';
+import {
+  claimDelivery,
+  getDelivery,
+  setMemberInstallations,
+  upsertDaily,
+  upsertMember,
+} from '@standwise/db';
 import type { PullRequestDetail } from '@standwise/github';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { blockerHash, resolveRouteTarget, routeBlocker } from '../../src';
-import { fakeChat, fakeDeps, INST, seedOrg } from './fakes';
+import {
+  blockerHash,
+  createMembershipCheck,
+  type RouteBlockerJob,
+  resolveRouteTarget,
+  routeBlocker,
+  submitDaily,
+} from '../../src';
+import { daily, fakeChat, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
 const DATE = '2026-10-28';
 
-function routeConfig(extra = ''): StandwiseConfig {
+function routeConfig(extra = '', managers = '[mgr]'): StandwiseConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
     timezone: America/Sao_Paulo
     remind_at: "09:00"
     digest_at: "10:00"
-    managers: [mgr]
-    members: [bob, carla]
+    managers: ${managers}
+    members: [alice, bob, carla]
     chat: { provider: slack, channel: "#alpha" }
 ${extra}`);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
@@ -36,7 +49,8 @@ const identities = `members:
   dave: { slack: U0DAVE }
   erin: { slack: U0ERIN }
   mgr: { slack: U0MGR }
-  bob: { slack: U0BOB }`;
+  bob: { slack: U0BOB }
+  alice: { slack: U0ALICE }`;
 
 function pull(overrides: Partial<PullRequestDetail> = {}): PullRequestDetail {
   return {
@@ -64,8 +78,12 @@ const team = (cfg: StandwiseConfig): ResolvedTeam => ({
   memberLogins: ['bob', 'carla'],
 });
 
-async function setup(opts: Parameters<typeof fakeDeps>[0] = {}, extra = identities) {
-  const cfg = routeConfig(extra);
+async function setup(
+  opts: Parameters<typeof fakeDeps>[0] = {},
+  extra = identities,
+  managers = '[mgr]',
+) {
+  const cfg = routeConfig(extra, managers);
   await seedOrg(cfg);
   const fake = fakeDeps(opts);
   const chat = fakeChat();
@@ -194,6 +212,40 @@ describe('resolveRouteTarget', () => {
     expect(await target(fake, card)).toEqual({ reason: 'card_blocker', logins: ['erin'] });
   });
 
+  test('a GitHub failure on the PR falls back to managers without rethrowing', async () => {
+    const fake = await setup();
+    fake.deps.github.getPullRequest = async () => {
+      throw Object.assign(new Error('server error'), { status: 502 });
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(await target(fake, prBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('502');
+      expect(logged).not.toContain('Waiting for review');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('a CODEOWNERS or team lookup failure falls back to managers', async () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const owners = await setup({ pulls: { 'acme/api#7': pull() } });
+      owners.deps.github.fetchCodeowners = async () => {
+        throw new Error('codeowners down');
+      };
+      expect((await target(owners, prBlocker())).reason).toBe('manager');
+      const teams = await setup({ pulls: { 'acme/api#7': pull({ requestedTeams: ['backend'] }) } });
+      teams.deps.github.resolveTeamMembers = async () => {
+        throw new Error('teams down');
+      };
+      expect((await target(teams, prBlocker())).reason).toBe('manager');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   test('targets are capped at 5', async () => {
     const reviewers = ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7'];
     const fake = await setup({ pulls: { 'acme/api#7': pull({ requestedReviewers: reviewers }) } });
@@ -250,6 +302,90 @@ describe('routeBlocker', () => {
     expect(failed?.error).toStartWith('no_chat_identity');
   });
 
+  test('a resubmit that shifts indexes still routes each blocker exactly once', async () => {
+    const fake = await setup({}, identities);
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const isMember = createMembershipCheck(fake.deps);
+    const a = { text: 'Need prod access' };
+    const b = { text: 'Flaky CI' };
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [a] });
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [b, a] });
+    const jobs = fake.queue.enqueued
+      .filter((j) => j.name === 'route-blocker')
+      .map((j) => j.data as RouteBlockerJob);
+    expect(jobs.map((j) => j.blockerIndex)).toEqual([0, 0]);
+    for (const job of jobs) await routeBlocker(fake.deps, job);
+    for (const job of jobs) await routeBlocker(fake.deps, job);
+    const texts = fake.directs.map((d) => d.msg.fallbackText);
+    expect(texts).toHaveLength(2);
+    expect(texts.filter((t) => t.includes('Need prod access'))).toHaveLength(1);
+    expect(texts.filter((t) => t.includes('Flaky CI'))).toHaveLength(1);
+  });
+
+  test('a job whose blocker was removed does nothing', async () => {
+    const fake = await setup();
+    const dailyId = await seedDaily([{ text: 'Other' }]);
+    await routeBlocker(fake.deps, {
+      installationId: INST,
+      dailyId,
+      blockerIndex: 0,
+      blockerHash: blockerHash({ text: 'Gone' }),
+    });
+    expect(fake.directs).toEqual([]);
+  });
+
+  test('a claim in progress makes the job retry', async () => {
+    const fake = await setup();
+    const blocker: Item = { text: 'Need prod access' };
+    const dailyId = await seedDaily([blocker]);
+    await claimDelivery(db, {
+      installationId: INST,
+      teamName: '',
+      date: DATE,
+      kind: 'blocker_route',
+      subject: `${dailyId}:${blockerHash(blocker)}:mgr`,
+    });
+    await expect(
+      routeBlocker(fake.deps, { installationId: INST, dailyId, blockerIndex: 0 }),
+    ).rejects.toThrow('blocker_route_in_progress');
+    expect(fake.directs).toEqual([]);
+  });
+
+  test('no target at all records a failed delivery', async () => {
+    const fake = await setup({}, identities, '[bob]');
+    const blocker: Item = { text: 'Need prod access' };
+    const dailyId = await seedDaily([blocker]);
+    await routeBlocker(fake.deps, { installationId: INST, dailyId, blockerIndex: 0 });
+    expect(fake.directs).toEqual([]);
+    const failed = await getDelivery(db, {
+      installationId: INST,
+      teamName: '',
+      date: DATE,
+      kind: 'blocker_route',
+      subject: `${dailyId}:${blockerHash(blocker)}:-`,
+    });
+    expect(failed?.status).toBe('failed');
+    expect(failed?.error).toBe('no_route_target');
+  });
+
+  test('a partial failure resends only the target that failed', async () => {
+    const fake = await setup({
+      pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla', 'dave'] }) },
+    });
+    const dailyId = await seedDaily([prBlocker()]);
+    fake.hooks.afterSend = async () => {
+      fake.failWith(new Error('slack down'));
+    };
+    const job = { installationId: INST, dailyId, blockerIndex: 0 };
+    await expect(routeBlocker(fake.deps, job)).rejects.toThrow('slack down');
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA']);
+    fake.hooks.afterSend = undefined;
+    fake.failWith(null);
+    await routeBlocker(fake.deps, job);
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA', 'U0DAVE']);
+  });
+
   test('a missing daily or index does nothing', async () => {
     const fake = await setup();
     const dailyId = await seedDaily([{ text: 'Need prod access' }]);
@@ -282,6 +418,18 @@ describe('routeBlocker', () => {
 });
 
 describe('buildBlockerRouted', () => {
+  test('a blocker text containing {name} stays literal', () => {
+    const msg = buildBlockerRouted({
+      lang: 'en',
+      author: { login: 'bob', chatUserId: 'U0BOB' },
+      blocker: { text: 'Template {name} breaks' },
+      reason: 'manager',
+      date: DATE,
+    });
+    expect(msg.fallbackText).toContain('Template {name} breaks');
+    expect(msg.fallbackText.match(/@U0BOB/g)).toHaveLength(1);
+  });
+
   const blocker = prBlocker();
   test.each(['en', 'pt-BR'] as const)(
     '%s contains the blocker, the author and the link',
