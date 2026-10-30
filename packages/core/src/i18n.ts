@@ -143,6 +143,22 @@ const ptBR = {
   'cli.confirm.none': '(nenhum)',
   'cli.confirm.title': 'Enviar esta daily',
   'cli.confirm.description': 'Marque para enviar a daily exatamente como mostrada.',
+  'reminder.title': 'Lembrete da daily',
+  'reminder.body':
+    'Bom dia! O consolidado do time sai às {digestAt}. Envie a sua com /daily quando puder.',
+  'blockerRouted.title': 'Impedimento de {name}',
+  'blockerRouted.body':
+    '{name} confirmou um impedimento na daily: {blocker}. Você pode ajudar a destravar?',
+  'suggestion.pr_no_review':
+    'O PR {title} está há mais de {hours}h sem review. Quer mencioná-lo como impedimento?',
+  'suggestion.ci_failing':
+    'Os checks do PR {title} estão falhando há mais de {hours}h. Quer mencioná-lo como impedimento?',
+  'suggestion.card_stale':
+    'O card {title} está parado há mais de {days} dias. Quer mencioná-lo como impedimento?',
+  'suggestion.dm.title': 'Sugestões só para você',
+  'checkRun.success.title': 'standwise.yml válido',
+  'checkRun.failure.title': 'standwise.yml inválido',
+  'checkRun.summary': '{count} erro(s) encontrado(s):\n{errors}',
 } as const;
 
 const en = {
@@ -288,6 +304,22 @@ const en = {
   'cli.confirm.none': '(none)',
   'cli.confirm.title': 'Send this daily',
   'cli.confirm.description': 'Check to send the daily exactly as shown.',
+  'reminder.title': 'Daily reminder',
+  'reminder.body':
+    'Good morning! The team digest goes out at {digestAt}. Send yours with /daily when you can.',
+  'blockerRouted.title': "{name}'s blocker",
+  'blockerRouted.body':
+    '{name} confirmed a blocker in their daily: {blocker}. Can you help unblock it?',
+  'suggestion.pr_no_review':
+    'The PR {title} has had no review for over {hours}h. Want to mention it as a blocker?',
+  'suggestion.ci_failing':
+    'The checks on PR {title} have been failing for over {hours}h. Want to mention it as a blocker?',
+  'suggestion.card_stale':
+    'The card {title} has been idle for over {days} days. Want to mention it as a blocker?',
+  'suggestion.dm.title': 'Suggestions just for you',
+  'checkRun.success.title': 'standwise.yml is valid',
+  'checkRun.failure.title': 'standwise.yml is invalid',
+  'checkRun.summary': '{count} error(s) found:\n{errors}',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {
