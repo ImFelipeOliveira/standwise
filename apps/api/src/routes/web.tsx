@@ -11,6 +11,7 @@ import {
   DomainError,
   disableWebhookEndpoint,
   getSetupStatus,
+  logError,
   revokeInstallationApiKey,
   type SetupStatus,
   sendTestEvent,
@@ -166,7 +167,7 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
   app.onError((error, c) => {
     const lang = negotiateLanguage(c.req.header('accept-language'));
     if (!(error instanceof DomainError)) {
-      console.error(error);
+      logError('unhandled web error', error);
       return c.html(<ErrorPage lang={lang} code="generic" />, 500);
     }
     const url = new URL(c.req.url);

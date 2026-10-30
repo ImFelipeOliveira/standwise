@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, lt, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type MemberRow, members, sessions } from '../schema';
+import { PRUNE_BATCH } from './prune-batch';
 
 const WEB_TTL_DAYS = 7;
 const CLI_IDLE_DAYS = 90;
@@ -46,14 +47,27 @@ export async function deleteExpiredSessions(db: Db, now: Date): Promise<number> 
   const day = 24 * 60 * 60 * 1000;
   const webCutoff = new Date(now.getTime() - WEB_TTL_DAYS * day);
   const cliCutoff = new Date(now.getTime() - CLI_IDLE_DAYS * day);
-  const rows = await db
-    .delete(sessions)
-    .where(
-      or(
-        and(eq(sessions.kind, 'web'), lt(sessions.createdAt, webCutoff)),
-        and(eq(sessions.kind, 'cli'), lt(sessions.lastUsedAt, cliCutoff)),
-      ),
-    )
-    .returning({ tokenHash: sessions.tokenHash });
-  return rows.length;
+  let total = 0;
+  for (;;) {
+    const rows = await db
+      .delete(sessions)
+      .where(
+        inArray(
+          sessions.tokenHash,
+          db
+            .select({ tokenHash: sessions.tokenHash })
+            .from(sessions)
+            .where(
+              or(
+                and(eq(sessions.kind, 'web'), lt(sessions.createdAt, webCutoff)),
+                and(eq(sessions.kind, 'cli'), lt(sessions.lastUsedAt, cliCutoff)),
+              ),
+            )
+            .limit(PRUNE_BATCH),
+        ),
+      )
+      .returning({ tokenHash: sessions.tokenHash });
+    total += rows.length;
+    if (rows.length === 0) return total;
+  }
 }

@@ -115,7 +115,7 @@ describe('pruneData', () => {
     expect(left).toEqual(['cli-live', 'web-new']);
   });
 
-  test('deletes terminal suggestions older than 90 days by decided_at, else created_at', async () => {
+  test('deletes only resolved suggestions older than 90 days and keeps ignored and confirmed ones', async () => {
     await seedOrg();
     const member = await seedMember();
     await suggestion(member.id, 'a', 'confirmed', daysAgo(200), daysAgo(91));
@@ -123,11 +123,12 @@ describe('pruneData', () => {
     await suggestion(member.id, 'c', 'resolved', daysAgo(91), null);
     await suggestion(member.id, 'd', 'confirmed', daysAgo(200), daysAgo(10));
     await suggestion(member.id, 'e', 'resolved', daysAgo(10), null);
+    await suggestion(member.id, 'g', 'resolved', daysAgo(200), daysAgo(91));
     await suggestion(member.id, 'f', 'pending', daysAgo(200), null);
     const { deps } = fakeDeps();
     deps.now = () => NOW;
-    expect((await pruneData(deps)).suggestions).toBe(3);
+    expect((await pruneData(deps)).suggestions).toBe(2);
     const left = await listSuggestionFingerprints();
-    expect(left).toEqual(['d', 'e', 'f']);
+    expect(left).toEqual(['a', 'b', 'd', 'e', 'f']);
   });
 });

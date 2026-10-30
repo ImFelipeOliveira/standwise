@@ -1,6 +1,6 @@
 import {
-  deleteDecidedSuggestionsBefore,
   deleteExpiredSessions,
+  deleteResolvedSuggestionsBefore,
   deleteWebhookDeliveriesBefore,
 } from '@standwise/db';
 import type { WorkerDeps } from '../deps';
@@ -22,6 +22,6 @@ export async function pruneData(deps: Pick<WorkerDeps, 'db' | 'now'>): Promise<P
       daysAgo(WEBHOOK_DELIVERY_RETENTION_DAYS),
     ),
     sessions: await deleteExpiredSessions(deps.db, now),
-    suggestions: await deleteDecidedSuggestionsBefore(deps.db, daysAgo(SUGGESTION_RETENTION_DAYS)),
+    suggestions: await deleteResolvedSuggestionsBefore(deps.db, daysAgo(SUGGESTION_RETENTION_DAYS)),
   };
 }

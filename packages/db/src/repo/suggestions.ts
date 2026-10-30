@@ -2,6 +2,7 @@ import type { Ref, Signal, SignalKind } from '@standwise/core';
 import { and, asc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type SuggestionState, suggestions } from '../schema';
+import { PRUNE_BATCH } from './prune-batch';
 
 export type SuggestionRow = {
   id: string;
@@ -141,15 +142,28 @@ export async function markSuggestionNotified(db: Db, id: string): Promise<boolea
   return rows.length > 0;
 }
 
-export async function deleteDecidedSuggestionsBefore(db: Db, cutoff: Date): Promise<number> {
-  const rows = await db
-    .delete(suggestions)
-    .where(
-      and(
-        inArray(suggestions.state, ['confirmed', 'ignored', 'resolved']),
-        sql`coalesce(${suggestions.decidedAt}, ${suggestions.createdAt}) < ${cutoff.toISOString()}::timestamptz`,
-      ),
-    )
-    .returning({ id: suggestions.id });
-  return rows.length;
+export async function deleteResolvedSuggestionsBefore(db: Db, cutoff: Date): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const rows = await db
+      .delete(suggestions)
+      .where(
+        inArray(
+          suggestions.id,
+          db
+            .select({ id: suggestions.id })
+            .from(suggestions)
+            .where(
+              and(
+                eq(suggestions.state, 'resolved'),
+                sql`coalesce(${suggestions.decidedAt}, ${suggestions.createdAt}) < ${cutoff.toISOString()}::timestamptz`,
+              ),
+            )
+            .limit(PRUNE_BATCH),
+        ),
+      )
+      .returning({ id: suggestions.id });
+    total += rows.length;
+    if (rows.length === 0) return total;
+  }
 }
