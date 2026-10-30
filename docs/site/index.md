@@ -44,7 +44,14 @@ It solves three problems that show up once a team writes dailies with AI:
 4. At `digest_at`, in the team's time zone, Standwise posts one message to the team channel: blockers on top, then each person's daily, then who did not send it.
 5. A daily sent after the digest goes as a reply in the digest thread.
 
-Coming soon: a reminder at `remind_at` for people who have not sent the daily, routing each blocker to whoever can unblock it, suggested blockers (a PR waiting for review, a stale card), Google Chat, Linear and Jira.
+Around it, Standwise orchestrates the day:
+
+- at `remind_at`, people who have not sent the daily get one direct message;
+- each new blocker goes by direct message to whoever can help: the pull request's reviewers, its CODEOWNERS, or the team managers;
+- suggested blockers, such as a pull request waiting for review or with failing CI, appear only to you, in your own draft;
+- every change to `standwise.yml` is validated by a GitHub check run.
+
+Coming soon: Google Chat, Linear and Jira, including card-based signals.
 
 Read [How it works](/how-it-works) for the full cycle of a day.
 

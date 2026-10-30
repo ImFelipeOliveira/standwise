@@ -45,7 +45,14 @@ Ele resolve três problemas que aparecem quando o time escreve a daily com IA:
 4. No `digest_at`, no fuso do time, o Standwise publica uma mensagem no canal do time: impedimentos no topo, depois a daily de cada pessoa e, no fim, quem não enviou.
 5. Uma daily enviada depois do consolidado vai como resposta na thread dele.
 
-Em breve: lembrete no `remind_at` para quem ainda não enviou, encaminhamento de cada impedimento para quem pode destravar, impedimentos sugeridos (PR esperando revisão, card parado), Google Chat, Linear e Jira.
+Em volta disso, o Standwise orquestra o dia:
+
+- no `remind_at`, quem ainda não enviou a daily recebe uma mensagem direta;
+- cada impedimento novo vai por mensagem direta para quem pode ajudar: os revisores do pull request, os CODEOWNERS dele ou os gestores do time;
+- impedimentos sugeridos, como um pull request esperando revisão ou com CI falhando, aparecem só para você, no seu rascunho;
+- toda mudança no `standwise.yml` é validada por um check run no GitHub.
+
+Em breve: Google Chat, Linear e Jira, incluindo sinais de cards.
 
 Veja [Como funciona](/pt-BR/how-it-works) para o ciclo completo de um dia.
 
