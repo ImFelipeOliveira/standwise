@@ -383,6 +383,37 @@ describe('setup page', () => {
     const html = await res.text();
     expect(html).toContain('not_in_channel');
     expect(html).toContain('Alpha');
+    expect(html).toContain('Digest');
+  });
+
+  test('setup groups person failures with translated kinds', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      for (const [kind, subject, error] of [
+        ['reminder', 'bob', 'no_chat_identity: bob'],
+        ['blocker_route', 'daily-9:abc:mgr', 'no_chat_identity: mgr'],
+        ['blocker_route', 'daily-8:def:mgr', 'no_chat_identity: mgr'],
+      ] as const) {
+        const key = { installationId: id, teamName: '', date: '2026-10-28', kind, subject };
+        const claim = await claimDelivery(db, key);
+        if (claim.status !== 'claimed') throw new Error('not claimed');
+        await failDelivery(db, key, claim.token, error);
+      }
+    });
+    const en = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(en).toContain('Reminder');
+    expect(en).toContain('Blocker routing');
+    expect(en).toContain('no_chat_identity: mgr');
+    expect(en).not.toContain('daily-9');
+    const pt = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(pt).toContain('Lembrete');
+    expect(pt).toContain('Encaminhamento de impedimento');
   });
 
   test('setup renders in pt-BR by Accept-Language and english by default', async () => {

@@ -1,15 +1,8 @@
 import type { MessageRef } from '@standwise/core';
 import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
-import { type DeliveryRow, deliveries } from '../schema';
-
-export type DeliveryKind =
-  | 'digest'
-  | 'late_daily'
-  | 'reminder'
-  | 'blocker_route'
-  | 'suggestion_dm'
-  | 'signal_scan';
+import { type DeliveryKind, type DeliveryRow, deliveries } from '../schema';
+import { PRUNE_BATCH } from './prune-batch';
 
 export type DeliveryKey = {
   installationId: number;
@@ -149,7 +142,7 @@ export async function getDelivery(db: Db, k: DeliveryKey): Promise<DeliveryRow |
   return row ?? null;
 }
 
-export type PersonDeliveryKind = Extract<DeliveryKind, 'reminder' | 'signal_scan'>;
+type PersonDeliveryKind = Extract<DeliveryKind, 'reminder' | 'signal_scan'>;
 
 export async function listPersonDeliveries(
   db: Db,
@@ -223,30 +216,89 @@ export async function reserveBlockerRoute(
   });
 }
 
-export const ADMIN_VISIBLE_DELIVERY_KINDS = [
-  'digest',
-  'late_daily',
+const TEAM_FAILURE_KINDS = ['digest', 'late_daily'] as const satisfies readonly DeliveryKind[];
+const PERSON_FAILURE_KINDS = [
   'reminder',
   'blocker_route',
 ] as const satisfies readonly DeliveryKind[];
 
-export async function listFailedDeliveries(
+export type TeamFailure = {
+  kind: (typeof TEAM_FAILURE_KINDS)[number];
+  team: string;
+  date: string;
+  at: Date;
+  error: string;
+};
+
+export type PersonFailureGroup = {
+  kind: (typeof PERSON_FAILURE_KINDS)[number];
+  error: string;
+  count: number;
+  lastAt: Date;
+};
+
+export async function listFailedTeamDeliveries(
   db: Db,
   installationId: number,
   limit: number,
-): Promise<DeliveryRow[]> {
-  return db
-    .select()
+): Promise<TeamFailure[]> {
+  const rows = await db
+    .select({
+      kind: deliveries.kind,
+      team: deliveries.teamName,
+      date: deliveries.date,
+      at: deliveries.updatedAt,
+      error: deliveries.error,
+    })
     .from(deliveries)
     .where(
       and(
         eq(deliveries.installationId, installationId),
         eq(deliveries.status, 'failed'),
-        inArray(deliveries.kind, [...ADMIN_VISIBLE_DELIVERY_KINDS]),
+        inArray(deliveries.kind, [...TEAM_FAILURE_KINDS]),
       ),
     )
     .orderBy(desc(deliveries.updatedAt))
     .limit(limit);
+  return rows.map((r) => ({
+    kind: r.kind as TeamFailure['kind'],
+    team: r.team,
+    date: r.date,
+    at: r.at,
+    error: r.error ?? '',
+  }));
+}
+
+export async function listFailedPersonDeliveryGroups(
+  db: Db,
+  installationId: number,
+  limit: number,
+): Promise<PersonFailureGroup[]> {
+  const lastAt = sql<string>`max(${deliveries.updatedAt})`;
+  const rows = await db
+    .select({
+      kind: deliveries.kind,
+      error: deliveries.error,
+      count: sql<number>`count(*)::int`,
+      lastAt,
+    })
+    .from(deliveries)
+    .where(
+      and(
+        eq(deliveries.installationId, installationId),
+        eq(deliveries.status, 'failed'),
+        inArray(deliveries.kind, [...PERSON_FAILURE_KINDS]),
+      ),
+    )
+    .groupBy(deliveries.kind, deliveries.error)
+    .orderBy(desc(lastAt))
+    .limit(limit);
+  return rows.map((r) => ({
+    kind: r.kind as PersonFailureGroup['kind'],
+    error: r.error ?? '',
+    count: Number(r.count),
+    lastAt: new Date(r.lastAt),
+  }));
 }
 
 export type DigestPageFilter = {
@@ -283,4 +335,37 @@ export async function listDigestDeliveries(
     )
     .orderBy(desc(deliveries.date), desc(deliveries.id))
     .limit(f.limit);
+}
+
+const PERSON_DELIVERY_KINDS = [
+  'reminder',
+  'blocker_route',
+  'suggestion_dm',
+  'signal_scan',
+] as const satisfies readonly DeliveryKind[];
+
+export async function deletePersonDeliveriesBefore(db: Db, cutoff: Date): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const rows = await db
+      .delete(deliveries)
+      .where(
+        inArray(
+          deliveries.id,
+          db
+            .select({ id: deliveries.id })
+            .from(deliveries)
+            .where(
+              and(
+                inArray(deliveries.kind, [...PERSON_DELIVERY_KINDS]),
+                lt(deliveries.updatedAt, cutoff),
+              ),
+            )
+            .limit(PRUNE_BATCH),
+        ),
+      )
+      .returning({ id: deliveries.id });
+    total += rows.length;
+    if (rows.length === 0) return total;
+  }
 }

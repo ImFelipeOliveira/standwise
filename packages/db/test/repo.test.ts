@@ -15,7 +15,8 @@ import {
   getInstallationMemberIds,
   getLastDaily,
   listDailies,
-  listFailedDeliveries,
+  listFailedPersonDeliveryGroups,
+  listFailedTeamDeliveries,
   listOperationalInstallations,
   listPersonDeliveries,
   markDeliverySent,
@@ -124,7 +125,7 @@ describe('deliveries', () => {
     expect(row?.status).toBe('failed');
     expect(row?.attempts).toBe(3);
     expect(row?.error).toBe('boom');
-    expect(await listFailedDeliveries(db, INST, 10)).toHaveLength(1);
+    expect(await listFailedTeamDeliveries(db, INST, 10)).toHaveLength(1);
   });
 
   test('claimDelivery reopens a stale pending row', async () => {
@@ -183,18 +184,61 @@ describe('delivery markers', () => {
 });
 
 describe('admin-visible failed deliveries', () => {
-  test('failed suggestion DMs and scan markers never appear, other kinds do', async () => {
+  async function fail(k: Parameters<typeof claimDelivery>[1], error: string) {
+    const claim = await claimDelivery(db, k);
+    if (claim.status !== 'claimed') throw new Error('not claimed');
+    await failDelivery(db, k, claim.token, error);
+  }
+
+  test('team failures list digest and late_daily only, latest first, capped', async () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    for (let day = 1; day <= 6; day++) {
+      await fail({ ...dkey, date: `2026-10-0${day}` }, 'not_in_channel: x');
+      await db.execute(
+        sql`UPDATE deliveries SET updated_at = now() - make_interval(days => ${10 - day})
+          WHERE date = ${`2026-10-0${day}`}`,
+      );
+    }
+    await fail({ ...dkey, kind: 'late_daily', subject: 'm1' }, 'internal_error: unexpected error');
+    await fail({ ...dkey, kind: 'reminder', subject: 'ana' }, 'no_chat_identity: ana');
+    const listed = await listFailedTeamDeliveries(db, INST, 5);
+    expect(listed.map((d) => [d.kind, d.date])).toEqual([
+      ['late_daily', '2026-10-27'],
+      ['digest', '2026-10-06'],
+      ['digest', '2026-10-05'],
+      ['digest', '2026-10-04'],
+      ['digest', '2026-10-03'],
+    ]);
+  });
+
+  test('person failures are grouped by kind and error and never include hidden kinds', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
     const base = { installationId: INST, teamName: '', date: '2026-10-28' };
-    for (const kind of ['suggestion_dm', 'signal_scan', 'reminder'] as const) {
-      const k = { ...base, kind, subject: `${kind}-subject` };
-      const claim = await claimDelivery(db, k);
-      if (claim.status !== 'claimed') throw new Error('not claimed');
-      await failDelivery(db, k, claim.token, 'no_chat_identity');
+    for (const kind of ['suggestion_dm', 'signal_scan'] as const) {
+      await fail({ ...base, kind, subject: `${kind}-subject` }, 'no_chat_identity');
     }
     await markDeliverySent(db, { ...base, kind: 'signal_scan', subject: 'alice' });
-    const listed = await listFailedDeliveries(db, INST, 10);
-    expect(listed.map((d) => d.kind)).toEqual(['reminder']);
+    await fail({ ...base, kind: 'reminder', subject: 'ana' }, 'no_chat_identity: ana');
+    await fail(
+      { ...base, date: '2026-10-29', kind: 'reminder', subject: 'ana' },
+      'no_chat_identity: ana',
+    );
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h1:mgr' }, 'no_chat_identity: mgr');
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h2:mgr' }, 'no_chat_identity: mgr');
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h3:-' }, 'no_route_target');
+    await fail(
+      { ...base, installationId: 2, kind: 'reminder', subject: 'x' },
+      'no_chat_connection',
+    );
+    const groups = await listFailedPersonDeliveryGroups(db, INST, 10);
+    expect(groups.map((g) => [g.kind, g.error, g.count, g.lastAt instanceof Date]).sort()).toEqual([
+      ['blocker_route', 'no_chat_identity: mgr', 2, true],
+      ['blocker_route', 'no_route_target', 1, true],
+      ['reminder', 'no_chat_identity: ana', 2, true],
+    ]);
+    expect(JSON.stringify(groups)).not.toContain('d1:');
+    expect(await listFailedPersonDeliveryGroups(db, INST, 2)).toHaveLength(2);
   });
 });
 

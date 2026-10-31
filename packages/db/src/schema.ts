@@ -116,6 +116,14 @@ export const dailies = pgTable(
   (t) => [unique().on(t.installationId, t.memberId, t.date)],
 );
 
+export type DeliveryKind =
+  | 'digest'
+  | 'late_daily'
+  | 'reminder'
+  | 'blocker_route'
+  | 'suggestion_dm'
+  | 'signal_scan';
+
 export const deliveries = pgTable(
   'deliveries',
   {
@@ -123,11 +131,7 @@ export const deliveries = pgTable(
     installationId: installationRef(),
     teamName: text('team_name').notNull(),
     date: date('date', { mode: 'string' }).notNull(),
-    kind: text('kind')
-      .$type<
-        'digest' | 'late_daily' | 'reminder' | 'blocker_route' | 'suggestion_dm' | 'signal_scan'
-      >()
-      .notNull(),
+    kind: text('kind').$type<DeliveryKind>().notNull(),
     subject: text('subject').notNull().default(''),
     status: text('status').$type<'pending' | 'sent' | 'failed'>().notNull(),
     attempts: integer('attempts').notNull().default(0),
