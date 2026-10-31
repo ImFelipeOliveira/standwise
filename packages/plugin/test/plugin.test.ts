@@ -53,6 +53,12 @@ describe('daily skill', () => {
     expect(fields.description).toContain('minha daily');
   });
 
+  test('explains linear cards in yesterday and card refs in blockers', () => {
+    expect(skill).toContain('Linear cards');
+    expect(skill).toContain('ref.kind: "card"');
+    expect(skill).toContain('card URL');
+  });
+
   test('body drives the CLI', () => {
     expect(skill).toContain('standwise_get_draft');
     expect(skill).toContain('standwise_submit_daily');
