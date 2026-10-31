@@ -7,7 +7,7 @@ import { logError } from '../log-error';
 export const VALIDATE_CONFIG_JOB = 'validate-config';
 export const CONFIG_REPO = '.github';
 export const CONFIG_FILE = 'standwise.yml';
-export const CHECK_RUN_NAME = 'Standwise config';
+const CHECK_RUN_NAME = 'Standwise config';
 
 export type ValidateConfigJob = {
   installationId: number;
@@ -16,7 +16,7 @@ export type ValidateConfigJob = {
   pullNumber?: number;
 };
 
-export type ValidationResult = 'success' | 'failure' | 'skipped';
+type ValidationResult = 'success' | 'failure' | 'skipped';
 
 export async function enqueueValidateConfig(
   deps: Pick<WorkerDeps, 'queue'>,

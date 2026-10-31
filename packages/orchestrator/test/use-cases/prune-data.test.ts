@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
 import {
+  getDelivery,
   insertWebhookDeliveries,
   insertWebhookEndpoint,
   listRecentWebhookDeliveries,
+  markDeliverySent,
 } from '@standwise/db';
 import {
+  ageDeliveries,
   insertAgedSessions,
   insertAgedSuggestion,
   listSessionTokens,
@@ -130,5 +133,26 @@ describe('pruneData', () => {
     expect((await pruneData(deps)).suggestions).toBe(2);
     const left = await listSuggestionFingerprints();
     expect(left).toEqual(['a', 'b', 'd', 'e', 'f']);
+  });
+
+  test('deletes person-level delivery rows older than 90 days and keeps team rows', async () => {
+    await seedOrg();
+    const { deps } = fakeDeps();
+    deps.now = () => NOW;
+    const base = { installationId: INST, teamName: '', date: '2026-07-01' };
+    const kinds = ['reminder', 'blocker_route', 'suggestion_dm', 'signal_scan'] as const;
+    for (const kind of kinds) {
+      await markDeliverySent(db, { ...base, kind, subject: 'old' });
+      await markDeliverySent(db, { ...base, kind, subject: 'recent' });
+    }
+    await markDeliverySent(db, { ...base, teamName: 'Alpha', kind: 'digest' });
+    await ageDeliveries(['old', ''], daysAgo(91));
+    await ageDeliveries(['recent'], daysAgo(89));
+    expect((await pruneData(deps)).personDeliveries).toBe(4);
+    for (const kind of kinds) {
+      expect(await getDelivery(db, { ...base, kind, subject: 'old' })).toBeNull();
+      expect(await getDelivery(db, { ...base, kind, subject: 'recent' })).not.toBeNull();
+    }
+    expect(await getDelivery(db, { ...base, teamName: 'Alpha', kind: 'digest' })).not.toBeNull();
   });
 });
