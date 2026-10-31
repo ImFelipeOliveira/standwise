@@ -84,6 +84,10 @@ export function SetupPage(props: {
   return (
     <Layout lang={props.lang} title={t('web.setup.title')}>
       <h1>{t('web.setup.heading')}</h1>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf" value={props.csrf} />
+        <button type="submit">{t('web.setup.logout')}</button>
+      </form>
       <p>
         {t('web.setup.organization')}: <strong>{status.owner}</strong>
       </p>

@@ -13,6 +13,7 @@ import {
   disableWebhookEndpoint,
   getSetupStatus,
   logError,
+  logoutWebSession,
   revokeInstallationApiKey,
   type SetupStatus,
   sendTestEvent,
@@ -48,7 +49,7 @@ const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_den
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
 export const WEB_IP_LIMIT = 60;
 const RESYNC_CODES = ['forbidden', 'installation_pending'];
-const PAGE_PATHS = ['/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
+const PAGE_PATHS = ['/setup/*', '/connect/*', '/auth/*', '/oauth/*', '/logout'];
 const STYLE_HASH = `'sha256-${new Bun.CryptoHasher('sha256').update(PAGE_CSS).digest('base64')}'`;
 
 const pageHeaders = secureHeaders({
@@ -231,6 +232,17 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
       maxAge: WEB_SESSION_SECONDS,
     });
     return c.redirect(next);
+  });
+
+  app.post('/logout', async (c) => {
+    const session = await readSession(c);
+    if (session) {
+      await readForm(c, session);
+      await logoutWebSession(deps, session.token);
+    }
+    deleteCookie(c, COOKIE, { path: '/', secure: true });
+    c.header('Cache-Control', 'no-store');
+    return c.redirect('/', 303);
   });
 
   app.get('/setup', async (c) => {

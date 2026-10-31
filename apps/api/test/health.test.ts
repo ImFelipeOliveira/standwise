@@ -32,6 +32,21 @@ describe('health', () => {
     expect(await res.json()).toEqual({ ok: false });
   });
 
+  test('is 503 within the bound when the database never answers', async () => {
+    const hanging = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'execute') return () => new Promise(() => {});
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Deps['db'];
+    const { app } = createTestApp({ db: hanging, healthTimeoutMs: 50 });
+    const started = Date.now();
+    const res = await app.request('/health');
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ ok: false });
+    expect(Date.now() - started).toBeLessThan(2500);
+  });
+
   test('documents the 503 response', async () => {
     const { app } = createTestApp();
     const doc = (await (await app.request('/openapi.json')).json()) as {

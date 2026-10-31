@@ -134,7 +134,7 @@ describe('api keys section visibility', () => {
     expect(member.status).toBe(200);
     const html = await member.text();
     expect(html).not.toContain('/setup/api-keys');
-    expect(html).not.toContain('name="csrf"');
+    expect(html).not.toContain('action="/setup/');
     expect(html).not.toContain('API keys');
   });
 });

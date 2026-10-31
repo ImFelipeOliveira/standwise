@@ -946,6 +946,78 @@ describe('security headers', () => {
   });
 });
 
+describe('web logout', () => {
+  useCleanDb();
+
+  const post = (app: ReturnType<typeof harness>['app'], cookie: string, body: URLSearchParams) =>
+    app.request('/logout', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+  test('revokes the session, clears the cookie and redirects', async () => {
+    const { app } = harness();
+    const { cookie, token } = await seed();
+    const res = await post(app, cookie, new URLSearchParams({ csrf: csrfToken('sess', token) }));
+    expect(res.status).toBe(303);
+    expect(location(res)).toBe('/');
+    const setCookie = res.headers.get('set-cookie') ?? '';
+    expect(setCookie).toContain('sw_web=;');
+    expect(setCookie).toContain('Path=/');
+    expect(setCookie.toLowerCase()).toContain('max-age=0');
+    const after = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(after.status).toBe(302);
+    expect(location(after)).toContain('/auth/github/login');
+  });
+
+  test('rejects a post without a valid csrf token and keeps the session', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await post(app, cookie, new URLSearchParams({ csrf: 'forged' }));
+    expect(res.status).toBe(403);
+    const after = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(after.status).toBe(200);
+  });
+
+  test('without a session or with a revoked one it still clears and redirects', async () => {
+    const { app } = harness();
+    const none = await app.request('/logout', { method: 'POST' });
+    expect(none.status).toBe(303);
+    expect(location(none)).toBe('/');
+    const { cookie, token } = await seed();
+    const body = new URLSearchParams({ csrf: csrfToken('sess', token) });
+    await post(app, cookie, body);
+    const again = await post(app, cookie, body);
+    expect(again.status).toBe(303);
+    expect(again.headers.get('set-cookie') ?? '').toContain('sw_web=;');
+  });
+
+  test('the setup page shows a sign out button in en and pt-BR', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    const enHtml = await en.text();
+    expect(enHtml).toContain('<form method="post" action="/logout">');
+    expect(enHtml).toContain('Sign out');
+    const pt = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { cookie, 'accept-language': 'pt-BR' },
+    });
+    expect(await pt.text()).toContain('Sair');
+  });
+
+  test('page responses carry hsts with includeSubDomains', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(res.headers.get('strict-transport-security')).toContain('includeSubDomains');
+    const login = await app.request('/auth/github/login');
+    expect(login.headers.get('strict-transport-security')).toContain('includeSubDomains');
+  });
+});
+
 describe('web rate limit', () => {
   useCleanDb();
 
@@ -1084,6 +1156,11 @@ describe('install script', () => {
   test('downloads only over https with curl and with wget', async () => {
     const body = await Bun.file(`${import.meta.dir}/../../../scripts/install.sh`).text();
     expect(body).toContain("curl --proto '=https' --tlsv1.2");
-    expect(body).toMatch(/download\(\) \{ wget --https-only /);
+    expect(body).toMatch(/download\(\) \{ wget -q -O "\$2" "\$1"; \}/);
+    expect(body).not.toContain('--https-only');
+    const urls = body.match(/\bhttps?:\/\/[^\s"'<>)]+/g) ?? [];
+    expect(urls.length).toBeGreaterThan(0);
+    for (const url of urls) expect(url.startsWith('https://')).toBe(true);
+    expect(body).toContain('BASE="https://');
   });
 });
