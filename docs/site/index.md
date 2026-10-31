@@ -1,5 +1,9 @@
 # Standwise
 
+::: warning Public beta
+Standwise is in public beta. Expect rough edges and changes to behaviour, configuration and the API before 1.0. Report problems in [GitHub issues](https://github.com/ImFelipeOliveira/standwise/issues) or by email (see [Privacy](/privacy)).
+:::
+
 Standwise runs your team's daily standup. Each person writes their daily with their AI agent, starting from a draft of what they did on GitHub. Standwise collects the dailies and posts one digest per team to Slack at the time you choose.
 
 ## What it is

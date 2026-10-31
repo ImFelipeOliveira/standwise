@@ -66,6 +66,14 @@ const TEXT_PAIRS: [string, string][] = [
   ['--muted-foreground', '--muted'],
 ];
 
+describe('beta badge', () => {
+  test('the header marks the product as beta on every page', () => {
+    const html = String(<ErrorPage lang="en" code="not_found" supportEmail="help@example.com" />);
+    expect(html).toContain('topbar-beta');
+    expect(html).toContain('>Beta<');
+  });
+});
+
 describe('design tokens', () => {
   test('the light palette defines the core tokens with the global constraint colors', () => {
     const tokens = light();

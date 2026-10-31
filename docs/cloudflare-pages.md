@@ -56,3 +56,12 @@ SUPPORT_EMAIL=x@y.z STANDWISE_PUBLIC_URL=https://api-standwise.usefachada.dev bu
 ## Keep Cloudflare script injection off
 
 The generated `_headers` allows only the site's own scripts. Leave **Web Analytics** (the JavaScript beacon) and **Rocket Loader** off for this project, or the browser blocks them. If you turn Web Analytics on later, add `https://static.cloudflareinsights.com` to `script-src` and `connect-src` in `scripts/docs-headers.ts`.
+
+## Created as a Worker instead of Pages
+
+If the project was created through **Workers & Pages > Create > Worker > Import a repository** (Workers Builds), Cloudflare runs `npx wrangler deploy` after the build. The repository root has a `wrangler.jsonc` for that case: it publishes `docs/site/.vitepress/dist` as static assets, and Workers static assets read the same `_headers` and `_redirects` files.
+
+- The Worker name in Cloudflare must be `standwise-docs`, the `name` in `wrangler.jsonc`. Rename one of them if they differ.
+- Build command: `bun install --frozen-lockfile && bun run docs:build`. Deploy command: `npx wrangler deploy`.
+- Set the same build variables (`BUN_VERSION`, `SUPPORT_EMAIL`, `STANDWISE_PUBLIC_URL`) under the Worker's **Settings > Build > Variables and secrets**.
+- Add the custom domain under the Worker's **Settings > Domains & Routes**.

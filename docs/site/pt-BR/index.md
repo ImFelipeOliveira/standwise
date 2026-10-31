@@ -1,5 +1,9 @@
 # Standwise
 
+::: warning Beta público
+O Standwise está em beta público. Espere arestas e mudanças de comportamento, de configuração e na API antes da versão 1.0. Relate problemas nas [issues do GitHub](https://github.com/ImFelipeOliveira/standwise/issues) ou por e-mail (veja [Privacidade](/pt-BR/privacy)).
+:::
+
 O Standwise organiza a daily do seu time. Cada pessoa escreve a própria daily com o agente de IA dela, a partir de um rascunho do que fez no GitHub. O Standwise junta as dailies e publica um consolidado por time no Slack, no horário que você escolher.
 
 ## O que é
