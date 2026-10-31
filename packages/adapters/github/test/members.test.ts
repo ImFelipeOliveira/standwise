@@ -74,6 +74,36 @@ describe('resolveTeamMembers', () => {
     expect(result.truncatedTeams).toEqual([]);
   });
 
+  test('a 403 on the first page is reported as missing', async () => {
+    const { octokit } = octokitWith({
+      'GET /orgs/acme/teams/secret/members': { status: 403, body: '{}' },
+    });
+    expect(await resolveTeamMembers(octokit, 'acme', ['@acme/secret', 'Bob'])).toEqual({
+      logins: ['bob'],
+      missingTeams: ['@acme/secret'],
+      truncatedTeams: [],
+    });
+  });
+
+  test('a rate-limited 403 on the first page still throws', async () => {
+    const remaining = octokitWith({
+      'GET /orgs/acme/teams/busy/members': {
+        status: 403,
+        body: '{}',
+        headers: { 'x-ratelimit-remaining': '0' },
+      },
+    });
+    await expect(resolveTeamMembers(remaining.octokit, 'acme', ['@acme/busy'])).rejects.toThrow();
+    const retry = octokitWith({
+      'GET /orgs/acme/teams/busy/members': {
+        status: 403,
+        body: '{}',
+        headers: { 'retry-after': '30' },
+      },
+    });
+    await expect(resolveTeamMembers(retry.octokit, 'acme', ['@acme/busy'])).rejects.toThrow();
+  });
+
   test('a missing team is reported and the other entries still resolve', async () => {
     const { octokit } = octokitWith({});
     expect(await resolveTeamMembers(octokit, 'acme', ['@acme/gone', 'Bob'])).toEqual({

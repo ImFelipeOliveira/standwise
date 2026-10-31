@@ -1,5 +1,5 @@
 import type { Octokit } from '@octokit/core';
-import { httpStatus } from './errors';
+import { httpStatus, isRateLimited } from './errors';
 
 const PER_PAGE = 100;
 const MAX_PAGES = 50;
@@ -26,9 +26,10 @@ async function listTeamMembers(octokit: Octokit, org: string, slug: string): Pro
       });
       users = response.data as { login: string }[];
     } catch (error) {
-      if (httpStatus(error) === 404 && page === 1)
-        return { logins, missing: true, truncated: false };
-      if (httpStatus(error) === 404) return { logins, missing: false, truncated: false };
+      const status = httpStatus(error);
+      const hidden = status === 404 || (status === 403 && !isRateLimited(error));
+      if (hidden && page === 1) return { logins, missing: true, truncated: false };
+      if (status === 404) return { logins, missing: false, truncated: false };
       throw error;
     }
     for (const user of users) logins.push(user.login.toLowerCase());
