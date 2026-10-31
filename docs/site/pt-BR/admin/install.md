@@ -24,13 +24,14 @@ O app pede estas permissões:
 
 Depois da instalação, o GitHub leva você para a página de setup do Standwise. Entre com o GitHub quando pedir. O endereço da página é `/setup?installation_id=<id>` na API do Standwise.
 
-Qualquer membro da organização que entrar pode abrir a página de setup. Só admins podem conectar ou reconectar o Slack, e só admins veem as seções **API keys** e **Webhooks**. Admin é quem é admin da organização no GitHub, ou o dono da conta, numa conta pessoal.
+Qualquer membro da organização que entrar pode abrir a página de setup. Só admins podem conectar ou reconectar o Slack e o Linear, e só admins veem as seções **API keys** e **Webhooks**. Admin é quem é admin da organização no GitHub, ou o dono da conta, numa conta pessoal.
 
 A página mostra:
 
 - a organização e o estado do `standwise.yml`;
 - um botão para criar o arquivo a partir de um modelo, e o próprio modelo;
 - a conexão com o Slack, com **Conectar Slack** ou **Reconectar Slack** para admins;
+- a conexão com o Linear, com **Conectar o Linear** ou **Reconectar o Linear** para admins;
 - as 5 últimas entregas com falha, com time, data e erro;
 - para admins, as API keys e os webhooks.
 
@@ -61,6 +62,18 @@ Troque o nome do time, o fuso, os horários, as pessoas e o canal e faça o comm
 Referência completa: [standwise.yml](/pt-BR/admin/configuration).
 
 O Standwise recarrega o arquivo a cada push na branch padrão do `.github` que altera o `standwise.yml`, e quando os repositórios da instalação mudam. Atualize a página de setup para ver o novo estado.
+
+## 5. Conecte o Linear (opcional)
+
+Pule este passo se os seus times não usam o Linear. Um admin clica em **Conectar o Linear** na seção do Linear da página de setup e aprova o app no workspace do Linear. A página passa a mostrar `Conectado ao workspace <workspace>.` e um botão **Reconectar o Linear**.
+
+- A conexão é só leitura (escopo `read`) e o app age como ele mesmo, não como o admin. Há um workspace do Linear por instalação. Os tokens são criptografados e renovados automaticamente.
+- Só um admin pode conectar ou reconectar o Linear. Os outros membros veem "Só um admin pode conectar ou reconectar o Linear."
+- Se o acesso ao Linear for revogado, a página mostra `A conexão com o workspace <workspace> parou de funcionar. Reconecte o Linear.` e **Reconectar o Linear**. Até lá, os recursos do Linear pausam em silêncio: os rascunhos ficam sem cards, os impedimentos de card vão para os gestores e as sugestões de card ficam como estão.
+- Reconectar um workspace diferente apaga as ligações com o Linear da instalação. As pessoas são ligadas de novo quando entram e sempre que o `standwise.yml` muda.
+- A página avisa "Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação." quando um time tem `tracker.provider: linear` e o Linear não está conectado. Para `tracker.provider: jira`, mostra "A integração com o Jira ainda não está disponível."
+
+Depois, defina o tracker de cada time no `standwise.yml`. Veja [`tracker`](/pt-BR/admin/configuration#tracker) e [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades). O que o Standwise lê está em [Privacidade](/pt-BR/privacy#linear).
 
 ## Estados da configuração
 
@@ -93,4 +106,5 @@ Quando um push em qualquer branch do repositório `.github` altera o `standwise.
 ## Próximos passos
 
 - Peça a cada membro para seguir os [Primeiros passos](/pt-BR/members/getting-started). As pessoas são ligadas ao usuário do Slack quando entram, então elas devem entrar depois que o Slack estiver conectado.
+- Se você usa o Linear, peça a cada membro para entrar depois que o Linear estiver conectado, para o usuário dele no Linear ser ligado.
 - Crie [API keys](/pt-BR/admin/api-keys) ou [webhooks](/pt-BR/admin/webhooks) se outros sistemas precisarem dos dados.

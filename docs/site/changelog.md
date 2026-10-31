@@ -22,6 +22,10 @@ What changed in Standwise. The API section follows the [versioning policy](/api/
 - `Standwise config` check run on changes to `standwise.yml`.
 - Retention: webhook delivery logs after 30 days, resolved suggestions after 90 days, expired sessions removed.
 - English is the default language when none is set.
+- Linear integration: an admin connects one Linear workspace per installation on the setup page (OAuth app acting as itself, read-only scope `read`, encrypted tokens refreshed automatically). **Deploy requirement:** the api and the worker now need `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET`, and fail to start without them.
+- `tracker: { provider: linear, team: <KEY> }` per team and `members.<login>.linear` (email); people are also linked by their GitHub email. `tracker.provider: jira` is accepted with a setup notice.
+- Your own Linear cards (`card_started`, `card_done`) in the draft, and card blockers routed to the assignees of the blocking cards, then the card's assignee, its creator or the managers.
+- Suggested blocker `card_stale` for cards in progress for `signals.card_stale_days` (default 5), visible only to the person.
 
 ## API
 

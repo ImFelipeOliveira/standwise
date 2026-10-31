@@ -18,9 +18,9 @@ O plugin do Standwise para o Claude Code adiciona a skill `/daily` e registra o 
 
 Digite `/daily`, ou peça do seu jeito: "minha daily", "standup", "o que eu fiz ontem". A skill:
 
-1. Busca o rascunho do ontem a partir da sua atividade no GitHub. Se você está em mais de uma organização, pergunta qual.
+1. Busca o rascunho do ontem a partir da sua atividade no GitHub e, se o Linear está conectado, dos seus cards. Se você está em mais de uma organização, pergunta qual.
 2. Mostra o ontem e deixa você corrigir, remover ou adicionar itens. Ela pode adicionar coisas que de fato aconteceram nesta sessão do Claude Code.
-3. Se o rascunho tem impedimentos sugeridos, como um pull request seu esperando revisão ou com checks falhando, pergunta sobre cada um. Se for um impedimento de verdade, ele entra nos seus impedimentos com o link; se não, a skill o ignora e ele só volta se o sinal mudar. Ela nunca adiciona uma sugestão sem a sua resposta, e as sugestões só são visíveis para você.
+3. Se o rascunho tem impedimentos sugeridos, como um pull request seu esperando revisão, com checks falhando ou um card em andamento há dias, pergunta sobre cada um. Se for um impedimento de verdade, ele entra nos seus impedimentos com o link; se não, a skill o ignora e ele só volta se o sinal mudar. Ela nunca adiciona uma sugestão sem a sua resposta, e as sugestões só são visíveis para você.
 4. Pergunta o que você vai fazer hoje e o que está travando você, no seu idioma.
 5. Mostra a daily final e pede a sua confirmação explícita.
 6. Envia e avisa se ela foi para a thread do consolidado porque ele já tinha sido publicado.

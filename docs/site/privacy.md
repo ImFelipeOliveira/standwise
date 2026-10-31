@@ -32,9 +32,18 @@ The bot token of the Slack app lets Standwise:
 
 It does not read messages in any channel or conversation.
 
-### Linear and Jira <Badge type="info" text="coming soon" />
+### Linear
 
-Standwise does not connect to Linear or Jira yet, so it reads nothing from them.
+If an admin connects Linear, Standwise uses an OAuth app that acts as itself (`actor=app`) with the read-only scope `read`, for one Linear workspace per installation. It reads:
+
+- for the person asking for the draft and for the card signals: the issue identifier, title, url, state type, started and completed dates, assignee, creator, the "blocks" relations and the team key;
+- the email of Linear users, only to link people to their Linear user.
+
+It never reads descriptions or comments, and it never writes to Linear. Cards from another workspace are never read. A person's own cards show only in their own draft and are never used to measure people.
+
+### Jira <Badge type="info" text="coming soon" />
+
+Standwise does not connect to Jira yet, so it reads nothing from it.
 
 ## What Standwise stores
 
@@ -45,9 +54,11 @@ Standwise does not connect to Linear or Jira yet, so it reads nothing from them.
 | Organization membership | Which installations each person belongs to | |
 | Slack identity | The Slack user id of each person, per installation | |
 | Slack connection | Workspace id and name, and the bot token | Bot token encrypted with AES-256-GCM |
+| Linear connection | Workspace id and name, and the access and refresh tokens | Tokens encrypted with AES-256-GCM |
+| Linear identity | The Linear user id of each person, per installation. The email is never stored | |
 | Sessions | A SHA-256 hash of each CLI and web session token, its kind and when it was created and last used | Only the hash; the token itself is never stored |
 | Dailies | Date, submission time, the yesterday, today and blocker items with their links, and whether the person (`human`) or the agent (`agent`) confirmed it | |
-| Suggestions | For each suggested blocker: the pull request link and title, the kind, when it was noticed and your decision | Visible only to you |
+| Suggestions | For each suggested blocker: the pull request link and title (or the card link and title), the kind, when it was noticed and your decision | Visible only to you |
 | Deliveries | For each digest, late daily, reminder and routed blocker: team, date, status, attempts, the Slack channel and message id, and the error if it failed | |
 | API keys | Name, the first 8 characters after `swk_`, scopes, who created it, creation, last use and revocation times | Only a SHA-256 hash of the secret |
 | Webhook endpoints | URL, events, status and failure count | Signing secret encrypted with AES-256-GCM |

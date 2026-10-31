@@ -38,7 +38,7 @@ Não. Não há ranking, nota, contagem de commits por pessoa nem agregados por p
 
 ## Funciona com Google Chat, Linear ou Jira?
 
-Ainda não. Google Chat, Linear e Jira vêm em breve. Hoje o consolidado vai para o Slack e o rascunho vem do GitHub.
+O Linear funciona hoje: os seus cards aparecem no rascunho, os impedimentos de card são encaminhados e cards parados viram sugestões. Veja [Instalar](/pt-BR/admin/install#5-conecte-o-linear-opcional). Google Chat e Jira vêm em breve. Hoje o consolidado vai para o Slack.
 
 ## Tem lembrete para quem não mandou a daily?
 

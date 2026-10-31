@@ -122,16 +122,26 @@ Where the digest goes.
 - `provider`: `slack`. `google-chat` is accepted by the parser but not supported yet: digests for such a team fail with `unsupported_provider`.
 - `channel`: the Slack channel, as `"#name"` (quoted, because `#` starts a comment in YAML) or as a channel id such as `C0123456789`. For a private channel, invite the Standwise bot first. See [Slack](/admin/slack).
 
-### `tracker` <Badge type="info" text="coming soon" />
+### `tracker`
 
-The project tracker of the team: `provider` (`linear` or `jira`) and `team` (the Linear team key or the Jira project key). The parser accepts it so that you can write it now, but Standwise does not connect to Linear or Jira yet.
+The project tracker of the team: `provider` (`linear` or `jira`) and `team` (the team key).
+
+```text
+tracker:
+  provider: linear
+  team: BE
+```
+
+- `provider: linear`: Standwise reads the cards of the Linear workspace that an admin connected on the setup page. `team` is the Linear team key, such as `BE`, and limits the activity and the signals to that Linear team. See [Install](/admin/install#5-connect-linear-optional).
+- `provider: jira` is accepted by the parser, but Jira is still coming soon. The setup page shows a notice and nothing else happens.
+- If a team uses Linear and Linear is not connected, the setup page warns about it. Nothing breaks: the draft just has no cards.
 
 ### `signals`
 
 Settings for suggested blockers, which show only to the person they are about:
 
 - `pr_review_hours`: your open pull request, not a draft, with no review for this many hours since it was ready for review. Default `48`.
-- `card_stale_days`: a card in progress for more than this many days. Default `5`. It takes effect with the Linear and Jira integrations, which are coming soon.
+- `card_stale_days`: one of your Linear cards in progress for this many days or more, counting from when it was started. Default `5`. The suggestion is `card_stale`.
 - `direct_message`: when `true`, a suggested blocker is also sent to the person by direct message, once per suggestion. Default `false`.
 
 CI failing on a pull request's head commit counts after 24 hours, and is not configurable.
@@ -204,10 +214,12 @@ members:
 | --- | --- | --- |
 | `slack` | yes | Slack member id, such as `U0456`. In Slack, open the person's profile, click the three dots and **Copy member ID**. |
 | `google_chat` | coming soon | Google Chat user |
-| `linear` | coming soon | Linear user email |
+| `linear` | yes | Email of the person in Linear. Optional: without it, Standwise uses their primary verified GitHub email. It must be an email |
 | `jira` | coming soon | Jira account |
 
 A `slack` mapping is used from the next digest on, even for people who have never signed in. People without a mapping are linked by email when they sign in with `standwise login` or on the setup page. If you connect a different Slack workspace, the email links are cleared and made again at the next sign-in.
+
+The `linear` email has priority over the GitHub email. Linear links are made when the person signs in, right after Linear is connected, and whenever `standwise.yml` changes, including people who are in a team through a GitHub team (`@org/team`). Standwise stores the Linear user id, never the email. If you connect a different Linear workspace, the Linear links are cleared.
 
 ## Common validation errors
 

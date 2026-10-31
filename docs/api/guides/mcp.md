@@ -79,12 +79,12 @@ Every tool declares an input schema, an output schema and annotations, and retur
 
 The draft `activity` lists your GitHub work and, when your organization connected Linear and you are linked to a Linear user, your cards. Each item is `{ kind, title, url, repo, at }`, newest first, at most 50 in total. `kind` is `pr_opened`, `pr_merged`, `review`, `commits`, `card_started` or `card_done`. For cards, `repo` is the Linear team key and `url` is the card URL, which you can use as the `ref` of a blocker (`ref.kind: "card"`). If Linear fails, the draft comes back with GitHub activity only.
 
-The draft can carry `suggestions`: possible blockers Standwise noticed for you, such as a pull request waiting for review or failing checks. Each one is `{ id, kind, ref, since }`, where `kind` is `pr_no_review` or `ci_failing` and `since` is when Standwise first noticed it. They are only yours: they never appear in the digest, the organization API, the manager tools, outgoing webhooks or the setup page. Your manager only sees a blocker after you put it in your daily.
+The draft can carry `suggestions`: possible blockers Standwise noticed for you, such as a pull request waiting for review or failing checks. Each one is `{ id, kind, ref, since }`, where `kind` is `pr_no_review`, `ci_failing` or `card_stale` (one of your Linear cards in progress for `card_stale_days`) and `since` is when Standwise first noticed it. They are only yours: they never appear in the digest, the organization API, the manager tools, outgoing webhooks or the setup page. Your manager only sees a blocker after you put it in your daily.
 
 The agent presents each suggestion and asks whether it is a real blocker. Never add a suggestion without the person's answer.
 
 - **Yes:** the agent adds it to `blockers` in your own words, with the suggestion's `ref`. Submitting the daily marks it as confirmed.
-- **No:** the agent calls `standwise_decide_suggestion` with `decision: "ignored"`. It does not come back unless the signal changes, for example a new failing commit.
+- **No:** the agent calls `standwise_decide_suggestion` with `decision: "ignored"`. It does not come back unless the signal changes, for example a new failing commit, or a restarted card.
 
 From a terminal, `standwise suggestion ignore <id>` and `standwise suggestion confirm <id>` do the same (add `--org <login>` when you belong to more than one organization). Deciding a suggestion that is not yours, or that does not exist, returns `not_found`. Changing a decision already made returns `suggestion_already_decided`.
 

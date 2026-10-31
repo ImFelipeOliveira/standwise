@@ -71,8 +71,8 @@ Prints the draft of your daily for the organization:
 - `date`: the standup date this daily will count for.
 - `since`: the start of the activity window.
 - `teams`: your teams in this organization.
-- `activity`: up to 50 items, newest first. `kind` is `pr_opened`, `pr_merged`, `review` or `commits`. Commits are grouped per repository, with `count`.
-- `suggestions`: possible blockers Standwise noticed for you, each `{ id, kind, ref, since }`. `kind` is `pr_no_review` (your pull request without review) or `ci_failing` (checks failing on it for 24 hours). Only you see them. See [`standwise suggestion`](#standwise-suggestion).
+- `activity`: up to 50 items, newest first. `kind` is `pr_opened`, `pr_merged`, `review`, `commits`, `card_started` or `card_done`. Commits are grouped per repository, with `count`. For cards, `repo` is the Linear team key and `url` is the card link, which you can use as the link of a blocker.
+- `suggestions`: possible blockers Standwise noticed for you, each `{ id, kind, ref, since }`. `kind` is `pr_no_review` (your pull request without review) `ci_failing` (checks failing on it for 24 hours) or `card_stale` (one of your Linear cards in progress for `card_stale_days`). Only you see them. See [`standwise suggestion`](#standwise-suggestion).
 
 ### `standwise submit`
 

@@ -71,8 +71,8 @@ Mostra o rascunho da sua daily na organização:
 - `date`: a data a que esta daily vai pertencer.
 - `since`: o início da janela de atividade.
 - `teams`: os seus times nesta organização.
-- `activity`: até 50 itens, do mais recente para o mais antigo. `kind` é `pr_opened`, `pr_merged`, `review` ou `commits`. Os commits vêm agrupados por repositório, com `count`.
-- `suggestions`: possíveis impedimentos que o Standwise percebeu por você, cada um `{ id, kind, ref, since }`. `kind` é `pr_no_review` (pull request seu sem revisão) ou `ci_failing` (checks falhando nele há 24 horas). Só você vê. Veja [`standwise suggestion`](#standwise-suggestion).
+- `activity`: até 50 itens, do mais recente para o mais antigo. `kind` é `pr_opened`, `pr_merged`, `review`, `commits`, `card_started` ou `card_done`. Os commits vêm agrupados por repositório, com `count`. Nos cards, `repo` é a chave do time no Linear e `url` é o link do card, que você pode usar como link de um impedimento.
+- `suggestions`: possíveis impedimentos que o Standwise percebeu por você, cada um `{ id, kind, ref, since }`. `kind` é `pr_no_review` (pull request seu sem revisão) `ci_failing` (checks falhando nele há 24 horas) ou `card_stale` (um card seu no Linear em andamento há `card_stale_days`). Só você vê. Veja [`standwise suggestion`](#standwise-suggestion).
 
 ### `standwise submit`
 

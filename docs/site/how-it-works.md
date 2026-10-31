@@ -14,9 +14,10 @@ Alice runs `/daily` in Claude Code. The skill asks Standwise for a draft. Standw
 - pull requests she opened;
 - pull requests she merged;
 - pull requests she reviewed (not her own);
-- commits she authored, grouped by repository.
+- commits she authored, grouped by repository;
+- her own Linear cards, when the organization connected Linear: `card_started` when a card moved to in progress and `card_done` when it was completed.
 
-The window starts when she sent her last daily, if that was on or after the previous workday. Otherwise it starts at midnight of the previous workday. On Monday, the previous workday is Friday, so the weekend is covered. The draft has up to 50 items, newest first.
+The window starts when she sent her last daily, if that was on or after the previous workday. Otherwise it starts at midnight of the previous workday. On Monday, the previous workday is Friday, so the weekend is covered. The cards use the same window. The draft has up to 50 items in total, newest first. If Linear fails, the draft still comes back with the GitHub activity.
 
 Alice edits yesterday, writes today and one blocker, and confirms. Standwise stores the daily for today's date. She can send it again until the digest goes out: the last version wins.
 
@@ -53,16 +54,21 @@ Only the first late daily of the day goes to the thread. If Bob sends again, Sta
 Each new blocker in a submitted daily is sent once by direct message to whoever can help, in this order:
 
 1. A pull request link in your own organization goes to the requested reviewers and the members of requested teams. With none of those, it goes to the CODEOWNERS of the files changed in the pull request, at its base branch, with teams expanded to their members.
-2. A card link will go to whoever owns the blocking card. This needs the Linear integration, which is coming soon, so today it falls through to the next step.
-3. Otherwise, the managers of the author's first team.
+2. A card link in the connected Linear workspace goes to the people it depends on, in this order:
+   1. the assignees of the cards that block it ("blocked by");
+   2. otherwise, the card's own assignee;
+   3. otherwise, its creator;
+   4. otherwise, the managers of the author's first team.
+3. Anything else goes to the managers of the author's first team.
 
 Rules:
 
 - The author never receives their own blocker, and at most 5 people get it.
+- For cards, only people linked to Standwise are considered, and cards from another Linear workspace are never read: they go to the managers. If Linear is not connected or its access was revoked, a card blocker goes to the managers.
 - If none of the people found has a Slack identity, or GitHub could not be read, the blocker goes to the managers.
 - Pull requests from other organizations are not read, and go to the managers.
 - A blocker with a link is identified by the link, so rewording it or sending the daily again does not send it again. Without a link, the text identifies it. At most 10 different blockers per daily are routed.
-- The message says why the person got it: requested reviewer, code owner, card owner or team manager.
+- The message says why the person got it: requested reviewer, code owner, owner of the blocking card, assignee, creator or team manager.
 - The message has only who reported it, the blocker text, the link and the date. It never includes the rest of the daily.
 - If there is no recipient at all, for example when the author is the team's only manager, the failed delivery `no_route_target` shows on the setup page. A manager without a Slack identity shows as `no_chat_identity`.
 
@@ -70,12 +76,13 @@ Blockers also appear at the top of the digest, in the `blocker.opened` webhook a
 
 ## Suggested blockers
 
-Standwise can notice blockers you may have missed. There are two signals:
+Standwise can notice blockers you may have missed. There are three signals:
 
 - your own open pull request, not a draft, with no review for `pr_review_hours` (default 48) since it was ready for review;
-- failing CI on the head commit of your pull request for 24 hours.
+- failing CI on the head commit of your pull request for 24 hours;
+- one of your Linear cards (`card_stale`) in progress for `signals.card_stale_days` (default 5) days or more, counting from when it was started.
 
-They are checked about an hour before `remind_at`, and in real time when a pull request, review or check suite changes. Only people who have signed in at least once get them.
+They are checked about an hour before `remind_at`, and in real time when a pull request, review or check suite changes. Only people who have signed in at least once get them. If your Linear link goes away, your pending card suggestions are resolved.
 
 A suggestion shows only to you, in your draft. It never appears in the digest, the organization or manager tools, webhooks or the setup page. Your manager sees a blocker only after you put it in your daily. With `signals.direct_message: true` (default `false`) you also get a direct message, once per suggestion.
 
@@ -84,7 +91,7 @@ To answer:
 - **Confirm:** add it to your blockers with its link. Submitting the daily confirms it. From a terminal, `standwise suggestion confirm <id>`.
 - **Ignore:** `standwise suggestion ignore <id>`, the MCP tool `standwise_decide_suggestion`, or answer when the `/daily` skill asks you.
 
-An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or a new period without review, after a review is dismissed or the pull request is marked ready for review again. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
+An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or a new period without review, after a review is dismissed or the pull request is marked ready for review again. A stale card comes back only if the card is restarted. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
 
 ## Time zones, workdays and several teams
 

@@ -22,7 +22,9 @@ Railway passes service variables to the Docker build as build arguments. Set the
 
 ## Runtime variables
 
-Set these on the api service. The worker needs only `DATABASE_URL`, `STANDWISE_ENCRYPTION_KEY` and the five `GITHUB_*` variables; setting all of them on both is harmless.
+Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYPTION_KEY`, the five `GITHUB_*` variables and the two `LINEAR_*` variables; setting all of them on both is harmless.
+
+**Required since the Linear integration:** `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` must be set on both the api and the worker. Both services fail to start without them, so set them before you deploy this version. See [linear-app.md](linear-app.md).
 
 | Variable | Notes |
 | --- | --- |
@@ -41,5 +43,7 @@ Set these on the api service. The worker needs only `DATABASE_URL`, `STANDWISE_E
 | `GITHUB_CLIENT_SECRET` | |
 | `SLACK_CLIENT_ID` | See [slack-app-manifest.yml](slack-app-manifest.yml) |
 | `SLACK_CLIENT_SECRET` | |
+| `LINEAR_CLIENT_ID` | Required on api and worker. See [linear-app.md](linear-app.md) |
+| `LINEAR_CLIENT_SECRET` | Required on api and worker |
 
 `TEST_DATABASE_URL` is only for the test suite.

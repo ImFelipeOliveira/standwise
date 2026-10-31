@@ -84,12 +84,14 @@ Toda tool declara um schema de entrada, um schema de saída e anotações, e dev
 
 ## Impedimentos sugeridos
 
-O rascunho pode trazer `suggestions`: possíveis impedimentos que o Standwise percebeu por você, como um pull request esperando revisão ou com checks falhando. Cada um é `{ id, kind, ref, since }`, onde `kind` é `pr_no_review` ou `ci_failing` e `since` é quando o Standwise percebeu pela primeira vez. Eles são só seus: nunca aparecem no consolidado, na API da organização, nas tools de gestor, nos webhooks de saída nem na página de setup. O seu gestor só vê um impedimento depois que você o coloca na sua daily.
+A `activity` do rascunho lista o seu trabalho no GitHub e, quando a sua organização conectou o Linear e você está ligado a um usuário do Linear, os seus cards. Cada item é `{ kind, title, url, repo, at }`, do mais recente para o mais antigo, no máximo 50 no total. `kind` é `pr_opened`, `pr_merged`, `review`, `commits`, `card_started` ou `card_done`. Nos cards, `repo` é a chave do time no Linear e `url` é o link do card, que você pode usar como `ref` de um impedimento (`ref.kind: "card"`). Se o Linear falhar, o rascunho vem só com a atividade do GitHub.
+
+O rascunho pode trazer `suggestions`: possíveis impedimentos que o Standwise percebeu por você, como um pull request esperando revisão ou com checks falhando. Cada um é `{ id, kind, ref, since }`, onde `kind` é `pr_no_review`, `ci_failing` ou `card_stale` (um card seu em andamento há `card_stale_days`) e `since` é quando o Standwise percebeu pela primeira vez. Eles são só seus: nunca aparecem no consolidado, na API da organização, nas tools de gestor, nos webhooks de saída nem na página de setup. O seu gestor só vê um impedimento depois que você o coloca na sua daily.
 
 O agente apresenta cada sugestão e pergunta se é um impedimento de verdade. Nunca adicione uma sugestão sem a resposta da pessoa.
 
 - **Sim:** o agente adiciona aos `blockers` com as suas palavras, com o `ref` da sugestão. Enviar a daily marca a sugestão como confirmada.
-- **Não:** o agente chama a `standwise_decide_suggestion` com `decision: "ignored"`. Ela não volta, a menos que o sinal mude, por exemplo um novo commit falhando.
+- **Não:** o agente chama a `standwise_decide_suggestion` com `decision: "ignored"`. Ela não volta, a menos que o sinal mude, por exemplo um novo commit falhando, ou um card reiniciado.
 
 Pelo terminal, `standwise suggestion ignore <id>` e `standwise suggestion confirm <id>` fazem o mesmo (acrescente `--org <login>` quando você está em mais de uma organização). Decidir uma sugestão que não é sua, ou que não existe, devolve `not_found`. Mudar uma decisão já tomada devolve `suggestion_already_decided`.
 

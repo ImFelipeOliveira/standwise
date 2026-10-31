@@ -123,16 +123,26 @@ Para onde vai o consolidado.
 - `provider`: `slack`. O parser aceita `google-chat`, mas ele ainda não é suportado: os consolidados desse time falham com `unsupported_provider`.
 - `channel`: o canal do Slack, como `"#nome"` (com aspas, porque `#` começa um comentário no YAML) ou como id do canal, por exemplo `C0123456789`. Num canal privado, convide o bot do Standwise antes. Veja [Slack](/pt-BR/admin/slack).
 
-### `tracker` <Badge type="info" text="em breve" />
+### `tracker`
 
-O gerenciador de projetos do time: `provider` (`linear` ou `jira`) e `team` (a chave do time no Linear ou do projeto no Jira). O parser aceita para você já poder escrever, mas o Standwise ainda não se conecta ao Linear nem ao Jira.
+O gerenciador de projetos do time: `provider` (`linear` ou `jira`) e `team` (a chave do time).
+
+```text
+tracker:
+  provider: linear
+  team: BE
+```
+
+- `provider: linear`: o Standwise lê os cards do workspace do Linear que um admin conectou na página de setup. `team` é a chave do time no Linear, como `BE`, e limita a atividade e os sinais a esse time do Linear. Veja [Instalar](/pt-BR/admin/install#5-conecte-o-linear-opcional).
+- `provider: jira` é aceito pelo parser, mas o Jira ainda vem em breve. A página de setup mostra um aviso e mais nada acontece.
+- Se um time usa o Linear e o Linear não está conectado, a página de setup avisa. Nada quebra: o rascunho só fica sem cards.
 
 ### `signals`
 
 Ajustes dos impedimentos sugeridos, que aparecem só para a pessoa a quem se referem:
 
 - `pr_review_hours`: um pull request seu, aberto e que não é rascunho, sem revisão há esse número de horas desde que ficou pronto para revisão. Padrão `48`.
-- `card_stale_days`: um card em andamento há mais desse número de dias. Padrão `5`. Passa a valer com as integrações com Linear e Jira, que vêm em breve.
+- `card_stale_days`: um card seu no Linear em andamento há esse número de dias ou mais, contando de quando foi iniciado. Padrão `5`. A sugestão é `card_stale`.
 - `direct_message`: com `true`, o impedimento sugerido também é enviado à pessoa por mensagem direta, uma vez por sugestão. Padrão `false`.
 
 O CI falhando no commit head de um pull request conta depois de 24 horas, e não é configurável.
@@ -205,10 +215,12 @@ members:
 | --- | --- | --- |
 | `slack` | sim | Id de membro no Slack, como `U0456`. No Slack, abra o perfil da pessoa, clique nos três pontos e em **Copiar ID de membro**. |
 | `google_chat` | em breve | Usuário do Google Chat |
-| `linear` | em breve | E-mail do usuário no Linear |
+| `linear` | sim | E-mail da pessoa no Linear. Opcional: sem ele, o Standwise usa o e-mail principal verificado do GitHub. Precisa ser um e-mail |
 | `jira` | em breve | Conta no Jira |
 
 Um mapeamento `slack` vale a partir do próximo consolidado, mesmo para quem nunca entrou. Quem não tem mapeamento é ligado pelo e-mail ao entrar com `standwise login` ou na página de setup. Se você conectar outro workspace do Slack, as ligações por e-mail são apagadas e refeitas no próximo login.
+
+O e-mail `linear` tem prioridade sobre o e-mail do GitHub. As ligações com o Linear são feitas quando a pessoa entra, logo depois de o Linear ser conectado, e sempre que o `standwise.yml` muda, inclusive para quem está num time por um time do GitHub (`@org/time`). O Standwise guarda o id do usuário no Linear, nunca o e-mail. Se você conectar outro workspace do Linear, as ligações com o Linear são apagadas.
 
 ## Erros de validação comuns
 

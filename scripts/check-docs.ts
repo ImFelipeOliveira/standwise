@@ -159,7 +159,7 @@ export async function checkInstallUrl(root: string): Promise<string[]> {
   return problems;
 }
 
-const SUGGESTION_KINDS = /\b(pr_no_review|ci_failing)\b/;
+const SUGGESTION_KINDS = /\b(pr_no_review|ci_failing|card_stale)\b/;
 const MANAGER_SECTION = /^#{2,3} (Manager tools|Tools de gestor)\s*$/;
 const ORG_OUTPUT_FILES = [
   'docs/api/guides/authentication.md',
