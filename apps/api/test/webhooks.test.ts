@@ -73,8 +73,10 @@ function harness(source: Source) {
     },
   };
   const worker = async () => {
-    await queue.work('load-config', (data) =>
-      loadConfig(deps, data as { installationId: number; owner: string }),
+    await queue.work(
+      'load-config',
+      (data) => loadConfig(deps, data as { installationId: number; owner: string }),
+      { policies: ['stately'] },
     );
     await queue.drain();
   };

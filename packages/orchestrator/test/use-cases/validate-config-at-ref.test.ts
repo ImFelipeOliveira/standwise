@@ -199,14 +199,18 @@ describe('loadConfig', () => {
     const fake = fakeDeps({ source: { found: true, source: VALID } });
     const loadJob = { installationId: INST, owner: 'acme' };
     let runs = 0;
-    await fake.queue.work('load-config', async (data) => {
-      runs++;
-      if (runs === 1) {
-        await enqueueLoadConfig(fake.deps, loadJob);
-        await enqueueLoadConfig(fake.deps, loadJob);
-      }
-      await loadConfig(fake.deps, data as typeof loadJob);
-    });
+    await fake.queue.work(
+      'load-config',
+      async (data) => {
+        runs++;
+        if (runs === 1) {
+          await enqueueLoadConfig(fake.deps, loadJob);
+          await enqueueLoadConfig(fake.deps, loadJob);
+        }
+        await loadConfig(fake.deps, data as typeof loadJob);
+      },
+      { policies: ['stately'] },
+    );
     await enqueueLoadConfig(fake.deps, loadJob);
     await fake.queue.drain();
     expect(runs).toBe(2);

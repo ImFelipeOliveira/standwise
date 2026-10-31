@@ -6,6 +6,7 @@ export * from './config';
 export * from './config-locate';
 export * from './daily';
 export * from './digest';
+export * from './error-fields';
 export * from './github-ref';
 export * from './i18n';
 export * from './language';

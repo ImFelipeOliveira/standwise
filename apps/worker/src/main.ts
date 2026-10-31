@@ -81,18 +81,22 @@ const deps: WorkerDeps = {
 };
 
 await queue.start();
-await queue.work('tick', tickJob(deps));
-await queue.work('send-digest', sendDigestJob(deps));
-await queue.work('send-late-daily', sendLateDailyJob(deps));
-await queue.work('send-reminder', sendReminderJob(deps));
-await queue.work(ROUTE_BLOCKER_JOB, routeBlockerJob(deps));
-await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps));
-await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps));
-await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps));
-await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps));
-await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps));
-await queue.work('requeue-webhooks', requeueWebhooksJob(deps));
-await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps));
+const plain = { policies: ['plain'] } as const;
+const keyed = { policies: ['keyed'] } as const;
+const stately = { policies: ['stately'] } as const;
+
+await queue.work('tick', tickJob(deps), plain);
+await queue.work('send-digest', sendDigestJob(deps), keyed);
+await queue.work('send-late-daily', sendLateDailyJob(deps), plain);
+await queue.work('send-reminder', sendReminderJob(deps), keyed);
+await queue.work(ROUTE_BLOCKER_JOB, routeBlockerJob(deps), keyed);
+await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps), stately);
+await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps), plain);
+await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps), keyed);
+await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps), stately);
+await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps), plain);
+await queue.work('requeue-webhooks', requeueWebhooksJob(deps), plain);
+await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps), plain);
 await queue.schedule('tick', '* * * * *');
 await queue.schedule('requeue-webhooks', '*/5 * * * *');
 await queue.schedule(PRUNE_DATA_JOB, '17 3 * * *');
