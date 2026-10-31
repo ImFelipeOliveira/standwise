@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml"><img src="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="CI"></a>
   <a href="https://github.com/ImFelipeOliveira/standwise/releases"><img src="https://img.shields.io/github/v/release/ImFelipeOliveira/standwise?include_prereleases" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/status-public%20beta-orange.svg" alt="Status: public beta">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
