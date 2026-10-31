@@ -29,6 +29,18 @@ The digest shows `@` and your GitHub login, as plain text, when Standwise does n
 2. **`standwise.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standwise login` again after it is fixed.
 3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)). The mapping is used from the next digest on.
 
+## The setup page shows a notice about a GitHub team
+
+The notice says that a GitHub team named in `standwise.yml` was not found, or is too large. For a team that was not found, check the name in `members` and that the GitHub App has the **Members** organization permission, which an owner of the organization must approve. For a team that is too large, only the first 5,000 members are used; list the rest by login. The notice goes away once the next configuration load no longer finds the problem.
+
+## How do I sign out of the setup page?
+
+Use **Sign out** at the top of the setup page. It ends the web session on the server. The CLI session is separate: run `standwise logout`.
+
+## Slack stopped finding me
+
+When Slack answers `user_not_found` or `user_disabled` for a person, Standwise removes the stored Slack identity automatically, so it does not keep sending messages to the wrong place. Sign in again with `standwise login` to link your current Slack user.
+
 ## The setup page says the Linear connection stopped working
 
 The setup page says that the connection to your Linear workspace "stopped working". Linear stopped accepting the connection, usually because access was revoked in the Linear workspace. Ask an admin to click **Reconnect Linear** on the setup page. Until then Linear features pause silently: drafts have no cards, card blockers go to the managers, and card suggestions are kept as they are. If the admin reconnects a different workspace, the Linear links are cleared and made again when people sign in.

@@ -29,6 +29,18 @@ O consolidado mostra `@` e o seu login do GitHub, em texto, quando o Standwise n
 2. **O `standwise.yml` tinha uma versão válida quando você entrou.** Se não existia ou nunca tinha sido válido, rode `standwise login` de novo depois de corrigido.
 3. **Os seus e-mails batem.** O Standwise busca o seu usuário do Slack pelo e-mail principal verificado da sua conta do GitHub. Se a sua conta do Slack usa outro e-mail, peça ao admin para adicionar `members.<seu-login>.slack` com o seu id de membro do Slack no `standwise.yml` (veja [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades)). O mapeamento vale a partir do próximo consolidado.
 
+## A página de setup mostra um aviso sobre um time do GitHub
+
+O aviso diz que um time do GitHub citado no `standwise.yml` não foi encontrado ou é grande demais. Se não foi encontrado, confira o nome em `members` e se o GitHub App tem a permissão **Members** da organização, que um dono da organização precisa aprovar. Se é grande demais, só os primeiros 5.000 membros são usados; liste os demais pelo login. O aviso some quando a próxima leitura da configuração não encontra mais o problema.
+
+## Como saio da página de setup?
+
+Use **Sair** no topo da página de setup. Isso encerra a sessão web no servidor. A sessão da CLI é separada: rode `standwise logout`.
+
+## O Slack parou de me encontrar
+
+Quando o Slack responde `user_not_found` ou `user_disabled` para uma pessoa, o Standwise remove a identidade do Slack guardada automaticamente, para não continuar enviando mensagens para o lugar errado. Entre de novo com `standwise login` para vincular o seu usuário atual do Slack.
+
 ## A página de setup diz que a conexão com o Linear parou de funcionar
 
 A página de setup diz que a conexão com o seu workspace do Linear "parou de funcionar". O Linear parou de aceitar a conexão, em geral porque o acesso foi revogado no workspace do Linear. Peça a um admin para clicar em **Reconectar o Linear** na página de setup. Até lá, os recursos do Linear pausam em silêncio: os rascunhos ficam sem cards, os impedimentos de card vão para os gestores e as sugestões de card ficam como estão. Se o admin reconectar um workspace diferente, as ligações com o Linear são apagadas e refeitas quando as pessoas entram.
