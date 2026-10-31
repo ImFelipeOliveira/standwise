@@ -102,6 +102,36 @@ describe('trackerFor', () => {
     expect(fake.linear.calls.bearer).toEqual([]);
   });
 
+  test('a refresh failure that is not auth gives the null tracker without throwing', async () => {
+    const fake = await setup(trackerConfig(), false);
+    await saveConnection(
+      db,
+      INST,
+      'linear',
+      'org-1',
+      JSON.stringify({
+        accessToken: 'lin_at_1',
+        refreshToken: 'lin_rt_1',
+        expiresAt: '2026-10-28T15:01:00.000Z',
+      }),
+      KEY,
+      'Acme',
+      'acme',
+    );
+    fake.linear.state.refreshError = new Error('linear oauth http 503');
+    const spy = quiet();
+    let tracker: ProjectTracker;
+    try {
+      tracker = await fake.build();
+      expect(JSON.stringify(spy.mock.calls)).toContain('linear tracker unavailable');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(tracker).toBe(nullTracker);
+    expect(tracker.connected).toBe(false);
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+  });
+
   test('the null tracker answers nothing', async () => {
     expect(nullTracker.connected).toBe(false);
     expect(await nullTracker.cardOwners(card())).toBeNull();
@@ -211,6 +241,25 @@ describe('cardOwners', () => {
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
   });
 
+  test('a people resolution failure is logged on its own and returns null', async () => {
+    const fake = await setup();
+    fake.linear.state.issues.set('ENG-1', issue({ assignee: user('lin-x') }));
+    fake.deps.github.resolveTeamMembers = async () => {
+      throw Object.assign(new Error('teams down'), { status: 502 });
+    };
+    const tracker = await fake.build();
+    const spy = quiet();
+    try {
+      expect(await tracker.cardOwners(card())).toBeNull();
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('tracker people resolution failed');
+      expect(logged).not.toContain('linear card lookup failed');
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+  });
+
   test('config people are resolved once per tracker', async () => {
     const fake = await setup();
     fake.linear.state.issues.set('ENG-1', issue({ assignee: user('lin-x') }));
@@ -291,6 +340,36 @@ describe('listActivity and listStaleInProgress', () => {
     await expect(tracker.listActivity('alice', since)).rejects.toBeInstanceOf(LinearAuthError);
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeInstanceOf(Date);
     await expect(tracker.listStaleInProgress('alice')).rejects.toBeInstanceOf(LinearAuthError);
+  });
+
+  test('a failed invalidation is logged and the original auth error is rethrown', async () => {
+    const fake = await setup();
+    await link('Alice', 'lin-alice', 1);
+    const tracker = await fake.build();
+    const real = fake.deps.db;
+    fake.deps.db = new Proxy(real, {
+      get(target, prop) {
+        if (prop === 'update') {
+          return () => {
+            throw new Error('db down');
+          };
+        }
+        const value = Reflect.get(target, prop);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    fake.linear.state.graphqlStatus = 401;
+    const spy = quiet();
+    try {
+      await expect(tracker.listActivity('alice', since)).rejects.toBeInstanceOf(LinearAuthError);
+      await expect(tracker.listStaleInProgress('alice')).rejects.toBeInstanceOf(LinearAuthError);
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('linear connection invalidation failed');
+      expect(logged).toContain('db down');
+    } finally {
+      spy.mockRestore();
+      fake.deps.db = real;
+    }
   });
 
   test('other errors are rethrown without invalidating', async () => {

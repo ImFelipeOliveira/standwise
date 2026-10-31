@@ -13,6 +13,7 @@ import {
   getConnectionSnapshot,
   getDelivery,
   getIdentities,
+  getIdentityByLogin,
   getInstallation,
   getInstallationMemberIds,
   getLastDaily,
@@ -346,6 +347,19 @@ describe('members and identities', () => {
     await setIdentity(db, INST, m.id, 'slack', 'U2');
     expect((await getIdentities(db, INST, 'slack')).get('ana')).toBe('U2');
     expect((await getIdentities(db, 200, 'slack')).size).toBe(0);
+  });
+});
+
+describe('identity by login', () => {
+  test('each installation sees only its own linear identity', async () => {
+    const m = await seed();
+    await upsertInstallation(db, { id: 200, accountLogin: 'other', accountType: 'User' });
+    await setIdentity(db, INST, m.id, 'linear', 'lin-a');
+    await setIdentity(db, 200, m.id, 'linear', 'lin-b');
+    expect(await getIdentityByLogin(db, INST, 'linear', 'ANA')).toBe('lin-a');
+    expect(await getIdentityByLogin(db, 200, 'linear', 'ana')).toBe('lin-b');
+    expect(await getIdentityByLogin(db, 201, 'linear', 'ana')).toBeNull();
+    expect(await getIdentityByLogin(db, INST, 'slack', 'ana')).toBeNull();
   });
 });
 

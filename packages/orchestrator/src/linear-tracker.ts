@@ -10,6 +10,7 @@ import { getIdentityByLogin } from '@standwise/db';
 import {
   getIssue,
   LinearAuthError,
+  type LinearIssue,
   type LinearUser,
   listCardActivity,
   listStaleInProgress,
@@ -48,27 +49,34 @@ class LinearTracker implements ProjectTracker {
     if (parsed.workspace.toLowerCase() !== this.access.organization.urlKey.toLowerCase()) {
       return null;
     }
+    const extra = { installationId: String(this.installationId) };
+    let issue: LinearIssue | null;
     try {
-      const issue = await getIssue(this.access.client, parsed.identifier);
-      if (!issue) return null;
+      issue = await getIssue(this.access.client, parsed.identifier);
+    } catch (error) {
+      logError('linear card lookup failed', error, extra);
+      if (error instanceof LinearAuthError) await this.invalidateQuietly();
+      return null;
+    }
+    if (!issue) return null;
+    try {
+      const people = await this.resolvePeople();
+      const loginFor = (user: LinearUser | null) =>
+        user
+          ? loginForLinearUser(this.deps, this.installationId, this.config, people, user)
+          : Promise.resolve(null);
       const blockers: string[] = [];
       for (const blocker of issue.blockedBy) {
-        const login = await this.loginFor(blocker.assignee);
+        const login = await loginFor(blocker.assignee);
         if (login && !blockers.includes(login)) blockers.push(login);
       }
       return {
         blockers,
-        assignee: await this.loginFor(issue.assignee),
-        creator: await this.loginFor(issue.creator),
+        assignee: await loginFor(issue.assignee),
+        creator: await loginFor(issue.creator),
       };
     } catch (error) {
-      const extra = { installationId: String(this.installationId) };
-      logError('linear card lookup failed', error, extra);
-      if (error instanceof LinearAuthError) {
-        await this.access.invalidate().catch((failure: unknown) => {
-          logError('linear connection invalidation failed', failure, extra);
-        });
-      }
+      logError('tracker people resolution failed', error, extra);
       return null;
     }
   }
@@ -97,8 +105,18 @@ class LinearTracker implements ProjectTracker {
     try {
       return await call();
     } catch (error) {
-      if (error instanceof LinearAuthError) await this.access.invalidate();
+      if (error instanceof LinearAuthError) await this.invalidateQuietly();
       throw error;
+    }
+  }
+
+  private async invalidateQuietly(): Promise<void> {
+    try {
+      await this.access.invalidate();
+    } catch (failure) {
+      logError('linear connection invalidation failed', failure, {
+        installationId: String(this.installationId),
+      });
     }
   }
 
@@ -111,19 +129,19 @@ class LinearTracker implements ProjectTracker {
     );
     return this.people;
   }
-
-  private async loginFor(user: LinearUser | null): Promise<string | null> {
-    if (!user) return null;
-    const people = await this.resolvePeople();
-    return loginForLinearUser(this.deps, this.installationId, this.config, people, user);
-  }
 }
 
 export function createTrackerFor(deps: TrackerDeps): TrackerFor {
   return async (installationId, owner, config, team) => {
-    if (team.tracker?.provider !== 'linear') return nullTracker;
-    const access = await linearClientFor(deps, installationId);
-    if (!access) return nullTracker;
-    return new LinearTracker(deps, access, installationId, owner, config, team.tracker.team);
+    const tracker = team.tracker;
+    if (tracker?.provider !== 'linear') return nullTracker;
+    try {
+      const access = await linearClientFor(deps, installationId);
+      if (!access) return nullTracker;
+      return new LinearTracker(deps, access, installationId, owner, config, tracker.team);
+    } catch (error) {
+      logError('linear tracker unavailable', error, { installationId: String(installationId) });
+      return nullTracker;
+    }
   };
 }
