@@ -61,9 +61,10 @@ Rules:
 - The author never receives their own blocker, and at most 5 people get it.
 - If none of the people found has a Slack identity, or GitHub could not be read, the blocker goes to the managers.
 - Pull requests from other organizations are not read, and go to the managers.
-- Sending the same blocker text again the same day does not send it again.
+- A blocker with a link is identified by the link, so rewording it or sending the daily again does not send it again. Without a link, the text identifies it. At most 10 different blockers per daily are routed.
+- The message says why the person got it: requested reviewer, code owner, card owner or team manager.
 - The message has only who reported it, the blocker text, the link and the date. It never includes the rest of the daily.
-- If nobody can receive it, the failed delivery `no_route_target` shows on the setup page.
+- If there is no recipient at all, for example when the author is the team's only manager, the failed delivery `no_route_target` shows on the setup page. A manager without a Slack identity shows as `no_chat_identity`.
 
 Blockers also appear at the top of the digest, in the `blocker.opened` webhook and in the manager tools.
 
@@ -83,7 +84,7 @@ To answer:
 - **Confirm:** add it to your blockers with its link. Submitting the daily confirms it. From a terminal, `standwise suggestion confirm <id>`.
 - **Ignore:** `standwise suggestion ignore <id>`, the MCP tool `standwise_decide_suggestion`, or answer when the `/daily` skill asks you.
 
-An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or the pull request going back to having no review. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
+An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or a new period without review, after a review is dismissed or the pull request is marked ready for review again. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
 
 ## Time zones, workdays and several teams
 

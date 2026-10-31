@@ -59,8 +59,8 @@ When a post fails, the setup page lists it under "Latest failed deliveries" with
 | `missing_scope` | The token lacks a permission Standwise needs. | An admin clicks **Reconnect Slack** and approves all permissions. |
 | `ratelimited` | Slack asked Standwise to slow down. | Nothing to do; it is retried. |
 | `no_chat_connection` | Slack is not connected for this installation. | An admin clicks **Connect Slack** on the setup page. |
-| `no_chat_identity` | A reminder or routed blocker could not be sent because the person has no Slack user. | Ask the person to run `standwise login` after Slack is connected, or add `members.<login>.slack` to `standwise.yml`. |
-| `no_route_target` | A blocker was reported but nobody could receive it: no one found has a Slack identity, not even the managers. | Make sure the team managers have a Slack identity. |
+| `no_chat_identity` | A reminder or routed blocker could not be sent because the person, or the manager it fell back to, has no Slack user. The setup page shows their login. | Ask the person to run `standwise login` after Slack is connected, or add `members.<login>.slack` to `standwise.yml`. |
+| `no_route_target` | A blocker was reported but there was no recipient at all, for example because the author is the team's only manager. | Add another manager to the team. |
 | `unsupported_provider` | The team uses `chat.provider: google-chat`, which is coming soon. | Use `slack`. |
 | `worker_died` | The worker stopped three times while sending. | Contact support if it repeats. |
 | `internal_error` | Unexpected error. The message has the details. | Contact support if it repeats. |

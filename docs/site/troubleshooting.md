@@ -12,14 +12,14 @@ Standwise has no Slack user for you, so it cannot send you a reminder or a route
 
 ## `no_route_target`
 
-A blocker was reported but nobody could receive it: no reviewer, code owner or manager has a Slack identity, or the managers have none either. Ask your admin to check that the managers of the team have a Slack identity, then tell the right people by hand.
+A blocker was reported but there was nobody to send it to at all. This happens, for example, when the author is the team's only manager: the author never receives their own blocker, so the list of recipients is empty. Ask your admin to add another manager to the team, then tell the right people by hand. A manager who exists but has no Slack identity shows as `no_chat_identity` with their login instead.
 
 ## Nobody received my blocker
 
-1. **Blockers are routed once.** Sending the same text again the same day does not send it again. Change the text only if it really is a new blocker.
+1. **Blockers are routed once.** A blocker with a link is identified by the link: rewording it, or sending the daily again, does not send it again. A blocker without a link is identified by its text. At most 10 different blockers per daily are routed.
 2. **The link decides.** A pull request in your own organization goes to its requested reviewers, then its CODEOWNERS. A link to another organization, a malformed link or a missing pull request goes to the managers. Without a link, it goes to the managers.
 3. **You are never a recipient** of your own blocker.
-4. **People need a Slack identity.** If none of the people found has one, the blocker goes to the managers. If the managers have none either, the setup page shows `no_route_target`.
+4. **People need a Slack identity.** If none of the people found has one, the blocker goes to the managers. A manager without one shows on the setup page as `no_chat_identity` with their login. If there is no manager to send it to at all, the setup page shows `no_route_target`.
 
 ## My name shows as @login
 

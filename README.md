@@ -66,7 +66,7 @@ Standwise keeps the writing where people already work, inside their agent, and t
 - **Blocker routing.** A new blocker goes by direct message to whoever can help: the pull request's reviewers, then its CODEOWNERS, then the team managers.
 - **Suggested blockers, only for you.** A pull request waiting too long for review or with CI failing for a day shows up in your own draft. You confirm or ignore it; nobody else ever sees it.
 - **Several teams, one daily.** People in two teams write once and appear in both digests.
-- **Configuration as code.** A single `standwise.yml` in your `.github` repository. Every change is validated by a `Standwise config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
+- **Configuration as code.** A single `standwise.yml` in your `.github` repository. Every push and pull request that changes `standwise.yml` is validated by a `Standwise config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
 - **Manager tools.** Managers read their team's dailies, digests and blockers from their own AI agent.
 - **Read-only API and webhooks.** API keys (`swk_…`), an OpenAPI reference, and signed outgoing webhooks such as `daily.submitted` and `blocker.opened`.
 - **Bilingual.** English and Brazilian Portuguese across the CLI, Slack messages, web pages and documentation.

@@ -75,7 +75,7 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 | Membros do canal do time no Slack | O consolidado e as dailies atrasadas na thread dele |
 | Gestores do time | Os consolidados, as dailies e os impedimentos confirmados do time nos últimos 90 dias, pelas tools de gestor do MCP |
 | Admins da organização | Tudo o que os gestores veem, de todos os times; na página de setup, os controles para conectar e reconectar o Slack, as API keys e os webhooks |
-| Membros da organização que entram na página de setup | O estado da configuração, o nome do workspace do Slack, só para leitura, e as últimas entregas com falha. Não podem conectar nem trocar o workspace do Slack |
+| Membros da organização que entram na página de setup | O estado da configuração, o nome do workspace do Slack, só para leitura, e as últimas entregas com falha: as mensagens do time uma a uma, e as mensagens diretas agrupadas por tipo e erro, com o login do destinatário só quando ele não tem identidade no Slack. Nunca o texto de impedimentos nem sugestões. Não podem conectar nem trocar o workspace do Slack |
 | Sistemas com uma API key | Times, dailies confirmadas, consolidados e impedimentos, limitados pelos escopos da key |
 | Endpoints de webhook | Os eventos que assinaram |
 
@@ -86,6 +86,7 @@ Hoje o Standwise não apaga dailies de forma programada. Dailies e entregas de c
 - logs de entrega de webhook de saída: depois de 30 dias;
 - sessões expiradas: removidas;
 - sugestões resolvidas, aquelas cujo sinal deixou de existir: depois de 90 dias;
+- registros de entrega sobre uma pessoa (lembretes, impedimentos encaminhados, DMs de sugestão e marcadores de varredura): depois de 90 dias;
 - sugestões ignoradas e confirmadas são mantidas, para não voltarem;
 - contadores de limite de taxa: depois de uns 10 minutos.
 

@@ -12,14 +12,14 @@ O Standwise não conhece o seu usuário no Slack, então não consegue mandar um
 
 ## `no_route_target`
 
-Um impedimento foi reportado, mas ninguém pôde recebê-lo: nenhum revisor, dono de código ou gestor tem identidade no Slack. Peça ao admin para conferir se os gestores do time têm identidade no Slack e avise as pessoas certas manualmente.
+Um impedimento foi reportado, mas não havia ninguém para recebê-lo. Isso acontece, por exemplo, quando o autor é o único gestor do time: o autor nunca recebe o próprio impedimento, então a lista de destinatários fica vazia. Peça ao admin para adicionar outro gestor ao time e avise as pessoas certas manualmente. Um gestor que existe mas não tem identidade no Slack aparece como `no_chat_identity` com o login dele.
 
 ## Ninguém recebeu o meu impedimento
 
-1. **Cada impedimento é encaminhado uma vez.** Enviar o mesmo texto de novo no mesmo dia não envia outra vez. Mude o texto só se for mesmo um impedimento novo.
+1. **Cada impedimento é encaminhado uma vez.** Um impedimento com link é identificado pelo link: reescrever o texto ou enviar a daily de novo não envia outra vez. Um impedimento sem link é identificado pelo texto. No máximo 10 impedimentos diferentes por daily são encaminhados.
 2. **O link decide.** Um pull request da sua própria organização vai para os revisores solicitados, depois para os CODEOWNERS. Um link de outra organização, um link malformado ou um pull request que não existe vai para os gestores. Sem link, vai para os gestores.
 3. **Você nunca é destinatário** do seu próprio impedimento.
-4. **As pessoas precisam de identidade no Slack.** Se nenhuma das pessoas encontradas tem, o impedimento vai para os gestores. Se os gestores também não têm, a página de setup mostra `no_route_target`.
+4. **As pessoas precisam de identidade no Slack.** Se nenhuma das pessoas encontradas tem, o impedimento vai para os gestores. Um gestor sem identidade aparece na página de setup como `no_chat_identity` com o login dele. Se não há nenhum gestor para receber, a página de setup mostra `no_route_target`.
 
 ## Meu nome aparece como @login
 

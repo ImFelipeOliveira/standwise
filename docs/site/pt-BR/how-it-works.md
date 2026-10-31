@@ -61,9 +61,10 @@ Regras:
 - O autor nunca recebe o próprio impedimento, e no máximo 5 pessoas recebem.
 - Se nenhuma das pessoas encontradas tem identidade no Slack, ou o GitHub não pôde ser lido, o impedimento vai para os gestores.
 - Pull requests de outras organizações não são lidos e vão para os gestores.
-- Enviar o mesmo texto de impedimento de novo no mesmo dia não envia outra vez.
+- Um impedimento com link é identificado pelo link, então reescrever o texto ou enviar a daily de novo não envia outra vez. Sem link, o texto o identifica. No máximo 10 impedimentos diferentes por daily são encaminhados.
+- A mensagem diz por que a pessoa a recebeu: revisor solicitado, dono de código, responsável pelo card ou gestor do time.
 - A mensagem traz só quem reportou, o texto do impedimento, o link e a data. Nunca o resto da daily.
-- Se ninguém pode receber, a entrega com falha `no_route_target` aparece na página de setup.
+- Se não há nenhum destinatário, por exemplo quando o autor é o único gestor do time, a entrega com falha `no_route_target` aparece na página de setup. Um gestor sem identidade no Slack aparece como `no_chat_identity`.
 
 Os impedimentos também aparecem no topo do consolidado, no webhook `blocker.opened` e nas tools de gestor.
 
@@ -83,7 +84,7 @@ Para responder:
 - **Confirmar:** adicione aos seus impedimentos com o link. Enviar a daily confirma. Pelo terminal, `standwise suggestion confirm <id>`.
 - **Ignorar:** `standwise suggestion ignore <id>`, a tool MCP `standwise_decide_suggestion`, ou responda quando a skill `/daily` perguntar.
 
-Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou o pull request voltar a ficar sem revisão. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standwise-suggestion).
+Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou um novo período sem revisão, depois que uma revisão é descartada ou o pull request volta a ficar pronto para revisão. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standwise-suggestion).
 
 ## Fuso, dias úteis e vários times
 

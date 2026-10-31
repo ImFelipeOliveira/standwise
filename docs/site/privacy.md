@@ -75,7 +75,7 @@ The GitHub token from your login is used once to identify you and is not stored.
 | Members of the team's Slack channel | The digest and the late dailies in its thread |
 | Team managers | The team's digests, dailies and confirmed blockers for the last 90 days, through the MCP manager tools |
 | Organization admins | Everything managers see, for every team; on the setup page, the Slack connect and reconnect controls, API keys and webhooks |
-| Organization members who sign in to the setup page | Configuration status, the Slack workspace name, read-only, and the last failed deliveries. They cannot connect or replace the Slack workspace |
+| Organization members who sign in to the setup page | Configuration status, the Slack workspace name, read-only, and the last failed deliveries: team messages one by one, and direct messages grouped by kind and error, with the recipient's login only when they have no Slack identity. Never blocker text or suggestions. They cannot connect or replace the Slack workspace |
 | Systems with an API key | Teams, confirmed dailies, digests and blockers, limited by the key's scopes |
 | Webhook endpoints | The events they subscribed to |
 
@@ -86,6 +86,7 @@ Standwise does not delete dailies on a schedule today. Dailies and digest delive
 - outgoing webhook delivery logs: after 30 days;
 - expired sessions: removed;
 - resolved suggestions, those whose signal went away: after 90 days;
+- delivery records about one person (reminders, routed blockers, suggestion DMs and scan markers): after 90 days;
 - ignored and confirmed suggestions are kept, so they do not come back;
 - rate limit counters: after about 10 minutes.
 
