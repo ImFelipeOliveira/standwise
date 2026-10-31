@@ -15,7 +15,7 @@ export type TeamConfig = {
   members: string[];
   chat: { provider: 'slack' | 'google-chat'; channel: string };
   tracker?: { provider: 'linear' | 'jira'; team: string };
-  signals: { prReviewHours: number; cardStaleDays: number };
+  signals: { prReviewHours: number; cardStaleDays: number; directMessage: boolean };
 };
 
 export type MemberOverrides = {
@@ -49,6 +49,9 @@ const timezone = z.string().refine((tz) => {
 
 const weekday = z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const login = z.string().min(1);
+const manager = login.refine((value) => !value.startsWith('@'), {
+  message: 'managers must be GitHub logins, not teams or @-prefixed names',
+});
 
 const teamSchema = z.strictObject({
   name: z.string().min(1),
@@ -57,7 +60,7 @@ const teamSchema = z.strictObject({
   remind_at: time,
   digest_at: time,
   language: z.enum(['pt-BR', 'en']).default('en'),
-  managers: z.array(login).min(1),
+  managers: z.array(manager).min(1),
   members: z.array(login).min(1),
   chat: z.strictObject({
     provider: z.enum(['slack', 'google-chat']),
@@ -73,8 +76,9 @@ const teamSchema = z.strictObject({
     .strictObject({
       pr_review_hours: z.number().positive().default(48),
       card_stale_days: z.number().positive().default(5),
+      direct_message: z.boolean().default(false),
     })
-    .default({ pr_review_hours: 48, card_stale_days: 5 }),
+    .default({ pr_review_hours: 48, card_stale_days: 5, direct_message: false }),
 });
 
 export const SLACK_USER_ID = /^[UW][A-Z0-9]{2,}$/;
@@ -111,6 +115,13 @@ const configSchema = z
         });
       }
       seen.add(t.name);
+      if (t.remind_at >= t.digest_at) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['teams', i, 'remind_at'],
+          message: 'remind_at must be before digest_at',
+        });
+      }
     });
   });
 
@@ -136,6 +147,7 @@ function toConfig(raw: RawConfig): StandwiseConfig {
         signals: {
           prReviewHours: t.signals.pr_review_hours,
           cardStaleDays: t.signals.card_stale_days,
+          directMessage: t.signals.direct_message,
         },
       };
       if (t.tracker) team.tracker = t.tracker;

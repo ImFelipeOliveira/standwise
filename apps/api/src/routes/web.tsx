@@ -11,6 +11,7 @@ import {
   DomainError,
   disableWebhookEndpoint,
   getSetupStatus,
+  logError,
   revokeInstallationApiKey,
   type SetupStatus,
   sendTestEvent,
@@ -45,7 +46,7 @@ const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_den
 const WEB_SESSION_SECONDS = 7 * 24 * 60 * 60;
 export const WEB_IP_LIMIT = 60;
 const RESYNC_CODES = ['forbidden', 'installation_pending'];
-const PAGE_PATHS = ['/setup', '/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
+const PAGE_PATHS = ['/setup/*', '/connect/*', '/auth/*', '/oauth/*'];
 const STYLE_HASH = `'sha256-${new Bun.CryptoHasher('sha256').update(PAGE_CSS).digest('base64')}'`;
 
 const pageHeaders = secureHeaders({
@@ -166,7 +167,7 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
   app.onError((error, c) => {
     const lang = negotiateLanguage(c.req.header('accept-language'));
     if (!(error instanceof DomainError)) {
-      console.error(error);
+      logError('unhandled web error', error);
       return c.html(<ErrorPage lang={lang} code="generic" />, 500);
     }
     const url = new URL(c.req.url);

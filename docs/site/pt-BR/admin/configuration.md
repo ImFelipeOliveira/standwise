@@ -41,6 +41,7 @@ teams:
     signals:
       pr_review_hours: 48
       card_stale_days: 5
+      direct_message: false
 members:
   alice: { slack: U0123, linear: alice@acme.com }
 ```
@@ -72,6 +73,7 @@ Nenhuma outra chave é aceita. Uma chave desconhecida falha na validação com `
 | `tracker.team` | texto, não vazio | com `tracker` | | `BE` |
 | `signals.pr_review_hours` | número maior que 0 | não | `48` | `24` |
 | `signals.card_stale_days` | número maior que 0 | não | `5` | `3` |
+| `signals.direct_message` | `true` ou `false` | não | `false` | `true` |
 
 ### `name`
 
@@ -87,7 +89,7 @@ Os dias em que o time tem daily, com os nomes em inglês. Os consolidados só sa
 
 ### `remind_at`
 
-O horário local do lembrete. Ele é obrigatório e validado hoje, mas os lembretes vêm em breve: nada é enviado nesse horário por enquanto.
+O horário local do lembrete, enviado por mensagem direta no Slack, em dias úteis, para quem ainda não enviou a daily. No máximo um por pessoa por dia. Ele tem que ser antes do `digest_at`, senão o arquivo é inválido. Veja [Como funciona](/pt-BR/how-it-works).
 
 ### `digest_at`
 
@@ -99,7 +101,9 @@ O idioma do consolidado e das dailies atrasadas publicadas na thread dele: `en` 
 
 ### `managers`
 
-Logins do GitHub dos gestores do time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor do MCP](/pt-BR/members/mcp#tools-de-gestor). Admins da organização leem todos os times sem precisar estar listados. Em breve: impedimentos sem outra pessoa para encaminhar vão para os gestores.
+Logins do GitHub dos gestores do time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor do MCP](/pt-BR/members/mcp#tools-de-gestor). Admins da organização leem todos os times sem precisar estar listados. Impedimentos sem outra pessoa para encaminhar vão para os gestores.
+
+Cada item precisa ser um login simples. Nomes que começam com `@`, como `@acme/leads`, não são aceitos: o Standwise não expande times do GitHub, então liste os logins um a um. Um item de time é rejeitado com um erro.
 
 ### `members`
 
@@ -123,12 +127,15 @@ Para onde vai o consolidado.
 
 O gerenciador de projetos do time: `provider` (`linear` ou `jira`) e `team` (a chave do time no Linear ou do projeto no Jira). O parser aceita para você já poder escrever, mas o Standwise ainda não se conecta ao Linear nem ao Jira.
 
-### `signals` <Badge type="info" text="em breve" />
+### `signals`
 
-Limites dos impedimentos sugeridos, que vêm em breve:
+Ajustes dos impedimentos sugeridos, que aparecem só para a pessoa a quem se referem:
 
-- `pr_review_hours`: um pull request sem revisão há mais desse número de horas. Padrão `48`.
-- `card_stale_days`: um card em andamento há mais desse número de dias. Padrão `5`.
+- `pr_review_hours`: um pull request seu, aberto e que não é rascunho, sem revisão há esse número de horas desde que ficou pronto para revisão. Padrão `48`.
+- `card_stale_days`: um card em andamento há mais desse número de dias. Padrão `5`. Passa a valer com as integrações com Linear e Jira, que vêm em breve.
+- `direct_message`: com `true`, o impedimento sugerido também é enviado à pessoa por mensagem direta, uma vez por sugestão. Padrão `false`.
+
+O CI falhando no commit head de um pull request conta depois de 24 horas, e não é configurável.
 
 ## Times do GitHub
 
@@ -217,6 +224,7 @@ Estas são as mensagens que a página de setup mostra, no formato `caminho: mens
 | `teams.0.language: Invalid option: expected one of "pt-BR"\|"en"` | `pt`, `pt_BR`, `portugues` | Use `pt-BR` ou `en` |
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (o mesmo vale para `managers`) | Liste pelo menos uma pessoa |
+| `teams.0.managers.0: managers must be GitHub logins, not teams or @-prefixed names` | `managers: ["@acme/leads"]` | Liste os logins, como `[alice, bob]` |
 | `teams.0: Unrecognized key: "reminder"` | Uma chave escrita errado ou desconhecida | Confira a chave nas tabelas acima |
 | `members.alice.slack: must be a Slack user id like U0123ABCD` | Um nome, um e-mail, um id de canal ou `<!channel>` | Use o id de membro, que começa com `U` ou `W` |
 | `members.alice: Unrecognized key: "slak"` | Uma chave de identidade escrita errado | Use `slack`, `google_chat`, `linear` ou `jira` |

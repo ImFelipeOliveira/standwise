@@ -9,7 +9,7 @@ import {
 import type { Deps } from '../deps';
 import { rememberGitHubInstallations } from '../github-installations';
 import { linkChatIdentities } from '../identity';
-import { statusOf } from '../membership';
+import { forgetMembership, statusOf } from '../membership';
 import { DomainError } from './errors';
 
 export type StartSessionResult = {
@@ -43,6 +43,7 @@ export async function syncMemberFromGitHub(
     if (installation) known.push({ id, accountLogin: installation.accountLogin });
   }
   const ids = known.map((i) => i.id);
+  forgetMembership(deps, profile.installationIds, member.id);
   await setMemberInstallations(deps.db, member.id, ids);
   await linkChatIdentities(deps, member.id, profile.email, ids);
   return { member, known };

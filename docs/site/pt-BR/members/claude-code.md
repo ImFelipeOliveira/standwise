@@ -20,9 +20,10 @@ Digite `/daily`, ou peça do seu jeito: "minha daily", "standup", "o que eu fiz 
 
 1. Busca o rascunho do ontem a partir da sua atividade no GitHub. Se você está em mais de uma organização, pergunta qual.
 2. Mostra o ontem e deixa você corrigir, remover ou adicionar itens. Ela pode adicionar coisas que de fato aconteceram nesta sessão do Claude Code.
-3. Pergunta o que você vai fazer hoje e o que está travando você, no seu idioma.
-4. Mostra a daily final e pede a sua confirmação explícita.
-5. Envia e avisa se ela foi para a thread do consolidado porque ele já tinha sido publicado.
+3. Se o rascunho tem impedimentos sugeridos, como um pull request seu esperando revisão ou com checks falhando, pergunta sobre cada um. Se for um impedimento de verdade, ele entra nos seus impedimentos com o link; se não, a skill o ignora e ele só volta se o sinal mudar. Ela nunca adiciona uma sugestão sem a sua resposta, e as sugestões só são visíveis para você.
+4. Pergunta o que você vai fazer hoje e o que está travando você, no seu idioma.
+5. Mostra a daily final e pede a sua confirmação explícita.
+6. Envia e avisa se ela foi para a thread do consolidado porque ele já tinha sido publicado.
 
 Ela usa as tools do MCP quando estão disponíveis e, senão, a CLI `standwise`.
 
@@ -67,5 +68,6 @@ Claude:  Enviada para 2026-10-28. Ela entra no consolidado do backend.
 | O `standwise` não está instalado | Explica como instalar a CLI e para. |
 | Você não entrou, ou a sessão expirou | Pede para você rodar `standwise login` e para. |
 | Mais de uma organização | Pergunta qual e tenta de novo com ela. |
+| Uma sugestão já foi decidida | Avisa você e segue em frente. |
 | A daily é inválida | Mostra os problemas, corrige com você sem mudar o sentido e pede uma nova confirmação. |
 | Qualquer outro erro | Mostra a mensagem. Veja [Solução de problemas](/pt-BR/troubleshooting). |

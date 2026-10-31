@@ -1,4 +1,4 @@
-import { and, arrayContains, asc, desc, eq, gte, lt, lte, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { decryptSecret, encryptSecret } from '../crypto';
 import {
@@ -10,6 +10,7 @@ import {
   webhookDeliveries,
   webhookEndpoints,
 } from '../schema';
+import { PRUNE_BATCH } from './prune-batch';
 
 export type WebhookEndpointSummary = {
   id: string;
@@ -346,4 +347,25 @@ export async function listOverdueWebhookDeliveries(
     .orderBy(asc(webhookDeliveries.nextAttemptAt))
     .limit(limit);
   return rows.map((r) => r.id);
+}
+
+export async function deleteWebhookDeliveriesBefore(db: Db, cutoff: Date): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const rows = await db
+      .delete(webhookDeliveries)
+      .where(
+        inArray(
+          webhookDeliveries.id,
+          db
+            .select({ id: webhookDeliveries.id })
+            .from(webhookDeliveries)
+            .where(lt(webhookDeliveries.createdAt, cutoff))
+            .limit(PRUNE_BATCH),
+        ),
+      )
+      .returning({ id: webhookDeliveries.id });
+    total += rows.length;
+    if (rows.length === 0) return total;
+  }
 }

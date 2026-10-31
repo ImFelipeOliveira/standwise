@@ -1,0 +1,6 @@
+{
+  "check_runs": [
+    { "name": "build", "conclusion": "failure", "completed_at": "2026-10-27T08:00:00Z" },
+    { "name": "build", "conclusion": "success", "completed_at": "2026-10-27T10:00:00Z" }
+  ]
+}

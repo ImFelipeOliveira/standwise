@@ -14,7 +14,7 @@ import {
   upsertInstallation,
   upsertMember,
 } from '@standwise/db';
-import { csrfToken, type Deps } from '@standwise/orchestrator';
+import { csrfToken, type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -89,6 +89,11 @@ function harness(
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       exchangeWebCode: async (code) => {
         webCodes.push(code);
         return 'ghu_token';
@@ -102,6 +107,7 @@ function harness(
       },
     },
     chatFor: async () => null,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -377,6 +383,37 @@ describe('setup page', () => {
     const html = await res.text();
     expect(html).toContain('not_in_channel');
     expect(html).toContain('Alpha');
+    expect(html).toContain('Digest');
+  });
+
+  test('setup groups person failures with translated kinds', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      for (const [kind, subject, error] of [
+        ['reminder', 'bob', 'no_chat_identity: bob'],
+        ['blocker_route', 'daily-9:abc:mgr', 'no_chat_identity: mgr'],
+        ['blocker_route', 'daily-8:def:mgr', 'no_chat_identity: mgr'],
+      ] as const) {
+        const key = { installationId: id, teamName: '', date: '2026-10-28', kind, subject };
+        const claim = await claimDelivery(db, key);
+        if (claim.status !== 'claimed') throw new Error('not claimed');
+        await failDelivery(db, key, claim.token, error);
+      }
+    });
+    const en = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(en).toContain('Reminder');
+    expect(en).toContain('Blocker routing');
+    expect(en).toContain('no_chat_identity: mgr');
+    expect(en).not.toContain('daily-9');
+    const pt = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(pt).toContain('Lembrete');
+    expect(pt).toContain('Encaminhamento de impedimento');
   });
 
   test('setup renders in pt-BR by Accept-Language and english by default', async () => {
@@ -711,6 +748,14 @@ describe('web rate limit', () => {
     expect((await app.request('/connect/slack')).status).toBe(429);
     expect((await app.request('/oauth/slack/callback')).status).toBe(429);
     expect((await app.request('/install.sh')).status).toBe(200);
+  });
+
+  test('each setup request counts once', async () => {
+    const { app } = harness();
+    for (let i = 0; i < 60; i++) {
+      expect((await app.request('/setup')).status).not.toBe(429);
+    }
+    expect((await app.request('/setup')).status).toBe(429);
   });
 });
 

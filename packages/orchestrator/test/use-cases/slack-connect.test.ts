@@ -228,7 +228,8 @@ describe('getSetupStatus', () => {
       config: { status: 'configured' },
       configRepo: { exists: true, defaultBranch: 'trunk' },
       slack: { connected: false },
-      failedDeliveries: [],
+      teamFailures: [],
+      personFailures: [],
       supportEmail: 'help@sw.test',
     });
   });

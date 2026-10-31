@@ -11,7 +11,7 @@ export type Io = {
 
 export type Flags = { org?: string; file?: string; apiUrl?: string };
 
-export type Ctx = { io: Io; lang: Language; flags: Flags };
+export type Ctx = { io: Io; lang: Language; flags: Flags; args?: string[] };
 
 export const EXIT = { ok: 0, error: 1, unauthenticated: 2, ambiguousOrg: 3, invalid: 4 } as const;
 

@@ -10,6 +10,7 @@ export function slackClientOptions(slackApiUrl?: string): WebClientOptions {
   return {
     ...(slackApiUrl ? { slackApiUrl } : {}),
     retryConfig: { retries: 0 },
+    rejectRateLimitedCalls: true,
     timeout: SLACK_REQUEST_TIMEOUT_MS,
   };
 }

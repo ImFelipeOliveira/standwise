@@ -84,6 +84,18 @@ describe('parseConfig', () => {
     expect(r.errors.some((e) => e.path === 'teams.0.digest_at')).toBe(true);
   });
 
+  test('rejects managers written as @org/team', () => {
+    const r = parseConfig(toYaml([team({ managers: ['@acme/leads'] })]));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    const error = r.errors.find((e) => e.path === 'teams.0.managers.0');
+    expect(error?.message).toContain('managers must be GitHub logins');
+  });
+
+  test('accepts plain logins as managers', () => {
+    expect(parseConfig(toYaml([team({ managers: ['alice', 'bob'] })])).ok).toBe(true);
+  });
+
   test('rejects unknown timezone', () => {
     const r = parseConfig(toYaml([team({ timezone: 'Mars/Base' })]));
     expect(r.ok).toBe(false);
@@ -122,5 +134,28 @@ describe('parseConfig', () => {
   test('rejects unknown keys', () => {
     const r = parseConfig(toYaml([team({ bogus: 1 })]));
     expect(r.ok).toBe(false);
+  });
+
+  test('signals.direct_message defaults to false', () => {
+    const r = parseConfig(toYaml([team()]));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.teams[0]?.signals.directMessage).toBe(false);
+  });
+
+  test('signals.direct_message can be enabled', () => {
+    const r = parseConfig(toYaml([team({ signals: { direct_message: true } })]));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.teams[0]?.signals.directMessage).toBe(true);
+  });
+
+  test('remind_at must be before digest_at', () => {
+    for (const remind_at of ['10:00', '10:30']) {
+      const r = parseConfig(toYaml([team({ remind_at, digest_at: '10:00' })]));
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.errors[0]?.path).toBe('teams.0.remind_at');
+    }
   });
 });

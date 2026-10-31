@@ -1,4 +1,4 @@
-import type { Deps } from '@standwise/orchestrator';
+import { type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import type { Context } from 'hono';
 import { db } from '../../../packages/db/test/setup';
@@ -41,6 +41,11 @@ export function createTestApp(
       listActivity: async () => [],
       resolveTeamMembers: async (_o, _owner, members) => members,
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       exchangeWebCode: async () => {
         throw new Error('unused');
       },
@@ -51,6 +56,7 @@ export function createTestApp(
       },
     },
     chatFor: async () => null,
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

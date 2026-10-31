@@ -223,6 +223,21 @@ describe('events emitted', () => {
     expect(envelopeOf(third[1] as { payload: unknown }).data).toMatchObject({ text: 'Flaky CI' });
   });
 
+  test('rewording a blocker with the same ref still emits blocker.opened', async () => {
+    const { deps, isMember, member, queue } = await setup();
+    await endpoint();
+    const ref = { kind: 'pull_request' as const, url: 'https://github.com/acme/api/pull/7' };
+    await submitDaily(deps, isMember, member, { ...daily, blockers: [{ text: 'Waiting', ref }] });
+    queue.enqueued.length = 0;
+    await submitDaily(deps, isMember, member, {
+      ...daily,
+      blockers: [{ text: 'Still waiting for review', ref }],
+    });
+    const rows = await emitted(queue);
+    expect(rows.map((r) => r.event)).toEqual(['daily.submitted', 'blocker.opened']);
+    expect(queue.enqueued.filter((j) => j.name === 'route-blocker')).toEqual([]);
+  });
+
   test('sendDigest emits digest.sent once', async () => {
     await seedOrg();
     const alice = await seedMember();

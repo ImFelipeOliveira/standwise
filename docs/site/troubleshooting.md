@@ -4,7 +4,22 @@ The most common problems and how to fix them. If none of these helps, email <Sup
 
 ## I did not get a reminder
 
-Reminders are coming soon. Today Standwise does not send them, even though `remind_at` is required in `standwise.yml`. The digest lists who did not send the daily.
+Reminders go only to people who have not sent the daily, at most once per day, at `remind_at` and before `digest_at`. If the worker was down, a reminder can be up to 60 minutes late, but it is never sent at or after `digest_at`. Check that you did not send the daily already, that today is a workday in the team's `workdays`, and that the setup page has no `no_chat_identity` delivery for you.
+
+## `no_chat_identity`
+
+Standwise has no Slack user for you, so it cannot send you a reminder or a routed blocker. The failed delivery shows on the setup page. Sign in again with `standwise login` after Slack was connected, or ask your admin to add `members.<your-login>.slack` to `standwise.yml`. See [My name shows as @login](#my-name-shows-as-login).
+
+## `no_route_target`
+
+A blocker was reported but there was nobody to send it to at all. This happens, for example, when the author is the team's only manager: the author never receives their own blocker, so the list of recipients is empty. Ask your admin to add another manager to the team, then tell the right people by hand. A manager who exists but has no Slack identity shows as `no_chat_identity` with their login instead.
+
+## Nobody received my blocker
+
+1. **Blockers are routed once.** A blocker with a link is identified by the link: rewording it, or sending the daily again, does not send it again. A blocker without a link is identified by its text. At most 10 different blockers per daily are routed.
+2. **The link decides.** A pull request in your own organization goes to its requested reviewers, then its CODEOWNERS. A link to another organization, a malformed link or a missing pull request goes to the managers. Without a link, it goes to the managers.
+3. **You are never a recipient** of your own blocker.
+4. **People need a Slack identity.** If none of the people found has one, the blocker goes to the managers. A manager without one shows on the setup page as `no_chat_identity` with their login. If there is no manager to send it to at all, the setup page shows `no_route_target`.
 
 ## My name shows as @login
 
@@ -66,3 +81,7 @@ You sent too many requests in a minute. Wait the number of seconds in the messag
 ## My webhook endpoint was disabled
 
 It failed 20 deliveries in a row. Fix the receiver, add the endpoint again on the setup page and use the new secret. Use **Send test event** to check it. See [Webhooks](/admin/webhooks).
+
+## The `Standwise config` check failed
+
+A push or pull request in the `.github` repository changed `standwise.yml` and it has errors. Open the check: each error is an annotation on its line, and the summary lists all of them. Fix them and push again. The last valid version stays in effect meanwhile. If the file does not exist, there is no check.

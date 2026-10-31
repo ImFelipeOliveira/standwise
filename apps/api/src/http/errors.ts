@@ -1,4 +1,4 @@
-import { DomainError, type DomainErrorCode } from '@standwise/orchestrator';
+import { DomainError, type DomainErrorCode, logError } from '@standwise/orchestrator';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
@@ -17,6 +17,7 @@ export const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   rate_limited: 429,
   insufficient_scope: 403,
   not_found: 404,
+  suggestion_already_decided: 409,
 };
 
 export function onError(error: Error, c: Context): Response {
@@ -34,6 +35,6 @@ export function onError(error: Error, c: Context): Response {
       STATUS[code],
     );
   }
-  console.error(error);
+  logError('unhandled api error', error);
   return c.json({ error: { code: 'internal', message: 'internal error' } }, 500);
 }

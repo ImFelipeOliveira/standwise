@@ -1,13 +1,18 @@
 import { createDb } from '@standwise/db';
 import {
+  createCheckRun,
   createGitHubApp,
   exchangeWebCode,
+  fetchCodeowners,
   fetchConfigSource,
+  getPullRequest,
   getUserProfile,
   listActivity,
+  listOpenPullRequestSnapshots,
+  listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
-import { createChatFor, type Deps } from '@standwise/orchestrator';
+import { createChatFor, type Deps, nullTracker } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
@@ -41,6 +46,11 @@ const deps: Deps = {
     listActivity,
     resolveTeamMembers,
     fetchConfigSource,
+    getPullRequest,
+    listPullRequestFiles,
+    listOpenPullRequestSnapshots,
+    fetchCodeowners,
+    createCheckRun,
     exchangeWebCode: (code) =>
       exchangeWebCode({
         clientId: env.GITHUB_CLIENT_ID,
@@ -50,6 +60,7 @@ const deps: Deps = {
   },
   slack: { exchangeCode: exchangeSlackCode },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
+  tracker: nullTracker,
   env: {
     publicUrl: env.PUBLIC_URL,
     supportEmail: env.SUPPORT_EMAIL,

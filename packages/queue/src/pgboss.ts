@@ -1,5 +1,15 @@
+import { errorFields } from '@standwise/core';
 import { PgBoss } from 'pg-boss';
-import { DEFAULT_RETRY_LIMIT, type EnqueueOptions, type JobQueue } from './index';
+import {
+  DEFAULT_RETRY_LIMIT,
+  DEFAULT_WORK_POLICIES,
+  type EnqueueOptions,
+  type JobQueue,
+  type QueuePolicy,
+  queuePolicyOf,
+  type SingletonPolicy,
+  type WorkOptions,
+} from './index';
 
 export type PgBossQueueOptions = {
   schema?: string;
@@ -8,17 +18,28 @@ export type PgBossQueueOptions = {
   retryBackoff?: boolean;
 };
 
+export function logPgBossError(error: unknown): void {
+  console.error('pg-boss error', errorFields(error));
+}
+
 export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptions = {}): JobQueue {
   const boss = new PgBoss({
     connectionString: databaseUrl,
     ...(options.schema ? { schema: options.schema } : {}),
   });
-  boss.on('error', (error) => console.error('pg-boss error', error));
+  boss.on('error', logPgBossError);
   const created = new Set<string>();
 
-  const keyedName = (name: string) => `${name}.keyed`;
+  const keyedName = (name: string, policy: SingletonPolicy = 'exclusive') =>
+    policy === 'exclusive' ? `${name}.keyed` : `${name}.${policy}`;
 
-  async function ensureQueue(name: string, policy?: 'exclusive'): Promise<void> {
+  const QUEUES: Record<QueuePolicy, (name: string) => [string, SingletonPolicy | undefined]> = {
+    plain: (name) => [name, undefined],
+    keyed: (name) => [keyedName(name), 'exclusive'],
+    stately: (name) => [keyedName(name, 'stately'), 'stately'],
+  };
+
+  async function ensureQueue(name: string, policy?: SingletonPolicy): Promise<void> {
     if (created.has(name)) return;
     await boss.createQueue(name, policy ? { policy } : undefined);
     created.add(name);
@@ -32,8 +53,8 @@ export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptio
       await boss.stop({ graceful: true });
     },
     async enqueue<T extends object>(name: string, data: T, opts: EnqueueOptions = {}) {
-      const target = opts.singletonKey === undefined ? name : keyedName(name);
-      await ensureQueue(target, opts.singletonKey === undefined ? undefined : 'exclusive');
+      const [target, policy] = QUEUES[queuePolicyOf(opts)](name);
+      await ensureQueue(target, policy);
       await boss.send(target, data, {
         retryLimit: opts.retryLimit ?? DEFAULT_RETRY_LIMIT,
         ...(options.retryDelaySeconds === undefined
@@ -48,15 +69,20 @@ export function createPgBossQueue(databaseUrl: string, options: PgBossQueueOptio
       await ensureQueue(name);
       await boss.schedule(name, cron);
     },
-    async work<T extends object>(name: string, handler: (data: T) => Promise<void>) {
-      await ensureQueue(name);
-      await ensureQueue(keyedName(name), 'exclusive');
+    async work<T extends object>(
+      name: string,
+      handler: (data: T) => Promise<void>,
+      opts: WorkOptions = {},
+    ) {
       const run = async (jobs: { data: T }[]) => {
         for (const job of jobs) await handler(job.data);
       };
       const workOptions = { pollingIntervalSeconds: options.pollingIntervalSeconds ?? 2 };
-      await boss.work<T>(name, workOptions, run);
-      await boss.work<T>(keyedName(name), workOptions, run);
+      for (const queuePolicy of new Set(opts.policies ?? DEFAULT_WORK_POLICIES)) {
+        const [target, policy] = QUEUES[queuePolicy](name);
+        await ensureQueue(target, policy);
+        await boss.work<T>(target, workOptions, run);
+      }
     },
   };
 }

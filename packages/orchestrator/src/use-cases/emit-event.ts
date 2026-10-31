@@ -6,6 +6,7 @@ import {
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import type { DeliverableEvent, Envelope, WebhookEvent } from '../events';
+import { logError } from '../log-error';
 
 export const DELIVER_WEBHOOK_JOB = 'deliver-webhook';
 
@@ -64,6 +65,6 @@ export async function emitEventSafely(
   try {
     await emitEvent(deps, installationId, event);
   } catch (error) {
-    console.error(`webhook event ${event.type} not emitted`, error);
+    logError(`webhook event ${event.type} not emitted`, error);
   }
 }

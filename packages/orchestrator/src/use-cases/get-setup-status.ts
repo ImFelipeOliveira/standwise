@@ -3,9 +3,12 @@ import {
   type ApiKeySummary,
   getConnection,
   listApiKeys,
-  listFailedDeliveries,
+  listFailedPersonDeliveryGroups,
+  listFailedTeamDeliveries,
   type MemberRow,
   operationalConfig,
+  type PersonFailureGroup,
+  type TeamFailure,
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { statusOf } from '../membership';
@@ -14,7 +17,8 @@ import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
 import { loadWebhookOverview, type WebhookOverview } from './webhook-endpoints';
 
-const FAILED_LIMIT = 5;
+const TEAM_FAILURE_LIMIT = 5;
+const PERSON_FAILURE_GROUP_LIMIT = 10;
 
 export type SetupStatus = {
   installationId: number;
@@ -28,7 +32,8 @@ export type SetupStatus = {
   accessWarning: string | null;
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
   slack: { connected: false } | { connected: true; workspace: string };
-  failedDeliveries: { team: string; at: Date; error: string }[];
+  teamFailures: TeamFailure[];
+  personFailures: PersonFailureGroup[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
   webhooks: { manage: false } | ({ manage: true } & WebhookOverview);
   supportEmail: string;
@@ -62,10 +67,11 @@ export async function getSetupStatus(
     installationId,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
-  const [configRepo, connection, failed, admin] = await Promise.all([
+  const [configRepo, connection, teamFailures, personFailures, admin] = await Promise.all([
     findConfigRepo(octokit, installation.accountLogin),
     getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
-    listFailedDeliveries(deps.db, installation.id, FAILED_LIMIT),
+    listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
+    listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
     isInstallationAdmin(deps, installation.id, current).catch(() => false),
   ]);
   const [apiKeys, webhooks]: [SetupStatus['apiKeys'], SetupStatus['webhooks']] = admin
@@ -98,11 +104,8 @@ export async function getSetupStatus(
     slack: connection
       ? { connected: true, workspace: connection.externalName ?? connection.externalId }
       : { connected: false },
-    failedDeliveries: failed.map((d) => ({
-      team: d.teamName,
-      at: d.updatedAt,
-      error: d.error ?? '',
-    })),
+    teamFailures,
+    personFailures,
     apiKeys,
     webhooks,
     supportEmail: deps.env.supportEmail,

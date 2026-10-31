@@ -12,10 +12,14 @@ import {
   getDelivery,
   getIdentities,
   getInstallation,
+  getInstallationMemberIds,
   getLastDaily,
   listDailies,
-  listFailedDeliveries,
+  listFailedPersonDeliveryGroups,
+  listFailedTeamDeliveries,
   listOperationalInstallations,
+  listPersonDeliveries,
+  markDeliverySent,
   resolveSession,
   revokeSession,
   saveConnection,
@@ -92,6 +96,15 @@ describe('deliveries', () => {
     expect(r.filter((x) => x.status === 'in_progress')).toHaveLength(1);
   });
 
+  test('claimDelivery accepts person-level kinds with empty team', async () => {
+    await seed();
+    for (const kind of ['reminder', 'blocker_route', 'suggestion_dm'] as const) {
+      const k = { ...dkey, teamName: '', kind, subject: 'ana' };
+      expect(await claimDelivery(db, k)).toEqual({ status: 'claimed', token: 1 });
+      expect(await claimDelivery(db, k)).toEqual({ status: 'in_progress' });
+    }
+  });
+
   test('claimDelivery after sent', async () => {
     await seed();
     const c = await claimDelivery(db, dkey);
@@ -112,7 +125,7 @@ describe('deliveries', () => {
     expect(row?.status).toBe('failed');
     expect(row?.attempts).toBe(3);
     expect(row?.error).toBe('boom');
-    expect(await listFailedDeliveries(db, INST, 10)).toHaveLength(1);
+    expect(await listFailedTeamDeliveries(db, INST, 10)).toHaveLength(1);
   });
 
   test('claimDelivery reopens a stale pending row', async () => {
@@ -148,6 +161,104 @@ describe('deliveries', () => {
     const row = await getDelivery(db, dkey);
     expect(row?.status).toBe('sent');
     expect(row?.ref).toEqual({ channel: 'C1', id: '1.2' });
+  });
+});
+
+describe('delivery markers', () => {
+  test('markDeliverySent records a sent row and is idempotent', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    const key = {
+      installationId: 1,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'signal_scan' as const,
+      subject: 'alice',
+    };
+    await markDeliverySent(db, key);
+    await markDeliverySent(db, key);
+    const row = await getDelivery(db, key);
+    expect(row?.status).toBe('sent');
+    expect(row?.attempts).toBe(1);
+    expect(await claimDelivery(db, key)).toEqual({ status: 'already_sent' });
+  });
+});
+
+describe('admin-visible failed deliveries', () => {
+  async function fail(k: Parameters<typeof claimDelivery>[1], error: string) {
+    const claim = await claimDelivery(db, k);
+    if (claim.status !== 'claimed') throw new Error('not claimed');
+    await failDelivery(db, k, claim.token, error);
+  }
+
+  test('team failures list digest and late_daily only, latest first, capped', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    for (let day = 1; day <= 6; day++) {
+      await fail({ ...dkey, date: `2026-10-0${day}` }, 'not_in_channel: x');
+      await db.execute(
+        sql`UPDATE deliveries SET updated_at = now() - make_interval(days => ${10 - day})
+          WHERE date = ${`2026-10-0${day}`}`,
+      );
+    }
+    await fail({ ...dkey, kind: 'late_daily', subject: 'm1' }, 'internal_error: unexpected error');
+    await fail({ ...dkey, kind: 'reminder', subject: 'ana' }, 'no_chat_identity: ana');
+    const listed = await listFailedTeamDeliveries(db, INST, 5);
+    expect(listed.map((d) => [d.kind, d.date])).toEqual([
+      ['late_daily', '2026-10-27'],
+      ['digest', '2026-10-06'],
+      ['digest', '2026-10-05'],
+      ['digest', '2026-10-04'],
+      ['digest', '2026-10-03'],
+    ]);
+  });
+
+  test('person failures are grouped by kind and error and never include hidden kinds', async () => {
+    await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
+    const base = { installationId: INST, teamName: '', date: '2026-10-28' };
+    for (const kind of ['suggestion_dm', 'signal_scan'] as const) {
+      await fail({ ...base, kind, subject: `${kind}-subject` }, 'no_chat_identity');
+    }
+    await markDeliverySent(db, { ...base, kind: 'signal_scan', subject: 'alice' });
+    await fail({ ...base, kind: 'reminder', subject: 'ana' }, 'no_chat_identity: ana');
+    await fail(
+      { ...base, date: '2026-10-29', kind: 'reminder', subject: 'ana' },
+      'no_chat_identity: ana',
+    );
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h1:mgr' }, 'no_chat_identity: mgr');
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h2:mgr' }, 'no_chat_identity: mgr');
+    await fail({ ...base, kind: 'blocker_route', subject: 'd1:h3:-' }, 'no_route_target');
+    await fail(
+      { ...base, installationId: 2, kind: 'reminder', subject: 'x' },
+      'no_chat_connection',
+    );
+    const groups = await listFailedPersonDeliveryGroups(db, INST, 10);
+    expect(groups.map((g) => [g.kind, g.error, g.count, g.lastAt instanceof Date]).sort()).toEqual([
+      ['blocker_route', 'no_chat_identity: mgr', 2, true],
+      ['blocker_route', 'no_route_target', 1, true],
+      ['reminder', 'no_chat_identity: ana', 2, true],
+    ]);
+    expect(JSON.stringify(groups)).not.toContain('d1:');
+    expect(await listFailedPersonDeliveryGroups(db, INST, 2)).toHaveLength(2);
+  });
+});
+
+describe('person deliveries', () => {
+  test('listPersonDeliveries returns one kind for one installation and date', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
+    const k = (
+      installationId: number,
+      date: string,
+      kind: 'signal_scan' | 'reminder',
+      subject: string,
+    ) => ({ installationId, teamName: '', date, kind, subject }) as const;
+    await markDeliverySent(db, k(1, '2026-10-28', 'signal_scan', 'alice'));
+    await markDeliverySent(db, k(1, '2026-10-28', 'signal_scan', 'bob'));
+    await markDeliverySent(db, k(1, '2026-10-27', 'signal_scan', 'carol'));
+    await markDeliverySent(db, k(2, '2026-10-28', 'signal_scan', 'dave'));
+    await markDeliverySent(db, k(1, '2026-10-28', 'reminder', 'erin'));
+    const rows = await listPersonDeliveries(db, 1, '2026-10-28', 'signal_scan');
+    expect(rows.map((r) => r.subject).sort()).toEqual(['alice', 'bob']);
   });
 });
 
@@ -257,6 +368,22 @@ describe('member logins', () => {
 
   test('updateMemberLogin returns null for an unknown github id', async () => {
     expect(await updateMemberLogin(db, 99, 'nobody')).toBeNull();
+  });
+});
+
+describe('installation member ids', () => {
+  test('returns ids only for members linked to the installation, case-insensitively', async () => {
+    await upsertInstallation(db, { id: 1, accountLogin: 'acme', accountType: 'Organization' });
+    await upsertInstallation(db, { id: 2, accountLogin: 'other', accountType: 'Organization' });
+    const ana = await upsertMember(db, { githubUserId: 1, login: 'Ana', email: null });
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: null });
+    await upsertMember(db, { githubUserId: 3, login: 'carol', email: null });
+    await setMemberInstallations(db, ana.id, [1]);
+    await setMemberInstallations(db, bob.id, [2]);
+    const ids = await getInstallationMemberIds(db, 1, ['ANA', 'bob', 'carol', 'dave']);
+    expect([...ids.entries()]).toEqual([['ana', ana.id]]);
+    expect((await getInstallationMemberIds(db, 2, ['Bob'])).get('bob')).toBe(bob.id);
+    expect((await getInstallationMemberIds(db, 1, [])).size).toBe(0);
   });
 });
 

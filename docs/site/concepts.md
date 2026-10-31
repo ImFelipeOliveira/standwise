@@ -20,7 +20,7 @@ A person listed under `members` of a team, by GitHub login or through a GitHub t
 
 ## Manager
 
-A GitHub login listed under `managers` of a team. Managers read their team's digests, dailies and blockers through the [manager tools](/members/mcp#manager-tools) of the MCP server. Coming soon: blockers with no one else to route to will go to the manager.
+A GitHub login listed under `managers` of a team. Managers read their team's digests, dailies and blockers through the [manager tools](/members/mcp#manager-tools) of the MCP server. Blockers with no one else to route to go to the managers.
 
 ## Admin
 
@@ -56,21 +56,21 @@ A daily sent after the team's digest was posted. It goes as a reply in the diges
 
 Standwise sends a daily only after the person confirms it. With MCP clients that support it, Standwise asks the person directly; otherwise the agent must ask. See [the confirmation rule](/members/mcp#the-confirmation-rule).
 
-## Reminder <Badge type="info" text="coming soon" />
+## Reminder
 
-A direct message at the team's `remind_at` to people who have not sent the daily. At most one per person per day. The `remind_at` key is already required in `standwise.yml`.
+A direct message at the team's `remind_at` to people who have not sent the daily. At most one per person per day, and only before the digest.
 
-## Suggested blocker <Badge type="info" text="coming soon" />
+## Suggested blocker
 
-A blocker Standwise notices for you, such as your pull request waiting for review for more than `pr_review_hours`. It goes only to you, first. Your manager sees it only if you confirm it in your daily.
+A blocker Standwise notices for you: your pull request with no review for `pr_review_hours`, or failing CI on it for 24 hours. It goes only to you, in your draft. Your manager sees it only if you confirm it in your daily.
 
-## Blocker routing <Badge type="info" text="coming soon" />
+## Blocker routing
 
-Sending each blocker to whoever can help: the reviewers of the linked pull request, the owner of the blocking card or, failing those, the team manager.
+Sending each new blocker once to whoever can help: the reviewers of the linked pull request, then its CODEOWNERS, then the team managers.
 
 ## Delivery
 
-One attempt to post a message to Slack: a digest or a late daily. Each one is recorded once per team, date and kind, so a retry never posts twice. Failed deliveries show up on the setup page with the error.
+One attempt to send a message to Slack: a digest, a late daily, a reminder or a blocker routed by direct message. Each one is recorded once per team, date and kind, so a retry never posts twice. Failed deliveries show up on the setup page with the error.
 
 ## API key
 

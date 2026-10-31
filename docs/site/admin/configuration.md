@@ -40,6 +40,7 @@ teams:
     signals:
       pr_review_hours: 48
       card_stale_days: 5
+      direct_message: false
 members:
   alice: { slack: U0123, linear: alice@acme.com }
 ```
@@ -71,6 +72,7 @@ No other keys are accepted. An unknown key fails validation with `Unrecognized k
 | `tracker.team` | text, not empty | with `tracker` | | `BE` |
 | `signals.pr_review_hours` | number greater than 0 | no | `48` | `24` |
 | `signals.card_stale_days` | number greater than 0 | no | `5` | `3` |
+| `signals.direct_message` | `true` or `false` | no | `false` | `true` |
 
 ### `name`
 
@@ -86,7 +88,7 @@ The days the team has a standup. Digests go out only on these days. A daily sent
 
 ### `remind_at`
 
-The local time of the reminder. It is required and validated today, but reminders are coming soon: nothing is sent at this time yet.
+The local time of the reminder, sent as a Slack direct message on workdays to people who have not sent the daily. At most one per person per day. It must be before `digest_at`, otherwise the file is invalid. See [How it works](/how-it-works).
 
 ### `digest_at`
 
@@ -98,7 +100,9 @@ The language of the digest and of the late dailies posted in its thread: `en` or
 
 ### `managers`
 
-GitHub logins of the team managers. Managers can read the team's digests, dailies and blockers through the [MCP manager tools](/members/mcp#manager-tools). Organization admins can read every team without being listed. Coming soon: blockers with no one else to route to will go to the managers.
+GitHub logins of the team managers. Managers can read the team's digests, dailies and blockers through the [MCP manager tools](/members/mcp#manager-tools). Organization admins can read every team without being listed. Blockers with no one else to route to go to the managers.
+
+Each entry must be a plain login. Names starting with `@`, such as `@acme/leads`, are not accepted: Standwise does not expand GitHub teams, so list the logins one by one. A team entry is rejected with an error.
 
 ### `members`
 
@@ -122,12 +126,15 @@ Where the digest goes.
 
 The project tracker of the team: `provider` (`linear` or `jira`) and `team` (the Linear team key or the Jira project key). The parser accepts it so that you can write it now, but Standwise does not connect to Linear or Jira yet.
 
-### `signals` <Badge type="info" text="coming soon" />
+### `signals`
 
-Thresholds for suggested blockers, which are coming soon:
+Settings for suggested blockers, which show only to the person they are about:
 
-- `pr_review_hours`: a pull request with no review for more than this many hours. Default `48`.
-- `card_stale_days`: a card in progress for more than this many days. Default `5`.
+- `pr_review_hours`: your open pull request, not a draft, with no review for this many hours since it was ready for review. Default `48`.
+- `card_stale_days`: a card in progress for more than this many days. Default `5`. It takes effect with the Linear and Jira integrations, which are coming soon.
+- `direct_message`: when `true`, a suggested blocker is also sent to the person by direct message, once per suggestion. Default `false`.
+
+CI failing on a pull request's head commit counts after 24 hours, and is not configurable.
 
 ## GitHub teams
 
@@ -216,6 +223,7 @@ These are the messages the setup page shows, as `path: message`. `teams.0` is th
 | `teams.0.language: Invalid option: expected one of "pt-BR"\|"en"` | `pt`, `pt_BR`, `english` | Use `pt-BR` or `en` |
 | `teams.0.chat.provider: Invalid option: expected one of "slack"\|"google-chat"` | `teams`, `Slack` | Use `slack` |
 | `teams.0.members: Too small: expected array to have >=1 items` | `members: []` (same for `managers`) | List at least one person |
+| `teams.0.managers.0: managers must be GitHub logins, not teams or @-prefixed names` | `managers: ["@acme/leads"]` | List the logins, such as `[alice, bob]` |
 | `teams.0: Unrecognized key: "reminder"` | A misspelled or unknown key | Check the key against the tables above |
 | `members.alice.slack: must be a Slack user id like U0123ABCD` | A name, an email, a channel id or `<!channel>` | Use the member id, which starts with `U` or `W` |
 | `members.alice: Unrecognized key: "slak"` | A misspelled identity key | Use `slack`, `google_chat`, `linear` or `jira` |

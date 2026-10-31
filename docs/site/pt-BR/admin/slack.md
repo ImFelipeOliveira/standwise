@@ -20,7 +20,7 @@ Para conectar de novo, por exemplo depois que o app foi removido do Slack ou par
 | `groups:read` | Transformar o nome de um `#canal` privado no id dele, nos canais privados para os quais o bot foi convidado |
 | `users:read` | Buscar usuários do Slack |
 | `users:read.email` | Achar o usuário de uma pessoa no Slack pelo e-mail, para mencioná-la |
-| `im:write` | Reservado para mensagens diretas: lembretes e encaminhamento de impedimentos, em breve |
+| `im:write` | Enviar mensagens diretas: lembretes, impedimentos encaminhados e impedimentos sugeridos |
 
 O Standwise não lê mensagens.
 
@@ -59,6 +59,8 @@ Quando uma publicação falha, a página de setup a lista em "Últimas entregas 
 | `missing_scope` | Falta ao token uma permissão de que o Standwise precisa. | Um admin clica em **Reconectar Slack** e aprova todas as permissões. |
 | `ratelimited` | O Slack pediu para o Standwise ir mais devagar. | Nada a fazer; a entrega é tentada de novo. |
 | `no_chat_connection` | O Slack não está conectado nesta instalação. | Um admin clica em **Conectar Slack** na página de setup. |
+| `no_chat_identity` | Um lembrete ou impedimento encaminhado não pôde ser enviado porque a pessoa, ou o gestor para quem ele caiu, não tem usuário no Slack. A página de setup mostra o login. | Peça à pessoa para rodar `standwise login` depois que o Slack foi conectado, ou adicione `members.<login>.slack` no `standwise.yml`. |
+| `no_route_target` | Um impedimento foi reportado, mas não havia nenhum destinatário, por exemplo porque o autor é o único gestor do time. | Adicione outro gestor ao time. |
 | `unsupported_provider` | O time usa `chat.provider: google-chat`, que vem em breve. | Use `slack`. |
 | `worker_died` | O worker parou três vezes durante o envio. | Fale com o suporte se repetir. |
 | `internal_error` | Erro inesperado. A mensagem traz os detalhes. | Fale com o suporte se repetir. |

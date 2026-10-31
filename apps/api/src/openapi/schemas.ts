@@ -109,6 +109,37 @@ export const ActivityItemSchema = z
     },
   });
 
+export const DraftSuggestionSchema = z
+  .object({
+    id: z.string().openapi({ format: 'uuid' }),
+    kind: z.enum(['pr_no_review', 'ci_failing', 'card_stale']),
+    ref: z.object({
+      kind: z.enum(['pull_request', 'issue', 'commit', 'card']),
+      url: z.string(),
+      title: z.string().optional(),
+    }),
+    since: z.string().openapi({ format: 'date-time' }),
+  })
+  .openapi('DraftSuggestion', {
+    example: {
+      id: '5f0c2a8e-3b1d-4c7e-9a2f-1d6b8e4c0a17',
+      kind: 'pr_no_review',
+      ref: {
+        kind: 'pull_request',
+        url: 'https://github.com/acme/api/pull/40',
+        title: 'Retry webhook deliveries',
+      },
+      since: '2026-10-27T12:00:00.000Z',
+    },
+  });
+
+export const SuggestionDecisionSchema = z
+  .object({
+    org: z.string().min(1).openapi({ description: 'Login of the organization.', example: 'acme' }),
+    decision: z.enum(['confirmed', 'ignored']).openapi({ example: 'ignored' }),
+  })
+  .openapi('SuggestionDecision');
+
 export const DRAFT_EXAMPLE = {
   org: 'acme',
   date: '2026-10-28',
@@ -123,7 +154,18 @@ export const DRAFT_EXAMPLE = {
       at: '2026-10-27T18:30:00.000Z',
     },
   ],
-  suggestions: [],
+  suggestions: [
+    {
+      id: '5f0c2a8e-3b1d-4c7e-9a2f-1d6b8e4c0a17',
+      kind: 'pr_no_review' as const,
+      ref: {
+        kind: 'pull_request' as const,
+        url: 'https://github.com/acme/api/pull/40',
+        title: 'Retry webhook deliveries',
+      },
+      since: '2026-10-27T12:00:00.000Z',
+    },
+  ],
 };
 
 export const DraftSchema = z
@@ -133,7 +175,7 @@ export const DraftSchema = z
     since: z.string().openapi({ format: 'date-time' }),
     teams: z.array(z.string()),
     activity: z.array(ActivityItemSchema),
-    suggestions: z.array(z.string()),
+    suggestions: z.array(DraftSuggestionSchema),
   })
   .openapi('Draft', { example: DRAFT_EXAMPLE });
 

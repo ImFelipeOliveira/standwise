@@ -1,0 +1,11 @@
+{
+  "html_url": "https://github.com/acme/api/pull/7",
+  "title": "Add login",
+  "user": { "login": "alice" },
+  "state": "open",
+  "draft": false,
+  "head": { "sha": "abc123" },
+  "base": { "ref": "main" },
+  "requested_reviewers": [{ "login": "bob" }],
+  "requested_teams": [{ "slug": "backend" }]
+}

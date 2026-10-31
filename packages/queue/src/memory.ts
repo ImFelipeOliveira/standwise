@@ -1,7 +1,24 @@
-import { DEFAULT_RETRY_LIMIT, type EnqueueOptions, type JobQueue } from './index';
+import {
+  DEFAULT_RETRY_LIMIT,
+  DEFAULT_WORK_POLICIES,
+  type EnqueueOptions,
+  type JobQueue,
+  type QueuePolicy,
+  queuePolicyOf,
+  type WorkOptions,
+} from './index';
 
 type Handler = (data: object) => Promise<void>;
-type Job = { name: string; data: object; retryLimit: number; attempts: number; key?: string };
+type Worker = { handler: Handler; policies: readonly QueuePolicy[] };
+type Job = {
+  name: string;
+  policy: QueuePolicy;
+  data: object;
+  retryLimit: number;
+  attempts: number;
+  key?: string;
+  statelyKey?: string;
+};
 
 type Enqueued = { name: string; data: object; startAfter?: Date };
 
@@ -12,7 +29,7 @@ export type MemoryQueue = JobQueue & {
 };
 
 export function createMemoryQueue(): MemoryQueue {
-  const handlers = new Map<string, Handler>();
+  const workers = new Map<string, Worker>();
   const pending: Job[] = [];
   const inFlightKeys = new Set<string>();
   const enqueued: Enqueued[] = [];
@@ -24,7 +41,10 @@ export function createMemoryQueue(): MemoryQueue {
     async start() {},
     async stop() {},
     async enqueue<T extends object>(name: string, data: T, opts: EnqueueOptions = {}) {
-      const key = opts.singletonKey === undefined ? undefined : `${name}:${opts.singletonKey}`;
+      const scoped = opts.singletonKey === undefined ? undefined : `${name}:${opts.singletonKey}`;
+      const statelyKey = opts.policy === 'stately' ? scoped : undefined;
+      const key = opts.policy === 'stately' ? undefined : scoped;
+      if (statelyKey !== undefined && pending.some((job) => job.statelyKey === statelyKey)) return;
       if (key !== undefined) {
         if (inFlightKeys.has(key)) return;
         inFlightKeys.add(key);
@@ -36,22 +56,32 @@ export function createMemoryQueue(): MemoryQueue {
       );
       pending.push({
         name,
+        policy: queuePolicyOf(opts),
         data,
         retryLimit: opts.retryLimit ?? DEFAULT_RETRY_LIMIT,
         attempts: 0,
         key,
+        statelyKey,
       });
     },
     async schedule(name, cron) {
       scheduled.push({ name, cron });
     },
-    async work<T extends object>(name: string, handler: (data: T) => Promise<void>) {
-      handlers.set(name, handler as Handler);
+    async work<T extends object>(
+      name: string,
+      handler: (data: T) => Promise<void>,
+      opts: WorkOptions = {},
+    ) {
+      workers.set(name, {
+        handler: handler as Handler,
+        policies: opts.policies ?? DEFAULT_WORK_POLICIES,
+      });
     },
     async drain() {
       const waiting: Job[] = [];
       for (let job = pending.shift(); job; job = pending.shift()) {
-        const handler = handlers.get(job.name);
+        const worker = workers.get(job.name);
+        const handler = worker?.policies.includes(job.policy) ? worker.handler : undefined;
         if (!handler) {
           waiting.push(job);
           continue;

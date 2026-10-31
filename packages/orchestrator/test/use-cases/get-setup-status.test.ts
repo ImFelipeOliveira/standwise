@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  claimDelivery,
   createApiKey,
+  failDelivery,
   revokeApiKey,
   setInstallationConfig,
   setMemberInstallations,
@@ -87,5 +89,49 @@ describe('getSetupStatus config', () => {
     const fake = fakeDeps();
     const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
     expect(status.config).toEqual({ status: 'invalid', errors, lastValid: false });
+  });
+});
+
+describe('getSetupStatus failed deliveries', () => {
+  async function fail(k: Parameters<typeof claimDelivery>[1], error: string) {
+    const claim = await claimDelivery(db, k);
+    if (claim.status !== 'claimed') throw new Error('not claimed');
+    await failDelivery(db, k, claim.token, error);
+  }
+
+  test('team failures and grouped person failures, without blocker subjects or hidden kinds', async () => {
+    const { deps, isMember, member } = await setup(false);
+    const base = { installationId: INST, teamName: '', date: '2026-10-28' };
+    await fail(
+      { ...base, teamName: 'Alpha', kind: 'digest' },
+      'not_in_channel: the bot is not in the channel',
+    );
+    await fail({ ...base, kind: 'reminder', subject: 'bob' }, 'no_chat_identity: bob');
+    await fail(
+      { ...base, kind: 'blocker_route', subject: 'daily-1:abc:mgr' },
+      'no_chat_identity: mgr',
+    );
+    await fail(
+      { ...base, kind: 'blocker_route', subject: 'daily-2:def:mgr' },
+      'no_chat_identity: mgr',
+    );
+    await fail({ ...base, kind: 'suggestion_dm', subject: 'm:pr_no_review:x' }, 'no_chat_identity');
+    await fail(
+      { ...base, kind: 'signal_scan', subject: 'alice' },
+      'internal_error: unexpected error',
+    );
+    const status = await getSetupStatus(deps, isMember, member, INST);
+    expect(status.teamFailures.map((f) => [f.kind, f.team, f.error])).toEqual([
+      ['digest', 'Alpha', 'not_in_channel: the bot is not in the channel'],
+    ]);
+    expect(status.personFailures.map((f) => [f.kind, f.error, f.count]).sort()).toEqual([
+      ['blocker_route', 'no_chat_identity: mgr', 2],
+      ['reminder', 'no_chat_identity: bob', 1],
+    ]);
+    const json = JSON.stringify(status);
+    expect(json).not.toContain('daily-1');
+    expect(json).not.toContain('pr_no_review');
+    expect(json).not.toContain('suggestion_dm');
+    expect(json).not.toContain('signal_scan');
   });
 });

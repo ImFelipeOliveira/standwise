@@ -80,6 +80,21 @@ export const postDaily = (
     headers: confirmation ? { 'x-standwise-confirmation': confirmation } : {},
   });
 
+export type SuggestionDecision = 'confirmed' | 'ignored';
+
+export const decideSuggestion = (
+  apiUrl: string,
+  token: string,
+  org: string,
+  id: string,
+  decision: SuggestionDecision,
+) =>
+  request<unknown>(apiUrl, `/v1/suggestions/${encodeURIComponent(id)}/decision`, {
+    method: 'POST',
+    token,
+    body: { org, decision },
+  });
+
 export type Today = { org: string; date: string; teams: string[] };
 
 export const getToday = (apiUrl: string, token: string, org: string) =>

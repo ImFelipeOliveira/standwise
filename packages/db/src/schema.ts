@@ -1,4 +1,11 @@
-import type { ConfigError, MessageRef, StandwiseConfig, StoredDaily } from '@standwise/core';
+import type {
+  ConfigError,
+  MessageRef,
+  Ref,
+  SignalKind,
+  StandwiseConfig,
+  StoredDaily,
+} from '@standwise/core';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -109,6 +116,14 @@ export const dailies = pgTable(
   (t) => [unique().on(t.installationId, t.memberId, t.date)],
 );
 
+export type DeliveryKind =
+  | 'digest'
+  | 'late_daily'
+  | 'reminder'
+  | 'blocker_route'
+  | 'suggestion_dm'
+  | 'signal_scan';
+
 export const deliveries = pgTable(
   'deliveries',
   {
@@ -116,7 +131,7 @@ export const deliveries = pgTable(
     installationId: installationRef(),
     teamName: text('team_name').notNull(),
     date: date('date', { mode: 'string' }).notNull(),
-    kind: text('kind').$type<'digest' | 'late_daily'>().notNull(),
+    kind: text('kind').$type<DeliveryKind>().notNull(),
     subject: text('subject').notNull().default(''),
     status: text('status').$type<'pending' | 'sent' | 'failed'>().notNull(),
     attempts: integer('attempts').notNull().default(0),
@@ -125,6 +140,25 @@ export const deliveries = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique().on(t.installationId, t.teamName, t.date, t.kind, t.subject)],
+);
+
+export type SuggestionState = 'pending' | 'confirmed' | 'ignored' | 'resolved';
+
+export const suggestions = pgTable(
+  'suggestions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    installationId: installationRef(),
+    memberId: memberRef(),
+    kind: text('kind').$type<SignalKind>().notNull(),
+    ref: jsonb('ref').$type<Ref>().notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    state: text('state').$type<SuggestionState>().notNull().default('pending'),
+    createdAt: createdAt(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  },
+  (t) => [unique().on(t.installationId, t.memberId, t.fingerprint)],
 );
 
 export const API_KEY_SCOPES = [

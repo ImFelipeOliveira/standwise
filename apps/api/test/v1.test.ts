@@ -8,11 +8,14 @@ import {
   insertWebhookEndpoint,
   listDailies,
   listMemberInstallations,
+  listPendingSuggestions,
   resolveSession,
   setInstallationConfig,
+  syncSuggestions,
   upsertInstallation,
+  upsertMember,
 } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import { type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -102,6 +105,11 @@ function harness(
       },
       resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
+      getPullRequest: async () => null,
+      listPullRequestFiles: async () => [],
+      listOpenPullRequestSnapshots: async () => [],
+      fetchCodeowners: async () => null,
+      createCheckRun: async () => {},
       exchangeWebCode: async () => {
         throw new Error('unused');
       },
@@ -120,6 +128,7 @@ function harness(
               return opts.slackUser === undefined ? 'U9' : opts.slackUser;
             },
           } as never),
+    tracker: nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -621,5 +630,107 @@ describe('dailies', () => {
       installationId: INST,
       date: '2026-10-28',
     });
+  });
+});
+
+describe('suggestions', () => {
+  async function seedSuggestion(memberId: string, n: number) {
+    const { created } = await syncSuggestions(
+      db,
+      INST,
+      memberId,
+      [],
+      [
+        {
+          kind: 'ci_failing',
+          ref: { kind: 'pull_request', url: `https://github.com/acme/api/pull/${n}` },
+          fingerprint: `fp-${n}`,
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+      ],
+    );
+    const [row] = created;
+    if (!row) throw new Error('seed failed');
+    return row;
+  }
+
+  function decide(h: Harness, token: string | null, id: string, body: unknown) {
+    return h.app.request(`/v1/suggestions/${id}/decision`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function codeOf(res: Response): Promise<string> {
+    return ((await res.json()) as { error: { code: string } }).error.code;
+  }
+
+  test('draft lists pending suggestions and ignore removes them', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const alice = await upsertMember(db, {
+      githubUserId: 1,
+      login: 'Alice',
+      email: 'alice@acme.com',
+    });
+    const row = await seedSuggestion(alice.id, 1);
+    const draft = (await (await get(h, token, '/v1/draft?org=acme')).json()) as {
+      suggestions: unknown[];
+    };
+    expect(draft.suggestions).toEqual([
+      {
+        id: row.id,
+        kind: 'ci_failing',
+        ref: { kind: 'pull_request', url: 'https://github.com/acme/api/pull/1' },
+        since: row.createdAt.toISOString(),
+      },
+    ]);
+    const res = await decide(h, token, row.id, { org: 'acme', decision: 'ignored' });
+    expect(res.status).toBe(204);
+    expect(await listPendingSuggestions(db, INST, alice.id)).toEqual([]);
+    expect((await decide(h, token, row.id, { org: 'acme', decision: 'ignored' })).status).toBe(204);
+    const conflict = await decide(h, token, row.id, { org: 'acme', decision: 'confirmed' });
+    expect(conflict.status).toBe(409);
+    expect(await codeOf(conflict)).toBe('suggestion_already_decided');
+  });
+
+  test('another member suggestion and an unknown id are not found', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: 'bob@acme.com' });
+    const foreign = await seedSuggestion(bob.id, 2);
+    const res = await decide(h, token, foreign.id, { org: 'acme', decision: 'ignored' });
+    expect(res.status).toBe(404);
+    expect(await codeOf(res)).toBe('not_found');
+    expect(await listPendingSuggestions(db, INST, bob.id)).toHaveLength(1);
+    const unknown = await decide(h, token, 'nope', { org: 'acme', decision: 'ignored' });
+    expect(unknown.status).toBe(404);
+    expect(await codeOf(unknown)).toBe('not_found');
+  });
+
+  test('decision requires a session and a valid body', async () => {
+    await seed();
+    const h = harness();
+    const token = await login(h);
+    const id = '00000000-0000-4000-8000-000000000000';
+    expect((await decide(h, null, id, { org: 'acme', decision: 'ignored' })).status).toBe(401);
+    const bad = await decide(h, token, id, { org: 'acme', decision: 'maybe' });
+    expect(bad.status).toBe(422);
+    expect(await codeOf(bad)).toBe('invalid_request');
+    const noOrg = await decide(h, token, id, { decision: 'ignored' });
+    expect(noOrg.status).toBe(422);
+    const notJson = await h.app.request(`/v1/suggestions/${id}/decision`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: '{',
+    });
+    expect(notJson.status).toBe(422);
+    expect(await codeOf(notJson)).toBe('invalid_request');
   });
 });

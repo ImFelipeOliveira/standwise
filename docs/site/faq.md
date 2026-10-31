@@ -38,11 +38,19 @@ No. There are no rankings, scores, commit counts per person or per-person aggreg
 
 ## Does it work with Google Chat, Linear or Jira?
 
-Not yet. They are coming soon. Today the digest goes to Slack and the draft comes from GitHub.
+Not yet. Google Chat, Linear and Jira are coming soon. Today the digest goes to Slack and the draft comes from GitHub.
 
 ## Are there reminders for people who did not send the daily?
 
-Coming soon. Today, the digest lists who did not send it.
+Yes. At `remind_at`, people who have not sent the daily get one direct message in Slack, at most once per day. See [How it works](/how-it-works).
+
+## Does my manager see the blockers Standwise suggests?
+
+No. Suggested blockers show only to you, in your draft. Your manager sees a blocker only after you add it to your daily.
+
+## Who receives my blocker?
+
+Each new blocker goes once by direct message to the reviewers of the linked pull request, or its CODEOWNERS, or the team managers. See [Blocker routing](/how-it-works#blocker-routing).
 
 ## Can I configure Standwise without a `.github` repository?
 

@@ -38,11 +38,19 @@ Não. Não há ranking, nota, contagem de commits por pessoa nem agregados por p
 
 ## Funciona com Google Chat, Linear ou Jira?
 
-Ainda não. Eles vêm em breve. Hoje o consolidado vai para o Slack e o rascunho vem do GitHub.
+Ainda não. Google Chat, Linear e Jira vêm em breve. Hoje o consolidado vai para o Slack e o rascunho vem do GitHub.
 
 ## Tem lembrete para quem não mandou a daily?
 
-Em breve. Hoje, o consolidado lista quem não enviou.
+Sim. No `remind_at`, quem ainda não enviou a daily recebe uma mensagem direta no Slack, no máximo uma vez por dia. Veja [Como funciona](/pt-BR/how-it-works).
+
+## O meu gestor vê os impedimentos que o Standwise sugere?
+
+Não. Os impedimentos sugeridos aparecem só para você, no seu rascunho. O gestor só vê um impedimento depois que você o adiciona à sua daily.
+
+## Quem recebe o meu impedimento?
+
+Cada impedimento novo vai uma vez, por mensagem direta, para os revisores do pull request ligado, ou os CODEOWNERS dele, ou os gestores do time. Veja [Encaminhamento de impedimentos](/pt-BR/how-it-works#encaminhamento-de-impedimentos).
 
 ## Dá para configurar o Standwise sem o repositório `.github`?
 

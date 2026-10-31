@@ -35,6 +35,16 @@ const DELIVERY_LABELS: Record<WebhookDeliveryStatus, MessageKey> = {
   failed: 'web.webhooks.delivery.failed',
 };
 
+const FAILURE_KIND_LABELS: Record<
+  SetupStatus['teamFailures'][number]['kind'] | SetupStatus['personFailures'][number]['kind'],
+  MessageKey
+> = {
+  digest: 'web.setup.kind.digest',
+  late_daily: 'web.setup.kind.late_daily',
+  reminder: 'web.setup.kind.reminder',
+  blocker_route: 'web.setup.kind.blocker_route',
+};
+
 export type NewApiKey = { name: string; key: string };
 export type NewWebhook = { url: string; secret: string };
 
@@ -352,18 +362,37 @@ export function SetupPage(props: {
       ) : null}
       <section>
         <h2>{t('web.setup.failedTitle')}</h2>
-        {status.failedDeliveries.length === 0 ? (
+        {status.teamFailures.length === 0 && status.personFailures.length === 0 ? (
           <p>{t('web.setup.noFailed')}</p>
-        ) : (
-          <ul>
-            {status.failedDeliveries.map((d) => (
-              <li>
-                {t('web.setup.team')}: {d.team} | {t('web.setup.date')}:{' '}
-                {formatDate(props.lang, d.at)} | {t('web.setup.error')}: <code>{d.error}</code>
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : null}
+        {status.teamFailures.length > 0 ? (
+          <>
+            <h3>{t('web.setup.teamFailures')}</h3>
+            <ul>
+              {status.teamFailures.map((d) => (
+                <li>
+                  {t(FAILURE_KIND_LABELS[d.kind])} | {t('web.setup.team')}: {d.team} |{' '}
+                  {t('web.setup.date')}: {formatDate(props.lang, d.at)} | {t('web.setup.error')}:{' '}
+                  <code>{d.error}</code>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {status.personFailures.length > 0 ? (
+          <>
+            <h3>{t('web.setup.personFailures')}</h3>
+            <ul>
+              {status.personFailures.map((d) => (
+                <li>
+                  {t(FAILURE_KIND_LABELS[d.kind])} | {t('web.setup.error')}: <code>{d.error}</code>{' '}
+                  | {t('web.setup.count')}: {d.count} | {t('web.setup.lastAt')}:{' '}
+                  {formatDate(props.lang, d.lastAt)}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </section>
       <p>
         {t('web.setup.support')}:{' '}

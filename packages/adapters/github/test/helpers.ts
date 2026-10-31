@@ -7,9 +7,8 @@ export function fixture(name: string): string {
 }
 
 export type Call = { method: string; url: URL };
-export type Route =
-  | { status?: number; body?: string }
-  | ((url: URL) => { status?: number; body?: string });
+type Reply = { status?: number; body?: string; headers?: Record<string, string> };
+export type Route = Reply | ((url: URL) => Reply);
 
 export function fakeFetch(routes: Record<string, Route>) {
   const calls: Call[] = [];
@@ -23,7 +22,7 @@ export function fakeFetch(routes: Record<string, Route>) {
     const resolved = typeof route === 'function' ? route(url) : route;
     return new Response(resolved.body ?? '{}', {
       status: resolved.status ?? 200,
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...resolved.headers },
     });
   };
   return { fetch: impl as typeof fetch, calls };

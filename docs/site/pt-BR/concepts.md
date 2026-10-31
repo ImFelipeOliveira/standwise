@@ -20,7 +20,7 @@ Uma pessoa listada em `members` de um time, pelo login do GitHub ou por um time 
 
 ## Gestor
 
-Um login do GitHub listado em `managers` de um time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor](/pt-BR/members/mcp#tools-de-gestor) do servidor MCP. Em breve: impedimentos sem outra pessoa para encaminhar vão para o gestor.
+Um login do GitHub listado em `managers` de um time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor](/pt-BR/members/mcp#tools-de-gestor) do servidor MCP. Impedimentos sem outra pessoa para encaminhar vão para os gestores.
 
 ## Admin
 
@@ -56,21 +56,21 @@ Uma daily enviada depois que o consolidado do time foi publicado. Ela vai como r
 
 O Standwise só envia uma daily depois que a pessoa confirma. Nos clientes MCP que suportam, o próprio Standwise pergunta à pessoa; nos outros, o agente tem que perguntar. Veja [a regra de confirmação](/pt-BR/members/mcp#a-regra-de-confirmacao).
 
-## Lembrete <Badge type="info" text="em breve" />
+## Lembrete
 
-Uma mensagem direta no `remind_at` do time para quem ainda não enviou a daily. No máximo uma por pessoa por dia. A chave `remind_at` já é obrigatória no `standwise.yml`.
+Uma mensagem direta no `remind_at` do time para quem ainda não enviou a daily. No máximo uma por pessoa por dia, e só antes do consolidado.
 
-## Impedimento sugerido <Badge type="info" text="em breve" />
+## Impedimento sugerido
 
-Um impedimento que o Standwise percebe por você, como um pull request seu esperando revisão há mais de `pr_review_hours`. Ele vai primeiro e só para você. O gestor só vê se você confirmar na sua daily.
+Um impedimento que o Standwise percebe por você: um pull request seu sem revisão há `pr_review_hours`, ou o CI falhando nele há 24 horas. Ele vai só para você, no seu rascunho. O gestor só vê se você confirmar na sua daily.
 
-## Encaminhamento de impedimentos <Badge type="info" text="em breve" />
+## Encaminhamento de impedimentos
 
-Enviar cada impedimento para quem pode ajudar: os revisores do pull request ligado, o responsável pelo card que trava ou, se não houver, o gestor do time.
+Enviar cada impedimento novo uma vez para quem pode ajudar: os revisores do pull request ligado, depois os CODEOWNERS dele, depois os gestores do time.
 
 ## Entrega
 
-Uma tentativa de publicar uma mensagem no Slack: um consolidado ou uma daily atrasada. Cada uma é registrada uma vez por time, data e tipo, então uma nova tentativa nunca publica duas vezes. As entregas com falha aparecem na página de setup com o erro.
+Uma tentativa de enviar uma mensagem no Slack: um consolidado, uma daily atrasada, um lembrete ou um impedimento encaminhado por mensagem direta. Cada uma é registrada uma vez por time, data e tipo, então uma nova tentativa nunca publica duas vezes. As entregas com falha aparecem na página de setup com o erro.
 
 ## API key
 

@@ -57,7 +57,14 @@ Mostra o rascunho da sua daily na organização:
       "count": 3
     }
   ],
-  "suggestions": []
+  "suggestions": [
+    {
+      "id": "6f1c2b8e-3a4d-4c55-9d0e-1a2b3c4d5e6f",
+      "kind": "pr_no_review",
+      "ref": { "kind": "pull_request", "url": "https://github.com/acme/api/pull/57", "title": "Retry webhooks" },
+      "since": "2026-10-26T14:00:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -65,7 +72,7 @@ Mostra o rascunho da sua daily na organização:
 - `since`: o início da janela de atividade.
 - `teams`: os seus times nesta organização.
 - `activity`: até 50 itens, do mais recente para o mais antigo. `kind` é `pr_opened`, `pr_merged`, `review` ou `commits`. Os commits vêm agrupados por repositório, com `count`.
-- `suggestions`: sempre vazio por enquanto. Os impedimentos sugeridos vêm em breve.
+- `suggestions`: possíveis impedimentos que o Standwise percebeu por você, cada um `{ id, kind, ref, since }`. `kind` é `pr_no_review` (pull request seu sem revisão) ou `ci_failing` (checks falhando nele há 24 horas). Só você vê. Veja [`standwise suggestion`](#standwise-suggestion).
 
 ### `standwise submit`
 
@@ -109,6 +116,20 @@ O resultado:
 `late: true` quer dizer que o consolidado já tinha sido publicado, então a sua daily foi como resposta na thread dele.
 
 O `standwise submit` envia o que você passar. Quando um agente o chama por você, o agente tem que mostrar a daily e pedir a sua confirmação antes. A [skill do Claude Code](/pt-BR/members/claude-code) e o [servidor MCP](/pt-BR/members/mcp) garantem isso.
+
+### `standwise suggestion`
+
+Responde a um impedimento sugerido do rascunho:
+
+```bash
+standwise suggestion confirm <id>
+standwise suggestion ignore <id>
+```
+
+- `confirm` marca como um impedimento de verdade. Adicione aos `blockers` da sua daily, com o `ref` dele; enviar a daily também confirma.
+- `ignore` esconde a sugestão. Ela só volta se o sinal mudar: um novo commit head que ainda falha, ou o pull request voltar a ficar sem revisão.
+- Use `--org <login>` quando você está em mais de uma organização.
+- Um id desconhecido, ou que não é seu, dá `error not_found`. A decisão oposta à já tomada dá `error suggestion_already_decided`. Repetir a mesma decisão funciona.
 
 ### `standwise mcp`
 

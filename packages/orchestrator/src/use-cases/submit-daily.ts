@@ -1,9 +1,17 @@
-import type { DailyConfirmation, DailySubmission } from '@standwise/core';
-import { getDelivery, getMemberDaily, type MemberRow, upsertDaily } from '@standwise/db';
+import type { DailyConfirmation, DailySubmission, Item } from '@standwise/core';
+import {
+  confirmSuggestionsByUrl,
+  getDelivery,
+  getMemberDaily,
+  type MemberRow,
+  upsertDaily,
+} from '@standwise/db';
 import type { Deps } from '../deps';
-import { newBlockers } from '../events';
+import { blockerRouteId, newBlockers, newRoutedBlockers } from '../events';
+import { logError } from '../log-error';
 import { emitEventSafely } from './emit-event';
 import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';
+import { ROUTE_BLOCKER_JOB, type RouteBlockerJob } from './route-blocker';
 
 export type SubmitDailyResult = { date: string; teams: string[]; late: boolean };
 
@@ -18,6 +26,45 @@ async function isLate(deps: Deps, ctx: OrgContext): Promise<boolean> {
     if (delivery?.status === 'sent') return true;
   }
   return false;
+}
+
+async function confirmBlockerSuggestions(
+  deps: Deps,
+  ctx: OrgContext,
+  blockers: Item[],
+): Promise<void> {
+  const urls = [...new Set(blockers.flatMap((b) => (b.ref ? [b.ref.url] : [])))];
+  if (urls.length === 0) return;
+  try {
+    await confirmSuggestionsByUrl(deps.db, ctx.installationId, ctx.member.id, urls);
+  } catch (error) {
+    logError('suggestion confirmation failed', error);
+  }
+}
+
+async function enqueueBlockerRoutes(
+  deps: Deps,
+  installationId: number,
+  dailyId: string,
+  blockers: Item[],
+  fresh: Item[],
+): Promise<void> {
+  for (const blocker of fresh) {
+    const blockerId = blockerRouteId(blocker);
+    const job: RouteBlockerJob = {
+      installationId,
+      dailyId,
+      blockerIndex: blockers.indexOf(blocker),
+      blockerId,
+    };
+    try {
+      await deps.queue.enqueue(ROUTE_BLOCKER_JOB, job, {
+        singletonKey: `route:${dailyId}:${blockerId}`,
+      });
+    } catch (error) {
+      logError('blocker route enqueue failed', error);
+    }
+  }
 }
 
 export async function submitDaily(
@@ -36,6 +83,7 @@ export async function submitDaily(
     payload: options.confirmation ? { ...payload, confirmation: options.confirmation } : payload,
     submittedAt: deps.now(),
   });
+  await confirmBlockerSuggestions(deps, ctx, payload.blockers);
   const teams = ctx.mine.map((t) => t.name);
   const late = await isLate(deps, ctx);
   if (late) {
@@ -45,11 +93,20 @@ export async function submitDaily(
       date: ctx.date,
     });
   }
+  const fresh = newBlockers(previous?.payload.blockers, payload.blockers);
+  await enqueueBlockerRoutes(
+    deps,
+    ctx.installationId,
+    id,
+    payload.blockers,
+    newRoutedBlockers(previous?.payload.blockers, payload.blockers),
+  );
   await emitDailyEvents(deps, ctx, {
     id,
     teams,
     payload,
     previous: previous?.payload ?? null,
+    fresh,
   });
   return { date: ctx.date, teams, late };
 }
@@ -57,7 +114,13 @@ export async function submitDaily(
 async function emitDailyEvents(
   deps: Deps,
   ctx: OrgContext,
-  p: { id: string; teams: string[]; payload: DailySubmission; previous: DailySubmission | null },
+  p: {
+    id: string;
+    teams: string[];
+    payload: DailySubmission;
+    previous: DailySubmission | null;
+    fresh: Item[];
+  },
 ): Promise<void> {
   const login = ctx.member.login;
   await emitEventSafely(deps, ctx.installationId, {
@@ -73,7 +136,7 @@ async function emitDailyEvents(
       replaced: p.previous !== null,
     },
   });
-  for (const blocker of newBlockers(p.previous?.blockers, p.payload.blockers)) {
+  for (const blocker of p.fresh) {
     await emitEventSafely(deps, ctx.installationId, {
       type: 'blocker.opened',
       data: {

@@ -20,7 +20,7 @@ To connect again, for example after the app was removed from Slack or to move th
 | `groups:read` | Turn a private `#channel` name into its id, for private channels the bot was invited to |
 | `users:read` | Look up Slack users |
 | `users:read.email` | Find a person's Slack user by their email, to mention them |
-| `im:write` | Reserved for direct messages: reminders and blocker routing, coming soon |
+| `im:write` | Send direct messages: reminders, routed blockers and suggested blockers |
 
 Standwise does not read messages.
 
@@ -48,7 +48,7 @@ If neither works, the digest still goes out with `@login`. To fix it, see [My na
 
 ## Delivery errors
 
-When a post fails, the setup page lists it under "Latest failed deliveries" with the team, the date and the error as `code: message`. Standwise tries each message up to 3 times in total. A digest is retried only within 120 minutes after `digest_at`.
+When a post fails, the setup page lists it under "Latest failed deliveries" with the team, the date and the error as `code: message`. Standwise tries each message up to 3 times in total. A digest is retried only within 120 minutes after `digest_at`. A reminder is sent at most 60 minutes late and never at or after `digest_at`.
 
 | Error code | Meaning | Fix |
 | --- | --- | --- |
@@ -59,6 +59,8 @@ When a post fails, the setup page lists it under "Latest failed deliveries" with
 | `missing_scope` | The token lacks a permission Standwise needs. | An admin clicks **Reconnect Slack** and approves all permissions. |
 | `ratelimited` | Slack asked Standwise to slow down. | Nothing to do; it is retried. |
 | `no_chat_connection` | Slack is not connected for this installation. | An admin clicks **Connect Slack** on the setup page. |
+| `no_chat_identity` | A reminder or routed blocker could not be sent because the person, or the manager it fell back to, has no Slack user. The setup page shows their login. | Ask the person to run `standwise login` after Slack is connected, or add `members.<login>.slack` to `standwise.yml`. |
+| `no_route_target` | A blocker was reported but there was no recipient at all, for example because the author is the team's only manager. | Add another manager to the team. |
 | `unsupported_provider` | The team uses `chat.provider: google-chat`, which is coming soon. | Use `slack`. |
 | `worker_died` | The worker stopped three times while sending. | Contact support if it repeats. |
 | `internal_error` | Unexpected error. The message has the details. | Contact support if it repeats. |

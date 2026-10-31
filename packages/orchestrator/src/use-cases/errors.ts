@@ -12,7 +12,8 @@ export type DomainErrorCode =
   | 'slack_oauth_failed'
   | 'rate_limited'
   | 'insufficient_scope'
-  | 'not_found';
+  | 'not_found'
+  | 'suggestion_already_decided';
 
 export class DomainError extends Error {
   constructor(

@@ -1,6 +1,6 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import { SQL } from 'bun';
-import { createMemoryQueue, createPgBossQueue, type JobQueue } from '../src';
+import { createMemoryQueue, createPgBossQueue, type JobQueue, logPgBossError } from '../src';
 
 const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://standwise:standwise@localhost:5433/standwise_test';
@@ -59,9 +59,13 @@ describe.each(implementations)('JobQueue (%s)', (_label, make) => {
 
   test('singletonKey dedupes', async () => {
     let calls = 0;
-    await h.queue.work('dedupe', async () => {
-      calls++;
-    });
+    await h.queue.work(
+      'dedupe',
+      async () => {
+        calls++;
+      },
+      { policies: ['keyed'] },
+    );
     await h.queue.enqueue('dedupe', { a: 1 }, { singletonKey: 'k' });
     await h.queue.enqueue('dedupe', { a: 2 }, { singletonKey: 'k' });
     await h.settle(() => calls >= 1);
@@ -81,9 +85,13 @@ describe.each(implementations)('JobQueue (%s)', (_label, make) => {
 
   test('singletonKey does not dedupe across completion', async () => {
     let calls = 0;
-    await h.queue.work('rerun', async () => {
-      calls++;
-    });
+    await h.queue.work(
+      'rerun',
+      async () => {
+        calls++;
+      },
+      { policies: ['keyed'] },
+    );
     await h.queue.enqueue('rerun', {}, { singletonKey: 'K' });
     await h.settle(() => calls >= 1);
     await h.queue.enqueue('rerun', {}, { singletonKey: 'K' });
@@ -93,12 +101,86 @@ describe.each(implementations)('JobQueue (%s)', (_label, make) => {
 
   test('enqueue of own key from a running handler is dropped', async () => {
     let calls = 0;
-    await h.queue.work('self', async () => {
-      calls++;
-      await h.queue.enqueue('self', {}, { singletonKey: 'K' });
-    });
+    await h.queue.work(
+      'self',
+      async () => {
+        calls++;
+        await h.queue.enqueue('self', {}, { singletonKey: 'K' });
+      },
+      { policies: ['keyed'] },
+    );
     await h.queue.enqueue('self', {}, { singletonKey: 'K' });
     await h.settle(() => calls >= 1);
     expect(calls).toBe(1);
+  });
+
+  test('stately keeps one queued job behind an active one', async () => {
+    let calls = 0;
+    await h.queue.work(
+      'stately-active',
+      async () => {
+        calls++;
+        if (calls === 1) {
+          await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+          await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+        }
+      },
+      { policies: ['stately'] },
+    );
+    await h.queue.enqueue('stately-active', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.settle(() => calls >= 2);
+    expect(calls).toBe(2);
+  });
+
+  test('stately dedupes queued jobs with the same key', async () => {
+    let calls = 0;
+    await h.queue.work(
+      'stately-queued',
+      async () => {
+        calls++;
+      },
+      { policies: ['stately'] },
+    );
+    await h.queue.enqueue('stately-queued', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.queue.enqueue('stately-queued', {}, { singletonKey: 'K', policy: 'stately' });
+    await h.settle(() => calls >= 1);
+    expect(calls).toBe(1);
+  });
+
+  test('work only polls the queues declared for the job', async () => {
+    const received: object[] = [];
+    await h.queue.work<{ kind: string }>(
+      'declared',
+      async (data) => {
+        received.push(data);
+      },
+      { policies: ['plain', 'stately'] },
+    );
+    await h.queue.enqueue('declared', { kind: 'keyed' }, { singletonKey: 'K' });
+    await h.queue.enqueue(
+      'declared',
+      { kind: 'stately' },
+      { singletonKey: 'S', policy: 'stately' },
+    );
+    await h.queue.enqueue('declared', { kind: 'plain' });
+    await h.settle(() => received.length >= 2);
+    expect(received.map((d) => (d as { kind: string }).kind).sort()).toEqual(['plain', 'stately']);
+  });
+});
+
+describe('logPgBossError', () => {
+  test('logs only name, code and the message before the query params', () => {
+    const error = Object.assign(
+      new Error('insert into job failed\nparams: {"text":"secret daily 7f3a"}'),
+      { code: '23505', detail: 'Key (data)=(secret daily 7f3a) already exists.' },
+    );
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    logPgBossError(error);
+    const calls = spy.mock.calls;
+    spy.mockRestore();
+    expect(calls).toEqual([
+      ['pg-boss error', { name: 'Error', code: '23505', message: 'insert into job failed' }],
+    ]);
+    expect(JSON.stringify(calls)).not.toContain('secret daily 7f3a');
   });
 });

@@ -59,6 +59,12 @@ export function startOfLocalDay(date: string, tz: string): Date {
   return new Date(new TZDate(y, m - 1, d, 0, 0, 0, 0, tz).getTime());
 }
 
+export function localInstant(date: string, hhmm: string, tz: string): Date {
+  const [y, m, d] = parseDate(date);
+  const [h, min] = hhmm.split(':').map(Number);
+  return new Date(new TZDate(y, m - 1, d, h as number, min as number, 0, 0, tz).getTime());
+}
+
 export function isDue(
   now: Date,
   date: string,

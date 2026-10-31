@@ -28,6 +28,15 @@ const ptBR = {
   'web.setup.template': 'Modelo do standwise.yml',
   'web.setup.failedTitle': 'Últimas entregas com falha',
   'web.setup.noFailed': 'Nenhuma entrega com falha.',
+  'web.setup.teamFailures': 'Mensagens do time',
+  'web.setup.personFailures': 'Mensagens diretas',
+  'web.setup.kind': 'Tipo',
+  'web.setup.count': 'Ocorrências',
+  'web.setup.lastAt': 'Última',
+  'web.setup.kind.digest': 'Consolidado',
+  'web.setup.kind.late_daily': 'Daily atrasada',
+  'web.setup.kind.reminder': 'Lembrete',
+  'web.setup.kind.blocker_route': 'Encaminhamento de impedimento',
   'web.setup.team': 'Time',
   'web.setup.date': 'Data',
   'web.setup.error': 'Erro',
@@ -113,8 +122,10 @@ const ptBR = {
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
   'cli.usage':
-    'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n  mcp       Inicia o servidor MCP (stdio) para agentes de IA\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
+    'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n  suggestion confirm|ignore <id>\n            Confirma ou ignora uma sugestão de impedimento do rascunho\n  mcp       Inicia o servidor MCP (stdio) para agentes de IA\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
   'cli.invalidArgs': 'Argumentos inválidos: {message}',
+  'cli.suggestionUsage':
+    'Uso: standwise suggestion confirm <id> [--org <login>]\n     standwise suggestion ignore <id> [--org <login>]',
   'cli.unknownCommand': 'Comando desconhecido: {command}',
   'cli.notLoggedIn': 'Você não está autenticado. Execute: standwise login',
   'cli.loggedIn': 'Autenticado como {login}.',
@@ -143,6 +154,26 @@ const ptBR = {
   'cli.confirm.none': '(nenhum)',
   'cli.confirm.title': 'Enviar esta daily',
   'cli.confirm.description': 'Marque para enviar a daily exatamente como mostrada.',
+  'reminder.title': 'Lembrete da daily',
+  'reminder.body': 'O consolidado do time sai às {digestAt}. Envie a sua com /daily quando puder.',
+  'blockerRouted.title': 'Impedimento de {name}',
+  'blockerRouted.body':
+    '{name} confirmou um impedimento na daily: {blocker}. Você pode ajudar a destravar?',
+  'blockerRouted.reason.pr_reviewers': 'Você recebeu porque você é revisor solicitado no PR.',
+  'blockerRouted.reason.codeowners': 'Você recebeu porque você é dono de código alterado no PR.',
+  'blockerRouted.reason.card_blocker':
+    'Você recebeu porque você é responsável pelo card que bloqueia.',
+  'blockerRouted.reason.manager': 'Você recebeu porque você é gestor do time.',
+  'suggestion.pr_no_review':
+    'O PR {title} está há mais de {hours}h sem review. Quer mencioná-lo como impedimento?',
+  'suggestion.ci_failing':
+    'Os checks do PR {title} estão falhando há mais de {hours}h. Quer mencioná-lo como impedimento?',
+  'suggestion.card_stale':
+    'O card {title} está parado há mais de {days} dias. Quer mencioná-lo como impedimento?',
+  'suggestion.dm.title': 'Sugestões só para você',
+  'checkRun.success.title': 'standwise.yml válido',
+  'checkRun.failure.title': 'standwise.yml inválido',
+  'checkRun.summary': '{count} erro(s) encontrado(s):\n{errors}',
 } as const;
 
 const en = {
@@ -173,6 +204,15 @@ const en = {
   'web.setup.template': 'standwise.yml template',
   'web.setup.failedTitle': 'Latest failed deliveries',
   'web.setup.noFailed': 'No failed deliveries.',
+  'web.setup.teamFailures': 'Team messages',
+  'web.setup.personFailures': 'Direct messages',
+  'web.setup.kind': 'Kind',
+  'web.setup.count': 'Occurrences',
+  'web.setup.lastAt': 'Last',
+  'web.setup.kind.digest': 'Digest',
+  'web.setup.kind.late_daily': 'Late daily',
+  'web.setup.kind.reminder': 'Reminder',
+  'web.setup.kind.blocker_route': 'Blocker routing',
   'web.setup.team': 'Team',
   'web.setup.date': 'Date',
   'web.setup.error': 'Error',
@@ -258,8 +298,10 @@ const en = {
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',
   'cli.usage':
-    'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n  mcp       Start the MCP server (stdio) for AI agents\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
+    'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n  suggestion confirm|ignore <id>\n            Confirm or ignore a suggested blocker from the draft\n  mcp       Start the MCP server (stdio) for AI agents\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
   'cli.invalidArgs': 'Invalid arguments: {message}',
+  'cli.suggestionUsage':
+    'Usage: standwise suggestion confirm <id> [--org <login>]\n       standwise suggestion ignore <id> [--org <login>]',
   'cli.unknownCommand': 'Unknown command: {command}',
   'cli.notLoggedIn': 'You are not signed in. Run: standwise login',
   'cli.loggedIn': 'Signed in as {login}.',
@@ -288,6 +330,27 @@ const en = {
   'cli.confirm.none': '(none)',
   'cli.confirm.title': 'Send this daily',
   'cli.confirm.description': 'Check to send the daily exactly as shown.',
+  'reminder.title': 'Daily reminder',
+  'reminder.body': 'The team digest goes out at {digestAt}. Send yours with /daily when you can.',
+  'blockerRouted.title': "{name}'s blocker",
+  'blockerRouted.body':
+    '{name} confirmed a blocker in their daily: {blocker}. Can you help unblock it?',
+  'blockerRouted.reason.pr_reviewers':
+    'You got this because you are a requested reviewer on the PR.',
+  'blockerRouted.reason.codeowners': 'You got this because you own code changed in the PR.',
+  'blockerRouted.reason.card_blocker':
+    'You got this because you are responsible for the blocking card.',
+  'blockerRouted.reason.manager': 'You got this because you manage the team.',
+  'suggestion.pr_no_review':
+    'The PR {title} has had no review for over {hours}h. Want to mention it as a blocker?',
+  'suggestion.ci_failing':
+    'The checks on PR {title} have been failing for over {hours}h. Want to mention it as a blocker?',
+  'suggestion.card_stale':
+    'The card {title} has been idle for over {days} days. Want to mention it as a blocker?',
+  'suggestion.dm.title': 'Suggestions just for you',
+  'checkRun.success.title': 'standwise.yml is valid',
+  'checkRun.failure.title': 'standwise.yml is invalid',
+  'checkRun.summary': '{count} error(s) found:\n{errors}',
 } as const satisfies Record<keyof typeof ptBR, string>;
 
 const messages: {
