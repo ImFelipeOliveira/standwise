@@ -26,3 +26,20 @@ export function fakeFetch(reply: Reply | ((call: Call) => Reply)) {
   };
   return { fetch: impl as typeof fetch, calls };
 }
+
+export function hangingFetch() {
+  const state = { aborted: 0 };
+  const impl = (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+    new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => {
+        state.aborted++;
+        reject(init.signal?.reason);
+      });
+    });
+  return {
+    fetch: impl as typeof fetch,
+    get aborted() {
+      return state.aborted;
+    },
+  };
+}

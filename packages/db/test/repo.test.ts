@@ -9,6 +9,8 @@ import {
   deleteInstallation,
   failDelivery,
   getConnection,
+  getConnectionInfo,
+  getConnectionSnapshot,
   getDelivery,
   getIdentities,
   getInstallation,
@@ -483,7 +485,7 @@ describe('connections', () => {
       return 'new';
     });
     expect(seen).toEqual(['old']);
-    expect(result).toBe('new');
+    expect(result?.secret).toBe('new');
     expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('new');
     const rows = await db.execute(sql`SELECT secret_ciphertext FROM connections`);
     expect(rows[0]?.secret_ciphertext).not.toBe('new');
@@ -492,7 +494,8 @@ describe('connections', () => {
   test('rotating keeps the current secret when the callback skips', async () => {
     await seed();
     await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
-    expect(await rotateConnectionSecret(db, INST, 'linear', key, async () => null)).toBe('old');
+    const result = await rotateConnectionSecret(db, INST, 'linear', key, async () => null);
+    expect(result?.secret).toBe('old');
     expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('old');
   });
 
@@ -520,6 +523,84 @@ describe('connections', () => {
       rotateConnectionSecret(db, INST, 'linear', key, bump),
     ]);
     expect(seen).toEqual(['v0', 'v1']);
-    expect(results).toEqual(['v1', 'v1']);
+    expect(results.map((result) => result?.secret)).toEqual(['v1', 'v1']);
+  });
+
+  test('rotation does not overwrite a secret saved while it was rotating', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    const result = await rotateConnectionSecret(db, INST, 'linear', key, async () => {
+      await saveConnection(db, INST, 'linear', 'org-2', 'reconnected', key, 'Beta', 'beta');
+      return 'refreshed';
+    });
+    expect(result).toMatchObject({
+      secret: 'reconnected',
+      externalId: 'org-2',
+      externalKey: 'beta',
+    });
+    expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('reconnected');
+  });
+
+  test('invalidation with an expected ciphertext skips a newer secret', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    const old = await getConnectionSnapshot(db, INST, 'linear', key);
+    await saveConnection(db, INST, 'linear', 'org-1', 'new', key, 'Acme', 'acme');
+    await markConnectionInvalid(db, INST, 'linear', old?.ciphertext);
+    expect((await getConnection(db, INST, 'linear', key))?.invalidatedAt).toBeNull();
+    const current = await getConnectionSnapshot(db, INST, 'linear', key);
+    await markConnectionInvalid(db, INST, 'linear', current?.ciphertext);
+    expect((await getConnection(db, INST, 'linear', key))?.invalidatedAt).toBeInstanceOf(Date);
+  });
+
+  test('connection info is read without the secret', async () => {
+    await seed();
+    expect(await getConnectionInfo(db, INST, 'linear')).toBeNull();
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok', key, 'Acme', 'acme');
+    expect(await getConnectionInfo(db, INST, 'linear')).toEqual({
+      externalId: 'org-1',
+      externalName: 'Acme',
+      externalKey: 'acme',
+      invalidatedAt: null,
+    });
+  });
+
+  test('a rotation that cannot get the lock in time fails and changes nothing', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let locked = () => {};
+    const isLocked = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    const holder = db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`linear-refresh:${INST}`}))`);
+      locked();
+      await held;
+    });
+    await isLocked;
+    const calls: string[] = [];
+    const error = await rotateConnectionSecret(
+      db,
+      INST,
+      'linear',
+      key,
+      async (current) => {
+        calls.push(current);
+        return 'new';
+      },
+      { lockTimeoutMs: 50 },
+    ).catch((e: unknown) => e);
+    release();
+    await holder;
+    expect(error).toBeInstanceOf(Error);
+    expect(calls).toEqual([]);
+    expect(await getConnection(db, INST, 'linear', key)).toMatchObject({
+      secret: 'old',
+      invalidatedAt: null,
+    });
   });
 });

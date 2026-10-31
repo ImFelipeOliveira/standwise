@@ -2,6 +2,7 @@ export { listCardActivity, listStaleInProgress } from './activity';
 export {
   createLinearClient,
   LINEAR_GRAPHQL_URL,
+  LINEAR_TIMEOUT_MS,
   type LinearClient,
   type LinearFetch,
 } from './client';

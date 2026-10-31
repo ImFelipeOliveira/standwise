@@ -9,6 +9,8 @@ export type LinearClient = {
 
 export const LINEAR_GRAPHQL_URL = 'https://api.linear.app/graphql';
 
+export const LINEAR_TIMEOUT_MS = 10_000;
+
 const envelope = z.object({
   data: z.unknown().optional(),
   errors: z
@@ -51,6 +53,7 @@ function graphqlMessage(code: string | null, type: string | null, message: strin
 export function createLinearClient(
   accessToken: string,
   fetchImpl: LinearFetch = fetch,
+  timeoutMs: number = LINEAR_TIMEOUT_MS,
 ): LinearClient {
   return {
     async query<T>(query: string, variables: Record<string, unknown>): Promise<T> {
@@ -61,6 +64,7 @@ export function createLinearClient(
           authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ query, variables }),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (res.status === 401) throw new LinearAuthError();
       if (res.status === 429) throw new LinearRateLimitError(retryAfter(res, Date.now()));

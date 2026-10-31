@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test';
 import {
   exchangeLinearCode,
+  LINEAR_TIMEOUT_MS,
   LinearAuthError,
   linearAuthorizeUrl,
   refreshLinearToken,
 } from '../src';
-import { fakeFetch } from './helpers';
+import { fakeFetch, hangingFetch } from './helpers';
 
 test('authorize url asks for app actor and read scope', () => {
   const u = new URL(
@@ -88,19 +89,43 @@ test('a revoked or invalid grant is an auth error', async () => {
   expect((err as Error).message).toBe('linear oauth http 400');
 });
 
-test('a rejected client is an auth error', async () => {
-  const f = fakeFetch({ status: 401, body: '{"error":"invalid_client"}' });
-  await expect(
-    refreshLinearToken({ clientId: 'a', clientSecret: 'b', refreshToken: 'c' }, f.fetch),
-  ).rejects.toBeInstanceOf(LinearAuthError);
-});
-
-test('other token failures are not auth errors', async () => {
-  const f = fakeFetch({ status: 400, body: '{"error":"invalid_request"}' });
+test.each([
+  [400, 'invalid_request'],
+  [401, 'invalid_client'],
+  [400, 'unauthorized_client'],
+  [401, ''],
+])('a %i %s token failure is a plain error', async (status, error) => {
+  const f = fakeFetch({ status, body: error ? JSON.stringify({ error }) : '' });
   const err = await refreshLinearToken(
     { clientId: 'a', clientSecret: 'b', refreshToken: 'c' },
     f.fetch,
   ).catch((e: Error) => e);
   expect(err).not.toBeInstanceOf(LinearAuthError);
-  expect((err as Error).message).toBe('linear oauth http 400');
+  expect((err as Error).message).toBe(`linear oauth http ${status}`);
+});
+
+test('token requests are aborted after the timeout', async () => {
+  const hang = hangingFetch();
+  await expect(
+    exchangeLinearCode(
+      { clientId: 'a', clientSecret: 'b', code: 'c', redirectUri: 'r' },
+      hang.fetch,
+      20,
+    ),
+  ).rejects.toThrow();
+  await expect(
+    refreshLinearToken({ clientId: 'a', clientSecret: 'b', refreshToken: 'c' }, hang.fetch, 20),
+  ).rejects.toThrow();
+  expect(hang.aborted).toBe(2);
+});
+
+test('token requests carry the default timeout signal', async () => {
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const f = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+    signals.push(init?.signal);
+    return Response.json({ access_token: 'at' });
+  }) as typeof fetch;
+  await refreshLinearToken({ clientId: 'a', clientSecret: 'b', refreshToken: 'c' }, f);
+  expect(signals[0]).toBeInstanceOf(AbortSignal);
+  expect(LINEAR_TIMEOUT_MS).toBe(10_000);
 });

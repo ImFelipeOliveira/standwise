@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { LinearFetch } from './client';
+import { LINEAR_TIMEOUT_MS, type LinearFetch } from './client';
 import { LinearAuthError } from './errors';
 
 export type LinearTokens = {
@@ -9,8 +9,6 @@ export type LinearTokens = {
 };
 
 const TOKEN_URL = 'https://api.linear.app/oauth/token';
-
-const AUTH_ERRORS = new Set(['invalid_grant', 'invalid_client', 'unauthorized_client']);
 
 const errorResponse = z.object({ error: z.string() });
 
@@ -35,16 +33,21 @@ export function linearAuthorizeUrl(input: {
   return u.toString();
 }
 
-async function requestTokens(body: URLSearchParams, fetchImpl: LinearFetch): Promise<LinearTokens> {
+async function requestTokens(
+  body: URLSearchParams,
+  fetchImpl: LinearFetch,
+  timeoutMs: number,
+): Promise<LinearTokens> {
   const res = await fetchImpl(TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const message = `linear oauth http ${res.status}`;
     const parsed = errorResponse.safeParse(await res.json().catch(() => null));
-    if (res.status === 401 || (parsed.success && AUTH_ERRORS.has(parsed.data.error))) {
+    if (parsed.success && parsed.data.error === 'invalid_grant') {
       throw new LinearAuthError(message);
     }
     throw new Error(message);
@@ -62,6 +65,7 @@ async function requestTokens(body: URLSearchParams, fetchImpl: LinearFetch): Pro
 export function exchangeLinearCode(
   input: { clientId: string; clientSecret: string; code: string; redirectUri: string },
   fetchImpl: LinearFetch = fetch,
+  timeoutMs: number = LINEAR_TIMEOUT_MS,
 ): Promise<LinearTokens> {
   return requestTokens(
     new URLSearchParams({
@@ -72,12 +76,14 @@ export function exchangeLinearCode(
       client_secret: input.clientSecret,
     }),
     fetchImpl,
+    timeoutMs,
   );
 }
 
 export function refreshLinearToken(
   input: { clientId: string; clientSecret: string; refreshToken: string },
   fetchImpl: LinearFetch = fetch,
+  timeoutMs: number = LINEAR_TIMEOUT_MS,
 ): Promise<LinearTokens> {
   return requestTokens(
     new URLSearchParams({
@@ -87,5 +93,6 @@ export function refreshLinearToken(
       client_secret: input.clientSecret,
     }),
     fetchImpl,
+    timeoutMs,
   );
 }

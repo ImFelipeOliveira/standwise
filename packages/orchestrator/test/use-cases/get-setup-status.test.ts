@@ -183,6 +183,14 @@ describe('getSetupStatus linear', () => {
     expect(result.trackerNotices).toEqual(['linear_not_connected']);
   });
 
+  test('a connection without a url key is shown as invalid', async () => {
+    const result = await status(tracker('linear'), () =>
+      saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear'),
+    );
+    expect(result.linear).toMatchObject({ connected: true, invalid: true });
+    expect(result.trackerNotices).toEqual(['linear_not_connected']);
+  });
+
   test('says jira is coming soon when a team uses jira', async () => {
     expect((await status(tracker('jira'))).trackerNotices).toEqual(['jira_coming_soon']);
   });

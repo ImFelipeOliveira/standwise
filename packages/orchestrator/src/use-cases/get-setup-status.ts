@@ -2,6 +2,7 @@ import type { ConfigError, StandwiseConfig } from '@standwise/core';
 import {
   type ApiKeySummary,
   getConnection,
+  getConnectionInfo,
   listApiKeys,
   listFailedPersonDeliveryGroups,
   listFailedTeamDeliveries,
@@ -90,7 +91,7 @@ export async function getSetupStatus(
     await Promise.all([
       findConfigRepo(octokit, installation.accountLogin),
       getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
-      getConnection(deps.db, installation.id, 'linear', deps.encryptionKey),
+      getConnectionInfo(deps.db, installation.id, 'linear'),
       listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
       listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
       isInstallationAdmin(deps, installation.id, current).catch(() => false),
@@ -119,7 +120,7 @@ export async function getSetupStatus(
         connected: true,
         workspace: linearConnection.externalName ?? linearConnection.externalId,
         urlKey: linearConnection.externalKey ?? '',
-        invalid: linearConnection.invalidatedAt !== null,
+        invalid: linearConnection.invalidatedAt !== null || !linearConnection.externalKey,
       }
     : { connected: false };
   return {

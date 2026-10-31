@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   getConnection,
   markConnectionInvalid,
+  rotateConnectionSecret,
   saveConnection,
   setMemberInstallations,
 } from '@standwise/db';
@@ -117,6 +118,88 @@ describe('linearClientFor', () => {
     setNow(new Date('2026-10-29T14:56:00Z'));
     await expect(linearClientFor(deps, INST)).rejects.toThrow('linear oauth http 503');
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+  });
+
+  test('a reconnect during an in-flight refresh is kept', async () => {
+    const { deps, linear, setNow } = await setup();
+    setNow(new Date('2026-10-29T14:56:00Z'));
+    const reconnected: LinearTokens = {
+      accessToken: 'lin_at_new',
+      refreshToken: 'lin_rt_new',
+      expiresAt: '2026-10-30T15:00:00.000Z',
+    };
+    const refresh = linear.deps.refreshToken;
+    deps.linear = {
+      ...deps.linear,
+      refreshToken: async (input, fetchImpl) => {
+        await saveConnection(
+          db,
+          INST,
+          'linear',
+          'org-1',
+          JSON.stringify(reconnected),
+          KEY,
+          'Acme',
+          'acme',
+        );
+        return refresh(input, fetchImpl);
+      },
+    };
+    const access = await linearClientFor(deps, INST);
+    if (!access) throw new Error('expected access');
+    expect(await savedTokens()).toEqual(reconnected);
+    await getOrganization(access.client);
+    expect(linear.calls.bearer).toEqual(['Bearer lin_at_new']);
+  });
+
+  test('a refresh rejected after a reconnect does not invalidate the new connection', async () => {
+    const { deps, setNow } = await setup();
+    setNow(new Date('2026-10-29T14:56:00Z'));
+    deps.linear = {
+      ...deps.linear,
+      refreshToken: async () => {
+        await saveConnection(
+          db,
+          INST,
+          'linear',
+          'org-1',
+          JSON.stringify(stored),
+          KEY,
+          'Acme',
+          'acme',
+        );
+        throw new LinearAuthError('linear oauth http 400');
+      },
+    };
+    expect(await linearClientFor(deps, INST)).toBeNull();
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+  });
+
+  test('a secret that turns unreadable under the lock marks the connection invalid', async () => {
+    const { deps, linear, setNow } = await setup();
+    setNow(new Date('2026-10-29T14:56:00Z'));
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let locked = () => {};
+    const isLocked = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    const holder = rotateConnectionSecret(db, INST, 'linear', KEY, async () => {
+      locked();
+      await held;
+      return null;
+    });
+    await isLocked;
+    const pending = linearClientFor(deps, INST);
+    await Bun.sleep(50);
+    await saveConnection(db, INST, 'linear', 'org-1', 'not json', KEY, 'Acme', 'acme');
+    release();
+    await holder;
+    expect(await pending).toBeNull();
+    expect(linear.calls.refreshes).toEqual([]);
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeInstanceOf(Date);
   });
 
   test('the setup shows reconnect after a refresh auth failure', async () => {

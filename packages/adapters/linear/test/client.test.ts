@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createLinearClient, LinearAuthError, LinearRateLimitError } from '../src';
-import { fakeFetch, fixture } from './helpers';
+import { fakeFetch, fixture, hangingFetch } from './helpers';
 
 test('posts query and variables to the graphql host with bearer token', async () => {
   const f = fakeFetch({ body: '{"data":{"ok":true}}' });
@@ -151,4 +151,12 @@ test('invalid input keeps only the code so echoed variables never leak', async (
     .query('q', {})
     .catch((e: unknown) => e)) as Error;
   expect(err.message).toBe('INVALID_INPUT');
+});
+
+test('graphql requests are aborted after the timeout', async () => {
+  const hang = hangingFetch();
+  await expect(
+    createLinearClient('tok', hang.fetch, 20).query('query { x }', {}),
+  ).rejects.toThrow();
+  expect(hang.aborted).toBe(1);
 });

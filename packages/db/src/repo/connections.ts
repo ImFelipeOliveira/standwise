@@ -41,22 +41,58 @@ export async function saveConnection(
     });
 }
 
+export type ConnectionSnapshot = StoredConnection & { ciphertext: string };
+
+export type ConnectionInfo = Omit<StoredConnection, 'secret'>;
+
+type ConnectionRow = typeof connections.$inferSelect;
+
+const snapshotOf = (row: ConnectionRow, key: Uint8Array): ConnectionSnapshot => ({
+  externalId: row.externalId,
+  externalName: row.externalName,
+  externalKey: row.externalKey,
+  secret: decryptSecret(row.secretCiphertext, key),
+  invalidatedAt: row.invalidatedAt,
+  ciphertext: row.secretCiphertext,
+});
+
+export async function getConnectionSnapshot(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+  key: Uint8Array,
+): Promise<ConnectionSnapshot | null> {
+  const [row] = await db.select().from(connections).where(byProvider(installationId, provider));
+  return row ? snapshotOf(row, key) : null;
+}
+
 export async function getConnection(
   db: Db,
   installationId: number,
   provider: Provider,
   key: Uint8Array,
 ): Promise<StoredConnection | null> {
-  const [row] = await db.select().from(connections).where(byProvider(installationId, provider));
-  return row
-    ? {
-        externalId: row.externalId,
-        externalName: row.externalName,
-        externalKey: row.externalKey,
-        secret: decryptSecret(row.secretCiphertext, key),
-        invalidatedAt: row.invalidatedAt,
-      }
-    : null;
+  const snapshot = await getConnectionSnapshot(db, installationId, provider, key);
+  if (!snapshot) return null;
+  const { ciphertext: _ciphertext, ...connection } = snapshot;
+  return connection;
+}
+
+export async function getConnectionInfo(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+): Promise<ConnectionInfo | null> {
+  const [row] = await db
+    .select({
+      externalId: connections.externalId,
+      externalName: connections.externalName,
+      externalKey: connections.externalKey,
+      invalidatedAt: connections.invalidatedAt,
+    })
+    .from(connections)
+    .where(byProvider(installationId, provider));
+  return row ?? null;
 }
 
 export async function getConnectionExternalId(
@@ -75,39 +111,59 @@ export async function markConnectionInvalid(
   db: Db,
   installationId: number,
   provider: Provider,
+  expectedCiphertext?: string,
 ): Promise<void> {
   await db
     .update(connections)
     .set({ invalidatedAt: sql`now()` })
-    .where(and(byProvider(installationId, provider), isNull(connections.invalidatedAt)));
+    .where(
+      and(
+        byProvider(installationId, provider),
+        isNull(connections.invalidatedAt),
+        expectedCiphertext === undefined
+          ? undefined
+          : eq(connections.secretCiphertext, expectedCiphertext),
+      ),
+    );
 }
+
+const ROTATION_LOCK_TIMEOUT_MS = 15_000;
 
 export async function rotateConnectionSecret(
   db: Db,
   installationId: number,
   provider: Provider,
   key: Uint8Array,
-  rotate: (secret: string) => Promise<string | null>,
-): Promise<string | null> {
+  rotate: (secret: string, ciphertext: string) => Promise<string | null>,
+  options: { lockTimeoutMs?: number } = {},
+): Promise<ConnectionSnapshot | null> {
   return db.transaction(async (tx) => {
+    const lockTimeout = `${options.lockTimeoutMs ?? ROTATION_LOCK_TIMEOUT_MS}ms`;
+    await tx.execute(sql`select set_config('lock_timeout', ${lockTimeout}, true)`);
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`${provider}-refresh:${installationId}`}))`,
     );
-    const [row] = await tx
-      .select({
-        secretCiphertext: connections.secretCiphertext,
-        invalidatedAt: connections.invalidatedAt,
-      })
-      .from(connections)
-      .where(byProvider(installationId, provider));
-    if (!row || row.invalidatedAt) return null;
-    const current = decryptSecret(row.secretCiphertext, key);
-    const next = await rotate(current);
+    const read = async () => {
+      const [row] = await tx.select().from(connections).where(byProvider(installationId, provider));
+      return row && !row.invalidatedAt ? snapshotOf(row, key) : null;
+    };
+    const current = await read();
+    if (!current) return null;
+    const next = await rotate(current.secret, current.ciphertext);
     if (next === null) return current;
-    await tx
+    const ciphertext = encryptSecret(next, key);
+    const updated = await tx
       .update(connections)
-      .set({ secretCiphertext: encryptSecret(next, key) })
-      .where(byProvider(installationId, provider));
-    return next;
+      .set({ secretCiphertext: ciphertext })
+      .where(
+        and(
+          byProvider(installationId, provider),
+          isNull(connections.invalidatedAt),
+          eq(connections.secretCiphertext, current.ciphertext),
+        ),
+      )
+      .returning();
+    const [row] = updated;
+    return row ? snapshotOf(row, key) : read();
   });
 }

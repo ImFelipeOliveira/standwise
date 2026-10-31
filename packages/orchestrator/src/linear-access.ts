@@ -1,4 +1,9 @@
-import { getConnection, markConnectionInvalid, rotateConnectionSecret } from '@standwise/db';
+import {
+  type ConnectionSnapshot,
+  getConnectionSnapshot,
+  markConnectionInvalid,
+  rotateConnectionSecret,
+} from '@standwise/db';
 import {
   createLinearClient,
   LinearAuthError,
@@ -47,59 +52,101 @@ function needsRefresh(
   return Date.parse(tokens.expiresAt) - now.getTime() <= REFRESH_WINDOW_MS;
 }
 
-async function refreshTokens(
+class UnreadableLinearConnection extends Error {
+  constructor() {
+    super('invalid stored linear connection');
+    this.name = 'UnreadableLinearConnection';
+  }
+}
+
+function readable(
+  connection: ConnectionSnapshot,
+): { tokens: LinearTokens; organization: LinearAccess['organization'] } | null {
+  const tokens = parseTokens(connection.secret);
+  if (!tokens || !connection.externalKey) return null;
+  return { tokens, organization: { id: connection.externalId, urlKey: connection.externalKey } };
+}
+
+async function invalidate(
   deps: LinearAccessDeps,
   installationId: number,
-): Promise<LinearTokens | null> {
-  const secret = await rotateConnectionSecret(
-    deps.db,
-    installationId,
-    'linear',
-    deps.encryptionKey,
-    async (current) => {
-      const tokens = parseTokens(current);
-      if (!tokens || !needsRefresh(tokens, deps.now())) return null;
-      const next = await deps.linear.refreshToken(
-        {
-          clientId: deps.env.linearClientId,
-          clientSecret: deps.env.linearClientSecret,
-          refreshToken: tokens.refreshToken,
-        },
-        deps.linear.fetch,
-      );
-      return JSON.stringify({ ...next, refreshToken: next.refreshToken ?? tokens.refreshToken });
-    },
-  );
-  return secret === null ? null : parseTokens(secret);
+  ciphertext: string,
+  label: string,
+  error: unknown,
+): Promise<null> {
+  logError(label, error, { installationId: String(installationId) });
+  await markConnectionInvalid(deps.db, installationId, 'linear', ciphertext);
+  return null;
+}
+
+async function refreshConnection(
+  deps: LinearAccessDeps,
+  installationId: number,
+  stale: ConnectionSnapshot,
+): Promise<ConnectionSnapshot | null> {
+  let used = stale.ciphertext;
+  try {
+    return await rotateConnectionSecret(
+      deps.db,
+      installationId,
+      'linear',
+      deps.encryptionKey,
+      async (secret, ciphertext) => {
+        used = ciphertext;
+        const tokens = parseTokens(secret);
+        if (!tokens) throw new UnreadableLinearConnection();
+        if (!needsRefresh(tokens, deps.now())) return null;
+        const next = await deps.linear.refreshToken(
+          {
+            clientId: deps.env.linearClientId,
+            clientSecret: deps.env.linearClientSecret,
+            refreshToken: tokens.refreshToken,
+          },
+          deps.linear.fetch,
+        );
+        return JSON.stringify({ ...next, refreshToken: next.refreshToken ?? tokens.refreshToken });
+      },
+    );
+  } catch (error) {
+    if (error instanceof UnreadableLinearConnection) {
+      return invalidate(deps, installationId, used, 'linear connection unreadable', error);
+    }
+    if (error instanceof LinearAuthError) {
+      return invalidate(deps, installationId, used, 'linear token refresh rejected', error);
+    }
+    logError('linear token refresh failed', error, { installationId: String(installationId) });
+    throw error;
+  }
 }
 
 export async function linearClientFor(
   deps: LinearAccessDeps,
   installationId: number,
 ): Promise<LinearAccess | null> {
-  const connection = await getConnection(deps.db, installationId, 'linear', deps.encryptionKey);
+  let connection = await getConnectionSnapshot(
+    deps.db,
+    installationId,
+    'linear',
+    deps.encryptionKey,
+  );
   if (!connection || connection.invalidatedAt) return null;
-  let tokens = parseTokens(connection.secret);
-  if (!tokens || !connection.externalKey) {
-    logError('linear connection unreadable', new Error('invalid stored linear connection'), {
-      installationId: String(installationId),
-    });
-    await markConnectionInvalid(deps.db, installationId, 'linear');
-    return null;
+  let access = readable(connection);
+  if (access && needsRefresh(access.tokens, deps.now())) {
+    connection = await refreshConnection(deps, installationId, connection);
+    if (!connection) return null;
+    access = readable(connection);
   }
-  if (needsRefresh(tokens, deps.now())) {
-    try {
-      tokens = await refreshTokens(deps, installationId);
-    } catch (error) {
-      if (!(error instanceof LinearAuthError)) throw error;
-      logError('linear token refresh rejected', error, { installationId: String(installationId) });
-      await markConnectionInvalid(deps.db, installationId, 'linear');
-      return null;
-    }
-    if (!tokens) return null;
+  if (!access) {
+    return invalidate(
+      deps,
+      installationId,
+      connection.ciphertext,
+      'linear connection unreadable',
+      new UnreadableLinearConnection(),
+    );
   }
   return {
-    client: createLinearClient(tokens.accessToken, deps.linear.fetch),
-    organization: { id: connection.externalId, urlKey: connection.externalKey },
+    client: createLinearClient(access.tokens.accessToken, deps.linear.fetch),
+    organization: access.organization,
   };
 }
