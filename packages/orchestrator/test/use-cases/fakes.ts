@@ -46,6 +46,7 @@ export type FakeOptions = {
   checks?: { createError?: unknown };
   snapshots?: Record<string, PullRequestSnapshot[]>;
   teams?: Record<string, string[]>;
+  truncatedTeams?: string[];
 };
 
 export function fakeLinear() {
@@ -221,7 +222,11 @@ export function fakeDeps(opts: FakeOptions = {}) {
           else if (/^@[^/]+\/.+$/.test(m)) missingTeams.push(m);
           else logins.push(m.toLowerCase());
         }
-        return { logins, missingTeams, truncatedTeams: [] };
+        return {
+          logins,
+          missingTeams,
+          truncatedTeams: members.filter((m) => opts.truncatedTeams?.includes(m)),
+        };
       },
       fetchConfigSource: async (_o, owner, options) => {
         calls.config.push(owner);

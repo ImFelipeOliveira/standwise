@@ -60,6 +60,20 @@ describe('resolveTeamMembers', () => {
     expect(result.missingTeams).toEqual([]);
   });
 
+  test('a 404 on a later page is not reported as missing', async () => {
+    const first = Array.from({ length: 100 }, (_, i) => ({ login: `u${i}` }));
+    const { octokit } = octokitWith({
+      'GET /orgs/acme/teams/flaky/members': (url) =>
+        url.searchParams.get('page') === '2'
+          ? { status: 404, body: '{}' }
+          : { body: JSON.stringify(first) },
+    });
+    const result = await resolveTeamMembers(octokit, 'acme', ['@acme/flaky']);
+    expect(result.logins).toHaveLength(100);
+    expect(result.missingTeams).toEqual([]);
+    expect(result.truncatedTeams).toEqual([]);
+  });
+
   test('a missing team is reported and the other entries still resolve', async () => {
     const { octokit } = octokitWith({});
     expect(await resolveTeamMembers(octokit, 'acme', ['@acme/gone', 'Bob'])).toEqual({

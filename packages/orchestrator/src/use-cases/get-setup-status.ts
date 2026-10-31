@@ -12,6 +12,7 @@ import {
   type TeamFailure,
 } from '@standwise/db';
 import type { Deps } from '../deps';
+import { logError } from '../log-error';
 import { statusOf } from '../membership';
 import { type TeamNotice, teamResolutionNotices } from '../teams';
 import { authorizeInstallation } from './authorize-installation';
@@ -21,6 +22,7 @@ import { loadWebhookOverview, type WebhookOverview } from './webhook-endpoints';
 
 const TEAM_FAILURE_LIMIT = 5;
 const PERSON_FAILURE_GROUP_LIMIT = 10;
+const TEAM_NOTICES_TIMEOUT_MS = 3000;
 
 export type SetupStatus = {
   installationId: number;
@@ -74,6 +76,28 @@ async function findConfigRepo(octokit: Octokit, owner: string): Promise<SetupSta
   }
 }
 
+async function safeTeamNotices(
+  deps: Deps,
+  installationId: number,
+  owner: string,
+  config: StandwiseConfig | null,
+): Promise<TeamNotice[]> {
+  if (!config) return [];
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<TeamNotice[]>((resolve) => {
+    timer = setTimeout(() => resolve([]), TEAM_NOTICES_TIMEOUT_MS);
+  });
+  const resolution = teamResolutionNotices(deps, installationId, owner, config).catch((error) => {
+    logError('setup team resolution failed', error, { installationId: String(installationId) });
+    return [];
+  });
+  try {
+    return await Promise.race([resolution, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getSetupStatus(
   deps: Deps,
   isMember: MembershipCheck,
@@ -85,6 +109,13 @@ export async function getSetupStatus(
     isMember,
     member,
     installationId,
+  );
+  const operational = operationalConfig(installation);
+  const teamNoticesPromise = safeTeamNotices(
+    deps,
+    installation.id,
+    installation.accountLogin,
+    operational,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
   const [configRepo, connection, linearConnection, teamFailures, personFailures, admin] =
@@ -123,10 +154,7 @@ export async function getSetupStatus(
         invalid: linearConnection.invalidatedAt !== null || !linearConnection.externalKey,
       }
     : { connected: false };
-  const operational = operationalConfig(installation);
-  const teamNotices = operational
-    ? await teamResolutionNotices(deps, installation.id, installation.accountLogin, operational)
-    : [];
+  const teamNotices = await teamNoticesPromise;
   return {
     installationId: installation.id,
     owner: installation.accountLogin,
