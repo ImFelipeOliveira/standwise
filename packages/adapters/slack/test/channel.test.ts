@@ -108,8 +108,8 @@ describe('createSlackChannel', () => {
     expect(err.code).toBe('not_in_channel');
   });
 
-  test('sendDirect maps user_not_found and account_inactive', async () => {
-    for (const code of ['user_not_found', 'account_inactive']) {
+  test('sendDirect maps user_not_found, user_disabled and account_inactive', async () => {
+    for (const code of ['user_not_found', 'user_disabled', 'account_inactive']) {
       const { url } = fake({ 'conversations.open': () => ({ ok: false, error: code }) });
       const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
       const err = await ch.sendDirect('U1', msg).catch((e) => e);

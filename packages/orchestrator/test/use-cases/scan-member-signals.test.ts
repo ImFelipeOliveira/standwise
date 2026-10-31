@@ -4,6 +4,7 @@ import {
   decideSuggestion,
   deleteIdentityByLogin,
   getDelivery,
+  getIdentities,
   listPendingSuggestions,
   markConnectionInvalid,
   markDeliverySent,
@@ -12,6 +13,7 @@ import {
   setMemberInstallations,
 } from '@standwise/db';
 import { GitHubRateLimitError } from '@standwise/github';
+import { ChatDeliveryError } from '@standwise/slack';
 import { suggestions } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { nullTracker, scanMemberSignals } from '../../src';
@@ -310,6 +312,28 @@ describe('scanMemberSignals', () => {
     expect(delivery?.status).toBe('failed');
     expect(delivery?.error).toBe('no_chat_identity');
     expect((await states(s.alice.id))[0]?.notified).toBe(false);
+  });
+
+  test('a user_not_found DM failure forgets the stored slack identity', async () => {
+    const s = await setup({ directMessage: true });
+    s.snapshots.alice = [pr()];
+    s.failWith(new ChatDeliveryError('user_not_found', 'gone'));
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await s.scan();
+    } finally {
+      spy.mockRestore();
+    }
+    const delivery = await getDelivery(db, {
+      installationId: INST,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'suggestion_dm',
+      subject: `${s.alice.id}:${FP}`,
+    });
+    expect(delivery?.status).toBe('failed');
+    expect(delivery?.error).toStartWith('user_not_found');
+    expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
   });
 
   test('a failed DM is recorded and the remaining suggestions are still sent', async () => {

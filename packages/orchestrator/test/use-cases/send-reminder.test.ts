@@ -295,15 +295,33 @@ teams:
     expect(Object.fromEntries(await getIdentities(db, INST, 'slack'))).toEqual({ bob: 'U2' });
   });
 
-  test('an account_inactive failure on an override identity deletes nothing', async () => {
+  test('a user_not_found failure on an override identity deletes nothing', async () => {
     const { deps, failWith } = await setup(
       config('[alice, bob]', 'members:\n  alice:\n    slack: U0CONF\n'),
     );
     await identify('alice', 'U0CONF');
-    failWith(new ChatDeliveryError('account_inactive', 'inactive'));
+    failWith(new ChatDeliveryError('user_not_found', 'gone'));
     await expect(sendReminder(deps, job('alice'))).rejects.toThrow();
     expect((await getDelivery(db, reminderKey('alice')))?.status).toBe('failed');
     expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U0CONF');
+  });
+
+  test('a user_disabled failure forgets the stored slack identity', async () => {
+    const { deps, failWith } = await setup();
+    await identify('alice', 'U1');
+    failWith(new ChatDeliveryError('user_disabled', 'disabled'));
+    await expect(sendReminder(deps, job('alice'))).rejects.toThrow();
+    expect((await getDelivery(db, reminderKey('alice')))?.error).toStartWith('user_disabled');
+    expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
+  });
+
+  test('an account_inactive failure is about the token and deletes nothing', async () => {
+    const { deps, failWith } = await setup();
+    await identify('alice', 'U1');
+    failWith(new ChatDeliveryError('account_inactive', 'inactive'));
+    await expect(sendReminder(deps, job('alice'))).rejects.toThrow();
+    expect((await getDelivery(db, reminderKey('alice')))?.status).toBe('failed');
+    expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U1');
   });
 
   test('other slack errors keep the stored identity', async () => {

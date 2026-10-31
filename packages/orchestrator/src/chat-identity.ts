@@ -30,7 +30,7 @@ export async function chatUserIdFor(
   return ids.get(login.toLowerCase()) ?? null;
 }
 
-const STALE_CHAT_USER = new Set(['user_not_found', 'account_inactive']);
+const STALE_CHAT_USER = new Set(['user_not_found', 'user_disabled']);
 
 export async function forgetChatIdentity(
   deps: Pick<Deps, 'db'>,
