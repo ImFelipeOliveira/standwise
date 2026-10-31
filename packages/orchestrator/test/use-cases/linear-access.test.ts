@@ -1,6 +1,7 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
   getConnection,
+  getConnectionInfo,
   markConnectionInvalid,
   rotateConnectionSecret,
   saveConnection,
@@ -72,7 +73,43 @@ describe('linearClientFor', () => {
     ]);
     expect(await savedTokens()).toEqual(linear.state.refreshed);
     await getOrganization(access.client);
-    expect(linear.calls.bearer).toEqual(['Bearer lin_at_2']);
+    expect(linear.calls.bearer).toEqual(['Bearer lin_at_2', 'Bearer lin_at_2']);
+  });
+
+  test('a refresh heals the workspace name and url key', async () => {
+    const { deps, linear, setNow } = await setup();
+    linear.state.organization = { id: 'org-1', name: 'Acme Renamed', urlKey: 'acme-new' };
+    setNow(new Date('2026-10-29T14:56:00Z'));
+    const access = await linearClientFor(deps, INST);
+    expect(access?.organization).toEqual({ id: 'org-1', urlKey: 'acme-new' });
+    expect(await getConnectionInfo(db, INST, 'linear')).toMatchObject({
+      externalName: 'Acme Renamed',
+      externalKey: 'acme-new',
+      invalidatedAt: null,
+    });
+  });
+
+  test('a failed workspace lookup after a refresh keeps the old name and key', async () => {
+    const { deps, linear, setNow } = await setup();
+    linear.state.graphqlStatus = 500;
+    setNow(new Date('2026-10-29T14:56:00Z'));
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    let access: Awaited<ReturnType<typeof linearClientFor>>;
+    let logged = '';
+    try {
+      access = await linearClientFor(deps, INST);
+      logged = JSON.stringify(spy.mock.calls);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(logged).toContain('linear workspace refresh failed');
+    expect(access?.organization).toEqual({ id: 'org-1', urlKey: 'acme' });
+    expect(await savedTokens()).toEqual(linear.state.refreshed);
+    expect(await getConnectionInfo(db, INST, 'linear')).toMatchObject({
+      externalName: 'Acme',
+      externalKey: 'acme',
+      invalidatedAt: null,
+    });
   });
 
   test('keeps the old refresh token when the refresh returns none', async () => {
@@ -113,11 +150,37 @@ describe('linearClientFor', () => {
     expect(await savedTokens()).toEqual(stored);
   });
 
-  test('a refresh failure that is not about auth is rethrown without invalidating', async () => {
+  test('a refresh failure that is not about auth after expiry is rethrown without invalidating', async () => {
+    const { deps, linear, setNow } = await setup();
+    linear.state.refreshError = new Error('linear oauth http 503');
+    setNow(new Date('2026-10-29T15:01:00Z'));
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(linearClientFor(deps, INST)).rejects.toThrow('linear oauth http 503');
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+  });
+
+  test('a refresh failure that is not about auth keeps using the still valid token', async () => {
     const { deps, linear, setNow } = await setup();
     linear.state.refreshError = new Error('linear oauth http 503');
     setNow(new Date('2026-10-29T14:56:00Z'));
-    await expect(linearClientFor(deps, INST)).rejects.toThrow('linear oauth http 503');
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    let access: Awaited<ReturnType<typeof linearClientFor>>;
+    let logged = '';
+    try {
+      access = await linearClientFor(deps, INST);
+      logged = JSON.stringify(spy.mock.calls);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(logged).toContain('linear token refresh failed');
+    if (!access) throw new Error('expected access');
+    await getOrganization(access.client);
+    expect(linear.calls.bearer).toEqual(['Bearer lin_at_1']);
+    expect(await savedTokens()).toEqual(stored);
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
   });
 

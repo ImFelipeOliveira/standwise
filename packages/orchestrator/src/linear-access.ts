@@ -3,9 +3,11 @@ import {
   getConnectionSnapshot,
   markConnectionInvalid,
   rotateConnectionSecret,
+  updateConnectionDetails,
 } from '@standwise/db';
 import {
   createLinearClient,
+  getOrganization,
   LinearAuthError,
   type LinearClient,
   type LinearTokens,
@@ -80,14 +82,56 @@ async function invalidate(
   return null;
 }
 
+async function stillValid(
+  deps: LinearAccessDeps,
+  installationId: number,
+): Promise<ConnectionSnapshot | null> {
+  const current = await getConnectionSnapshot(
+    deps.db,
+    installationId,
+    'linear',
+    deps.encryptionKey,
+  );
+  if (!current || current.invalidatedAt) return null;
+  const expiresAt = parseTokens(current.secret)?.expiresAt;
+  if (!expiresAt || Date.parse(expiresAt) <= deps.now().getTime()) return null;
+  return current;
+}
+
+async function healWorkspace(
+  deps: LinearAccessDeps,
+  installationId: number,
+  connection: ConnectionSnapshot,
+  accessToken: string,
+): Promise<ConnectionSnapshot> {
+  try {
+    const organization = await getOrganization(createLinearClient(accessToken, deps.linear.fetch));
+    if (organization.id !== connection.externalId) return connection;
+    const details = { externalName: organization.name, externalKey: organization.urlKey };
+    const updated = await updateConnectionDetails(
+      deps.db,
+      installationId,
+      'linear',
+      connection.externalId,
+      details,
+    );
+    return updated ? { ...connection, ...details } : connection;
+  } catch (error) {
+    logError('linear workspace refresh failed', error, { installationId: String(installationId) });
+    return connection;
+  }
+}
+
 async function refreshConnection(
   deps: LinearAccessDeps,
   installationId: number,
   stale: ConnectionSnapshot,
 ): Promise<ConnectionSnapshot | null> {
   let used = stale.ciphertext;
+  let rotatedAccessToken: string | null = null;
+  let connection: ConnectionSnapshot | null;
   try {
-    return await rotateConnectionSecret(
+    connection = await rotateConnectionSecret(
       deps.db,
       installationId,
       'linear',
@@ -105,6 +149,7 @@ async function refreshConnection(
           },
           deps.linear.fetch,
         );
+        rotatedAccessToken = next.accessToken;
         return JSON.stringify({ ...next, refreshToken: next.refreshToken ?? tokens.refreshToken });
       },
     );
@@ -116,8 +161,13 @@ async function refreshConnection(
       return invalidate(deps, installationId, used, 'linear token refresh rejected', error);
     }
     logError('linear token refresh failed', error, { installationId: String(installationId) });
+    const current = await stillValid(deps, installationId);
+    if (current) return current;
     throw error;
   }
+  if (!connection || rotatedAccessToken === null) return connection;
+  if (parseTokens(connection.secret)?.accessToken !== rotatedAccessToken) return connection;
+  return healWorkspace(deps, installationId, connection, rotatedAccessToken);
 }
 
 export async function linearClientFor(
