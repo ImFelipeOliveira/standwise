@@ -1,9 +1,12 @@
 import { type DefaultTheme, defineConfigWithTheme } from 'vitepress';
+import { publicUrlPlugin, resolvePublicUrl } from '../../../scripts/docs-public-url';
 
 const supportEmail = process.env.SUPPORT_EMAIL?.trim();
 if (!supportEmail) {
   throw new Error('SUPPORT_EMAIL must be set to build the documentation site');
 }
+
+const publicUrl = resolvePublicUrl(process.env.STANDWISE_PUBLIC_URL?.trim());
 
 type ThemeConfig = DefaultTheme.Config & { supportEmail: string };
 
@@ -104,6 +107,11 @@ export default defineConfigWithTheme<ThemeConfig>({
   srcExclude: ['README.md'],
   lastUpdated: false,
   ignoreDeadLinks: false,
+  markdown: {
+    config: (md) => {
+      publicUrlPlugin(publicUrl)(md);
+    },
+  },
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/docs/logo.svg' }]],
   locales: {
     root: {
