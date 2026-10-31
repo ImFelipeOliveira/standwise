@@ -1,8 +1,8 @@
 import {
   buildSuggestionDm,
   localDate,
+  type Message,
   type StandwiseConfig,
-  type SuggestionDmKind,
   type TeamConfig,
 } from '@standwise/core';
 import {
@@ -29,8 +29,13 @@ export type NotifySuggestionsInput = {
   suggestions: SuggestionRow[];
 };
 
-function hoursFor(kind: SuggestionDmKind, team: TeamConfig): number {
-  return kind === 'ci_failing' ? CI_FAILING_HOURS : team.signals.prReviewHours;
+function suggestionDm(suggestion: SuggestionRow, team: TeamConfig): Message {
+  const base = { lang: team.language, ref: suggestion.ref };
+  if (suggestion.kind === 'card_stale') {
+    return buildSuggestionDm({ ...base, kind: 'card_stale', days: team.signals.cardStaleDays });
+  }
+  const hours = suggestion.kind === 'ci_failing' ? CI_FAILING_HOURS : team.signals.prReviewHours;
+  return buildSuggestionDm({ ...base, kind: suggestion.kind, hours });
 }
 
 export async function notifySuggestions(
@@ -40,7 +45,6 @@ export async function notifySuggestions(
   const login = input.login.toLowerCase();
   const date = localDate(deps.now(), input.team.timezone);
   for (const suggestion of input.suggestions) {
-    if (suggestion.kind !== 'pr_no_review' && suggestion.kind !== 'ci_failing') continue;
     const key: DeliveryKey = {
       installationId: input.installationId,
       teamName: '',
@@ -61,15 +65,7 @@ export async function notifySuggestions(
         await failDelivery(deps.db, key, claim.token, 'no_chat_identity');
         continue;
       }
-      const ref = await chat.sendDirect(
-        chatUserId,
-        buildSuggestionDm({
-          lang: input.team.language,
-          kind: suggestion.kind,
-          ref: suggestion.ref,
-          hours: hoursFor(suggestion.kind, input.team),
-        }),
-      );
+      const ref = await chat.sendDirect(chatUserId, suggestionDm(suggestion, input.team));
       await completeDelivery(deps.db, key, claim.token, ref);
       await markSuggestionNotified(deps.db, suggestion.id);
     } catch (error) {

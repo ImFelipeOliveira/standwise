@@ -4,6 +4,10 @@ Breaking changes are announced here at least 90 days before they take effect. Se
 
 ## Unreleased
 
+- Linear integration. The draft `activity` can include `card_started` and `card_done` items for your own Linear cards (`repo` is the Linear team key, `url` the card link), and `suggestions` can have `kind: "card_stale"`. Both are additive: clients must ignore kinds they do not know. Blocker `ref` accepts a Linear card URL.
+- `standwise.yml`: `tracker: { provider: linear, team: <KEY> }`, `members.<login>.linear` (an email) and `signals.card_stale_days` (default 5) now take effect.
+- Deploy requirement: the api and the worker need `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` and fail to start without them.
+- Setup page: **Connect Linear** and **Reconnect Linear** for admins. A failed connection returns `linear_oauth_failed` (HTTP 502).
 - Default language is now English when none is specified.
 - `standwise mcp`: local MCP server over stdio with the tools `standwise_whoami`, `standwise_get_draft` and `standwise_submit_daily` (confirmed by the person through elicitation, or `confirmed: true` as a fallback), plus the manager tools `standwise_list_teams`, `standwise_get_digest`, `standwise_list_dailies` and `standwise_list_blockers`. See the MCP guide.
 - Reminders: at `remind_at` on workdays, people who have not sent the daily get a Slack direct message, at most once per day and only before the team digest. `remind_at` must now be before `digest_at`, otherwise `standwise.yml` is invalid.

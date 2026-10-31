@@ -24,13 +24,14 @@ The app asks for these permissions:
 
 After the install, GitHub sends you to the Standwise setup page. Sign in with GitHub when asked. The page address is `/setup?installation_id=<id>` on the Standwise API.
 
-Any member of the organization who signs in can open the setup page. Only admins can connect or reconnect Slack, and only admins see the **API keys** and **Webhooks** sections. An admin is a GitHub organization admin, or the account owner for a personal account.
+Any member of the organization who signs in can open the setup page. Only admins can connect or reconnect Slack and Linear, and only admins see the **API keys** and **Webhooks** sections. An admin is a GitHub organization admin, or the account owner for a personal account.
 
 The page shows:
 
 - the organization and the state of `standwise.yml`;
 - a button to create the file from a template, and the template itself;
 - the Slack connection, with **Connect Slack** or **Reconnect Slack** for admins;
+- the Linear connection, with **Connect Linear** or **Reconnect Linear** for admins;
 - the last 5 failed deliveries, with the team, date and error;
 - for admins, API keys and webhooks.
 
@@ -61,6 +62,18 @@ Change the team name, time zone, times, people and channel, then commit. The fil
 Full reference: [standwise.yml](/admin/configuration).
 
 Standwise reloads the file on every push to the default branch of `.github` that changes `standwise.yml`, and when the repositories of the installation change. Reload the setup page to see the new state.
+
+## 5. Connect Linear (optional)
+
+Skip this step if your teams do not use Linear. An admin clicks **Connect Linear** in the Linear section of the setup page and approves the app in the Linear workspace. The page then shows `Connected to the <workspace> workspace.` and a **Reconnect Linear** button.
+
+- The connection is read-only (scope `read`) and the app acts as itself, not as the admin. There is one Linear workspace per installation. Tokens are encrypted and refreshed automatically.
+- Only an admin can connect or reconnect Linear. Other members see "Only an admin can connect or reconnect Linear."
+- If Linear access is revoked, the page shows `The connection to the <workspace> workspace stopped working. Reconnect Linear.` and **Reconnect Linear**. Until then, Linear features pause silently: drafts have no cards, card blockers go to the managers, and card suggestions are kept as they are.
+- Reconnecting a different workspace clears the Linear links of the installation. People are linked again when they sign in and whenever `standwise.yml` changes.
+- The page warns "This team uses Linear, but Linear is not connected to this installation yet." when a team has `tracker.provider: linear` and Linear is not connected. For `tracker.provider: jira` it shows "The Jira integration is not available yet."
+
+Then set the tracker per team in `standwise.yml`. See [`tracker`](/admin/configuration#tracker) and [Identity mapping](/admin/configuration#identity-mapping). What Standwise reads is in [Privacy](/privacy#linear).
 
 ## Configuration states
 
@@ -93,4 +106,5 @@ When a push to any branch of the `.github` repository touches `standwise.yml`, a
 ## Next steps
 
 - Ask each member to follow [Getting started](/members/getting-started). People are matched to their Slack user when they sign in, so they should sign in after Slack is connected.
+- If you use Linear, ask each member to sign in after Linear is connected, so their Linear user is linked.
 - Create [API keys](/admin/api-keys) or [webhooks](/admin/webhooks) if other systems need the data.

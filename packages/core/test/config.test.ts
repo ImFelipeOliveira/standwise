@@ -57,6 +57,25 @@ describe('parseConfig', () => {
     }
   });
 
+  test('requires linear member override to be an email', () => {
+    const ok = parseConfig(
+      JSON.stringify({ teams: [team()], members: { alice: { linear: 'alice@acme.com' } } }),
+    );
+    expect(ok.ok).toBe(true);
+    const bad = parseConfig(
+      JSON.stringify({ teams: [team()], members: { alice: { linear: 'alice' } } }),
+    );
+    expect(bad.ok).toBe(false);
+    if (bad.ok) return;
+    expect(bad.errors[0]?.path).toBe('members.alice.linear');
+    expect(bad.errors[0]?.message).toContain('linear must be an email address');
+  });
+
+  test('still parses tracker provider jira', () => {
+    const r = parseConfig(toYaml([team({ tracker: { provider: 'jira', team: 'BE' } })]));
+    expect(r.ok).toBe(true);
+  });
+
   test('accepts U and W slack user ids', () => {
     for (const slack of ['U0123', 'W0ABC9']) {
       const r = parseConfig(JSON.stringify({ teams: [team()], members: { alice: { slack } } }));

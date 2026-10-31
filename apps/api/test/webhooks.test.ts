@@ -58,8 +58,16 @@ function harness(source: Source) {
         throw new Error('unused');
       },
     },
+    linear: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
+      refreshToken: async () => {
+        throw new Error('unused');
+      },
+    },
     chatFor: async () => null,
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -70,6 +78,8 @@ function harness(source: Source) {
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
     },
   };
   const worker = async () => {

@@ -29,6 +29,17 @@ O consolidado mostra `@` e o seu login do GitHub, em texto, quando o Standwise n
 2. **O `standwise.yml` tinha uma versão válida quando você entrou.** Se não existia ou nunca tinha sido válido, rode `standwise login` de novo depois de corrigido.
 3. **Os seus e-mails batem.** O Standwise busca o seu usuário do Slack pelo e-mail principal verificado da sua conta do GitHub. Se a sua conta do Slack usa outro e-mail, peça ao admin para adicionar `members.<seu-login>.slack` com o seu id de membro do Slack no `standwise.yml` (veja [Mapeamento de identidades](/pt-BR/admin/configuration#mapeamento-de-identidades)). O mapeamento vale a partir do próximo consolidado.
 
+## A página de setup diz que a conexão com o Linear parou de funcionar
+
+A página de setup diz que a conexão com o seu workspace do Linear "parou de funcionar". O Linear parou de aceitar a conexão, em geral porque o acesso foi revogado no workspace do Linear. Peça a um admin para clicar em **Reconectar o Linear** na página de setup. Até lá, os recursos do Linear pausam em silêncio: os rascunhos ficam sem cards, os impedimentos de card vão para os gestores e as sugestões de card ficam como estão. Se o admin reconectar um workspace diferente, as ligações com o Linear são apagadas e refeitas quando as pessoas entram.
+
+## Os meus cards não aparecem no rascunho
+
+1. **O Linear está conectado.** Veja a página de setup. Se ela diz que a conexão com o workspace "parou de funcionar", peça a um admin para reconectar. O botão **Reconectar o Linear** aparece sempre para admins, então ele sozinho não quer dizer que há algo errado.
+2. **O seu primeiro time usa o Linear.** Os cards vêm do tracker do seu primeiro time no `standwise.yml`, o primeiro que lista você. Confira `tracker: { provider: linear, team: <CHAVE> }` nesse time. A chave do time limita os cards a esse time do Linear.
+3. **Você está ligado ao seu usuário no Linear.** O Standwise usa `members.<seu-login>.linear` (um e-mail) ou, sem ele, o seu e-mail principal verificado do GitHub. Se o seu e-mail no Linear é outro, peça ao admin para definir `members.<seu-login>.linear`. As ligações são feitas quando você entra depois que o Linear foi conectado, então rode `standwise login` de novo.
+4. **O card mudou na janela.** Só aparecem os cards seus que foram para em andamento, ou foram concluídos, desde a sua última daily. Cards de outro workspace do Linear nunca são lidos.
+
 ## O consolidado não chegou
 
 Abra a página de setup e confira, nesta ordem:

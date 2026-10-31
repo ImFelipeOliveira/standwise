@@ -119,6 +119,14 @@ function harness(
         throw new Error('unused');
       },
     },
+    linear: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
+      refreshToken: async () => {
+        throw new Error('unused');
+      },
+    },
     chatFor: async () =>
       opts.hasSlack === false
         ? null
@@ -128,7 +136,7 @@ function harness(
               return opts.slackUser === undefined ? 'U9' : opts.slackUser;
             },
           } as never),
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -137,6 +145,8 @@ function harness(
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
       appId: '1',
       webhookSecret: 'whsec',
     },

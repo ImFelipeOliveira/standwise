@@ -3,13 +3,15 @@ import {
   claimDelivery,
   createApiKey,
   failDelivery,
+  markConnectionInvalid,
   revokeApiKey,
+  saveConnection,
   setInstallationConfig,
   setMemberInstallations,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, getSetupStatus } from '../../src';
-import { fakeDeps, INST, seedMember, seedOrg } from './fakes';
+import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
 
@@ -133,5 +135,63 @@ describe('getSetupStatus failed deliveries', () => {
     expect(json).not.toContain('pr_no_review');
     expect(json).not.toContain('suggestion_dm');
     expect(json).not.toContain('signal_scan');
+  });
+});
+
+describe('getSetupStatus linear', () => {
+  const KEY = new Uint8Array(32).fill(7);
+  const tracker = (provider: string) => `    tracker: { provider: ${provider}, team: ENG }`;
+
+  async function status(extra = '', before: () => Promise<void> = async () => {}) {
+    await seedOrg(config('[alice, bob]', extra));
+    await before();
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps();
+    return getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+  }
+
+  test('reports linear as not connected without notices when no team uses a tracker', async () => {
+    const result = await status();
+    expect(result.linear).toEqual({ connected: false });
+    expect(result.trackerNotices).toEqual([]);
+  });
+
+  test('reports the connected workspace and its url key', async () => {
+    const result = await status(tracker('linear'), () =>
+      saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme'),
+    );
+    expect(result.linear).toEqual({
+      connected: true,
+      workspace: 'Acme Linear',
+      urlKey: 'acme',
+      invalid: false,
+    });
+    expect(result.trackerNotices).toEqual([]);
+  });
+
+  test('warns when a team uses linear and linear is not connected', async () => {
+    expect((await status(tracker('linear'))).trackerNotices).toEqual(['linear_not_connected']);
+  });
+
+  test('an invalid connection shows its own reconnect state, not the not-connected notice', async () => {
+    const result = await status(tracker('linear'), async () => {
+      await saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
+      await markConnectionInvalid(db, INST, 'linear');
+    });
+    expect(result.linear).toMatchObject({ connected: true, invalid: true });
+    expect(result.trackerNotices).toEqual([]);
+  });
+
+  test('a connection without a url key is shown as invalid', async () => {
+    const result = await status(tracker('linear'), () =>
+      saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear'),
+    );
+    expect(result.linear).toMatchObject({ connected: true, invalid: true });
+    expect(result.trackerNotices).toEqual([]);
+  });
+
+  test('says jira is coming soon when a team uses jira', async () => {
+    expect((await status(tracker('jira'))).trackerNotices).toEqual(['jira_coming_soon']);
   });
 });

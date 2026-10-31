@@ -121,6 +121,9 @@ const ptBR = {
   'web.error.slack_oauth_failed.title': 'Falha ao conectar o Slack',
   'web.error.slack_oauth_failed.body':
     'Não foi possível concluir a conexão com o Slack. Tente conectar novamente.',
+  'web.error.linear_oauth_failed.title': 'Falha ao conectar o Linear',
+  'web.error.linear_oauth_failed.body':
+    'Não foi possível concluir a conexão com o Linear. Tente conectar novamente.',
   'cli.usage':
     'Uso: standwise <comando> [opções]\n\nComandos:\n  login     Entra com o GitHub\n  logout    Remove as credenciais locais\n  whoami    Mostra o usuário e as organizações\n  draft     Gera o rascunho da daily (JSON)\n  submit    Envia a daily (JSON em --file ou stdin)\n  suggestion confirm|ignore <id>\n            Confirma ou ignora uma sugestão de impedimento do rascunho\n  mcp       Inicia o servidor MCP (stdio) para agentes de IA\n\nOpções:\n  --org <login>      Organização\n  --file <caminho>   Arquivo JSON da daily\n  --api-url <url>    URL da API (STANDWISE_API_URL)\n  --help             Mostra esta ajuda\n  --version          Mostra a versão',
   'cli.invalidArgs': 'Argumentos inválidos: {message}',
@@ -163,6 +166,8 @@ const ptBR = {
   'blockerRouted.reason.codeowners': 'Você recebeu porque você é dono de código alterado no PR.',
   'blockerRouted.reason.card_blocker':
     'Você recebeu porque você é responsável pelo card que bloqueia.',
+  'blockerRouted.reason.card_owner':
+    'Você recebeu porque você é responsável pelo card bloqueado ou o criou.',
   'blockerRouted.reason.manager': 'Você recebeu porque você é gestor do time.',
   'suggestion.pr_no_review':
     'O PR {title} está há mais de {hours}h sem review. Quer mencioná-lo como impedimento?',
@@ -170,6 +175,16 @@ const ptBR = {
     'Os checks do PR {title} estão falhando há mais de {hours}h. Quer mencioná-lo como impedimento?',
   'suggestion.card_stale':
     'O card {title} está parado há mais de {days} dias. Quer mencioná-lo como impedimento?',
+  'setup.linear.title': 'Linear',
+  'setup.linear.connect': 'Conectar o Linear',
+  'setup.linear.connected': 'Conectado ao workspace {workspace}.',
+  'setup.linear.reconnect': 'Reconectar o Linear',
+  'setup.linear.invalid':
+    'A conexão com o workspace {workspace} parou de funcionar. Reconecte o Linear.',
+  'setup.linear.adminOnly': 'Só um admin pode conectar ou reconectar o Linear.',
+  'setup.tracker.jiraComingSoon': 'A integração com o Jira ainda não está disponível.',
+  'setup.tracker.notConnected':
+    'Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação.',
   'suggestion.dm.title': 'Sugestões só para você',
   'checkRun.success.title': 'standwise.yml válido',
   'checkRun.failure.title': 'standwise.yml inválido',
@@ -297,6 +312,8 @@ const en = {
   'web.error.slack_oauth_failed.title': 'Slack connection failed',
   'web.error.slack_oauth_failed.body':
     'We could not complete the Slack connection. Please try connecting again.',
+  'web.error.linear_oauth_failed.title': 'Linear connection failed',
+  'web.error.linear_oauth_failed.body': 'Could not finish connecting Linear. Try connecting again.',
   'cli.usage':
     'Usage: standwise <command> [options]\n\nCommands:\n  login     Sign in with GitHub\n  logout    Remove local credentials\n  whoami    Show the user and organizations\n  draft     Build the daily draft (JSON)\n  submit    Submit the daily (JSON from --file or stdin)\n  suggestion confirm|ignore <id>\n            Confirm or ignore a suggested blocker from the draft\n  mcp       Start the MCP server (stdio) for AI agents\n\nOptions:\n  --org <login>      Organization\n  --file <path>      Daily JSON file\n  --api-url <url>    API URL (STANDWISE_API_URL)\n  --help             Show this help\n  --version          Show the version',
   'cli.invalidArgs': 'Invalid arguments: {message}',
@@ -340,6 +357,8 @@ const en = {
   'blockerRouted.reason.codeowners': 'You got this because you own code changed in the PR.',
   'blockerRouted.reason.card_blocker':
     'You got this because you are responsible for the blocking card.',
+  'blockerRouted.reason.card_owner':
+    'You got this because you are responsible for or created the blocked card.',
   'blockerRouted.reason.manager': 'You got this because you manage the team.',
   'suggestion.pr_no_review':
     'The PR {title} has had no review for over {hours}h. Want to mention it as a blocker?',
@@ -347,6 +366,16 @@ const en = {
     'The checks on PR {title} have been failing for over {hours}h. Want to mention it as a blocker?',
   'suggestion.card_stale':
     'The card {title} has been idle for over {days} days. Want to mention it as a blocker?',
+  'setup.linear.title': 'Linear',
+  'setup.linear.connect': 'Connect Linear',
+  'setup.linear.connected': 'Connected to the {workspace} workspace.',
+  'setup.linear.reconnect': 'Reconnect Linear',
+  'setup.linear.invalid':
+    'The connection to the {workspace} workspace stopped working. Reconnect Linear.',
+  'setup.linear.adminOnly': 'Only an admin can connect or reconnect Linear.',
+  'setup.tracker.jiraComingSoon': 'The Jira integration is not available yet.',
+  'setup.tracker.notConnected':
+    'This team uses Linear, but Linear is not connected to this installation yet.',
   'suggestion.dm.title': 'Suggestions just for you',
   'checkRun.success.title': 'standwise.yml is valid',
   'checkRun.failure.title': 'standwise.yml is invalid',

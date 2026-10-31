@@ -42,7 +42,7 @@ A data a que uma daily pertence. É o dia de hoje no fuso do primeiro time da pe
 
 ## Rascunho
 
-O ponto de partida do "ontem", montado pelo Standwise a partir da atividade da pessoa no GitHub da organização desde a última daily: pull requests abertos, pull requests mergeados, revisões e commits. O agente mostra o rascunho, e a pessoa mantém, edita ou remove cada item.
+O ponto de partida do "ontem", montado pelo Standwise a partir da atividade da pessoa no GitHub da organização desde a última daily: pull requests abertos, pull requests mergeados, revisões e commits, mais os seus cards do Linear que começaram ou terminaram, quando o Linear está conectado. O agente mostra o rascunho, e a pessoa mantém, edita ou remove cada item.
 
 ## Consolidado
 
@@ -62,11 +62,15 @@ Uma mensagem direta no `remind_at` do time para quem ainda não enviou a daily. 
 
 ## Impedimento sugerido
 
-Um impedimento que o Standwise percebe por você: um pull request seu sem revisão há `pr_review_hours`, ou o CI falhando nele há 24 horas. Ele vai só para você, no seu rascunho. O gestor só vê se você confirmar na sua daily.
+Um impedimento que o Standwise percebe por você: um pull request seu sem revisão há `pr_review_hours`, o CI falhando nele há 24 horas, ou um card seu no Linear em andamento há `card_stale_days`. Ele vai só para você, no seu rascunho. O gestor só vê se você confirmar na sua daily.
 
 ## Encaminhamento de impedimentos
 
-Enviar cada impedimento novo uma vez para quem pode ajudar: os revisores do pull request ligado, depois os CODEOWNERS dele, depois os gestores do time.
+Enviar cada impedimento novo uma vez para quem pode ajudar: os revisores do pull request ligado, depois os CODEOWNERS dele, depois os gestores do time. Para um card do Linear: os responsáveis pelos cards que o travam, depois o responsável por ele, depois quem o criou, depois os gestores.
+
+## Conexão com o Linear
+
+Uma conexão por instalação, feita por um admin na página de setup. Ela deixa o Standwise ler os cards de um workspace do Linear, só leitura. Veja [Instalar](/pt-BR/admin/install#5-conecte-o-linear-opcional).
 
 ## Entrega
 

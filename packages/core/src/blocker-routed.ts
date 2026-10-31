@@ -3,12 +3,18 @@ import type { Item } from './daily';
 import { formatDate, type MessageKey, t } from './i18n';
 import { type Inline, type Message, type Person, personInline, toPlainText } from './message';
 
-export type BlockerRouteReason = 'pr_reviewers' | 'codeowners' | 'card_blocker' | 'manager';
+export type BlockerRouteReason =
+  | 'pr_reviewers'
+  | 'codeowners'
+  | 'card_blocker'
+  | 'card_owner'
+  | 'manager';
 
 const REASON_KEYS: Record<BlockerRouteReason, MessageKey> = {
   pr_reviewers: 'blockerRouted.reason.pr_reviewers',
   codeowners: 'blockerRouted.reason.codeowners',
   card_blocker: 'blockerRouted.reason.card_blocker',
+  card_owner: 'blockerRouted.reason.card_owner',
   manager: 'blockerRouted.reason.manager',
 };
 

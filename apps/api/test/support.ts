@@ -55,8 +55,16 @@ export function createTestApp(
         throw new Error('unused');
       },
     },
+    linear: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
+      refreshToken: async () => {
+        throw new Error('unused');
+      },
+    },
     chatFor: async () => null,
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -65,6 +73,8 @@ export function createTestApp(
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
       appId: '1',
       webhookSecret: 'whsec',
     },

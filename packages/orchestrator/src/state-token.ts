@@ -4,7 +4,8 @@ const STATE_TTL_MS = 10 * 60 * 1000;
 
 export type LoginState = { kind: 'login'; next: string; nonceHash: string };
 export type SlackState = { kind: 'slack'; installationId: number; sessionHash: string };
-export type StatePayload = LoginState | SlackState;
+export type LinearState = { kind: 'linear'; installationId: number; sessionHash: string };
+export type StatePayload = LoginState | SlackState | LinearState;
 
 const sign = (secret: string, body: string) =>
   createHmac('sha256', secret).update(body).digest('base64url');
@@ -37,9 +38,9 @@ function isLoginState(value: Record<string, unknown>): value is LoginState {
   );
 }
 
-function isSlackState(value: Record<string, unknown>): value is SlackState {
+function isConnectState(value: Record<string, unknown>): value is SlackState | LinearState {
   return (
-    value.kind === 'slack' &&
+    (value.kind === 'slack' || value.kind === 'linear') &&
     Number.isInteger(value.installationId) &&
     typeof value.installationId === 'number' &&
     typeof value.sessionHash === 'string'
@@ -67,6 +68,6 @@ export function verifyState<K extends StatePayload['kind']>(
   const value = parsed as Record<string, unknown>;
   if (typeof value.exp !== 'number' || value.exp < now.getTime()) return null;
   if (value.kind !== kind) return null;
-  const valid = isLoginState(value) || isSlackState(value);
+  const valid = isLoginState(value) || isConnectState(value);
   return valid ? (value as Extract<StatePayload, { kind: K }>) : null;
 }

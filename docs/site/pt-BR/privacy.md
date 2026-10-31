@@ -32,9 +32,19 @@ O token do bot do app do Slack permite que o Standwise:
 
 Ele não lê mensagens de nenhum canal ou conversa.
 
-### Linear e Jira <Badge type="info" text="em breve" />
+### Linear
 
-O Standwise ainda não se conecta ao Linear nem ao Jira, então não lê nada deles.
+Se um admin conectar o Linear, o Standwise usa um app OAuth que age como ele mesmo (`actor=app`), com o escopo só de leitura `read`, para um workspace do Linear por instalação. Ele lê:
+
+- para quem pede o rascunho e para os sinais de cards: o identificador da issue, o título, a url, o tipo do estado, as datas de início e de conclusão, o responsável, quem criou, as relações "bloqueia" e a chave do time;
+- para encaminhar um impedimento de card: o responsável e quem criou o card citado, e os responsáveis pelos cards que o bloqueiam, só para saber quem avisar;
+- o e-mail dos usuários do Linear, só para ligar as pessoas ao usuário delas no Linear.
+
+Ele nunca lê descrições nem comentários, e nunca escreve no Linear. Cards de outro workspace nunca são lidos. Os cards de uma pessoa aparecem só no rascunho dela e nunca são usados para medir pessoas.
+
+### Jira <Badge type="info" text="em breve" />
+
+O Standwise ainda não se conecta ao Jira, então não lê nada dele.
 
 ## O que o Standwise guarda
 
@@ -45,9 +55,11 @@ O Standwise ainda não se conecta ao Linear nem ao Jira, então não lê nada de
 | Participação em organizações | A quais instalações cada pessoa pertence | |
 | Identidade no Slack | O id de usuário do Slack de cada pessoa, por instalação | |
 | Conexão com o Slack | Id e nome do workspace e o token do bot | Token do bot criptografado com AES-256-GCM |
+| Conexão com o Linear | Id, nome e chave da URL do workspace e os tokens de acesso e de renovação | Tokens criptografados com AES-256-GCM |
+| Identidade no Linear | O id de usuário do Linear de cada pessoa, por instalação. O e-mail nunca é guardado | |
 | Sessões | Um hash SHA-256 de cada token de sessão da CLI e da web, o tipo e quando foi criada e usada pela última vez | Só o hash; o token em si nunca é guardado |
 | Dailies | Data, horário do envio, os itens de ontem, hoje e impedimentos com os links, e se quem confirmou foi a pessoa (`human`) ou o agente (`agent`) | |
-| Sugestões | Para cada impedimento sugerido: o link e o título do pull request, o tipo, quando foi percebido e a sua decisão | Visível só para você |
+| Sugestões | Para cada impedimento sugerido: o link e o título do pull request (ou do card), o tipo, quando foi percebido e a sua decisão | Visível só para você |
 | Entregas | Para cada consolidado, daily atrasada, lembrete e impedimento encaminhado: time, data, estado, tentativas, o canal e o id da mensagem no Slack e o erro, se falhou | |
 | API keys | Nome, os 8 primeiros caracteres depois de `swk_`, escopos, quem criou, datas de criação, último uso e revogação | Só um hash SHA-256 do segredo |
 | Endpoints de webhook | URL, eventos, estado e número de falhas | Segredo de assinatura criptografado com AES-256-GCM |

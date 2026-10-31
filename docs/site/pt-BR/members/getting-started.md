@@ -62,7 +62,7 @@ Escolha o jeito que combina com as suas ferramentas:
 
 Em todos os casos, o fluxo é o mesmo:
 
-1. O Standwise monta um rascunho do ontem a partir da sua atividade no GitHub desde a última daily.
+1. O Standwise monta um rascunho do ontem a partir da sua atividade no GitHub desde a última daily, mais os seus cards do Linear se a sua organização conectou o Linear.
 2. Você corrige o ontem e escreve o hoje e os impedimentos.
 3. Você vê a daily final e confirma. Nada é enviado antes disso.
 

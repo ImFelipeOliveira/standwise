@@ -42,7 +42,7 @@ The date a daily counts for. It is today in the time zone of the person's first 
 
 ## Draft
 
-The starting point for "yesterday", built by Standwise from the person's GitHub activity in the organization since their last daily: pull requests opened, pull requests merged, reviews and commits. The agent shows it, and the person keeps, edits or removes each item.
+The starting point for "yesterday", built by Standwise from the person's GitHub activity in the organization since their last daily: pull requests opened, pull requests merged, reviews and commits, plus your own Linear cards that started or finished, when Linear is connected. The agent shows it, and the person keeps, edits or removes each item.
 
 ## Digest
 
@@ -62,11 +62,15 @@ A direct message at the team's `remind_at` to people who have not sent the daily
 
 ## Suggested blocker
 
-A blocker Standwise notices for you: your pull request with no review for `pr_review_hours`, or failing CI on it for 24 hours. It goes only to you, in your draft. Your manager sees it only if you confirm it in your daily.
+A blocker Standwise notices for you: your pull request with no review for `pr_review_hours`, failing CI on it for 24 hours, or one of your Linear cards in progress for `card_stale_days`. It goes only to you, in your draft. Your manager sees it only if you confirm it in your daily.
 
 ## Blocker routing
 
-Sending each new blocker once to whoever can help: the reviewers of the linked pull request, then its CODEOWNERS, then the team managers.
+Sending each new blocker once to whoever can help: the reviewers of the linked pull request, then its CODEOWNERS, then the team managers. For a Linear card: the assignees of the cards that block it, then its assignee, then its creator, then the managers.
+
+## Linear connection
+
+One connection per installation, made by an admin on the setup page. It lets Standwise read cards of one Linear workspace, read-only. See [Install](/admin/install#5-connect-linear-optional).
 
 ## Delivery
 

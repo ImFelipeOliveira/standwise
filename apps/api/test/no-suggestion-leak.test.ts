@@ -39,7 +39,14 @@ const PENDING_ONLY = [
   'https://github.com/acme/api/pull/4bob',
   'Pull alice 1',
   'Pull bob 1',
+  'https://linear.app/acme/issue/ENG-9alice',
+  'https://linear.app/acme/issue/ENG-9bob',
+  'Stuck card alice',
+  'Stuck card bob',
+  'ENG-9',
 ];
+const CARD_STARTED = '2026-10-20T12:00:00.000Z';
+const cardFingerprint = (prefix: string) => `card_stale:card-9${prefix}@${CARD_STARTED}`;
 
 type Seeded = { id: string; fingerprint: string };
 
@@ -69,7 +76,26 @@ async function seedSuggestions(memberId: string, prefix: string): Promise<Seeded
   };
   await decideSuggestion(db, INST, memberId, byFingerprint(3).id, 'ignored');
   await decideSuggestion(db, INST, memberId, byFingerprint(4).id, 'confirmed');
-  return created.map((c) => ({ id: c.id, fingerprint: c.fingerprint }));
+  const card = await syncSuggestions(
+    db,
+    INST,
+    memberId,
+    ['card_stale'],
+    [
+      {
+        kind: 'card_stale',
+        ref: {
+          kind: 'card',
+          url: `https://linear.app/acme/issue/ENG-9${prefix}`,
+          title: `Stuck card ${prefix}`,
+        },
+        fingerprint: cardFingerprint(prefix),
+        since: new Date(CARD_STARTED),
+      },
+    ],
+  );
+  if (card.created.length !== 1) throw new Error('card seed failed');
+  return [...created, ...card.created].map((c) => ({ id: c.id, fingerprint: c.fingerprint }));
 }
 
 function expectNoLeak(label: string, output: unknown, seeded: Seeded[]): void {
@@ -81,6 +107,7 @@ function expectNoLeak(label: string, output: unknown, seeded: Seeded[]): void {
   }
   expect(text.includes('pr_no_review'), `${label} leaks pr_no_review`).toBe(false);
   expect(text.includes('ci_failing'), `${label} leaks ci_failing`).toBe(false);
+  expect(text.includes('card_stale'), `${label} leaks card_stale`).toBe(false);
   for (const fragment of PENDING_ONLY) {
     expect(text.includes(fragment), `${label} leaks ${fragment}`).toBe(false);
   }
@@ -116,6 +143,10 @@ async function setup() {
   const claim = await claimDelivery(db, failedKey);
   if (claim.status !== 'claimed') throw new Error('claim failed');
   await failDelivery(db, failedKey, claim.token, 'no_chat_identity');
+  const cardKey = { ...failedKey, subject: `${alice.id}:${cardFingerprint('alice')}` };
+  const cardClaim = await claimDelivery(db, cardKey);
+  if (cardClaim.status !== 'claimed') throw new Error('card claim failed');
+  await failDelivery(db, cardKey, cardClaim.token, 'no_chat_identity');
   const fake = fakeDeps();
   fake.roles.set('alice', { role: 'admin', state: 'active' });
   return { ...fake, alice, bob, seeded };

@@ -1,11 +1,13 @@
-import { parseConfig } from '@standwise/core';
+import { parseConfig, type StandwiseConfig } from '@standwise/core';
 import {
+  getConnectionInfo,
   getInstallation,
   setInstallationAccessWarning,
   setInstallationConfig,
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { invalidateResolvedTeams } from '../teams';
+import { enqueueLinkTrackerIdentities } from '../tracker-identity';
 
 export type ConfigStatus = 'configured' | 'invalid' | 'unconfigured';
 
@@ -13,7 +15,7 @@ export const LOAD_CONFIG_JOB = 'load-config';
 
 export type LoadConfigJob = { installationId: number; owner: string };
 
-type ConfigDeps = Pick<Deps, 'db' | 'github'>;
+type ConfigDeps = Pick<Deps, 'db' | 'github' | 'queue'>;
 
 export async function enqueueLoadConfig(
   deps: Pick<Deps, 'queue'>,
@@ -56,7 +58,19 @@ export async function loadInstallationConfig(
     return 'invalid';
   }
   await storeConfig(deps, installationId, { status: 'configured', config: parsed.config });
+  await relinkTrackerIdentities(deps, installationId, parsed.config);
   return 'configured';
+}
+
+async function relinkTrackerIdentities(
+  deps: ConfigDeps,
+  installationId: number,
+  config: StandwiseConfig,
+): Promise<void> {
+  if (!config.teams.some((team) => team.tracker?.provider === 'linear')) return;
+  const connection = await getConnectionInfo(deps.db, installationId, 'linear');
+  if (!connection || connection.invalidatedAt) return;
+  await enqueueLinkTrackerIdentities(deps, installationId);
 }
 
 async function storeConfig(

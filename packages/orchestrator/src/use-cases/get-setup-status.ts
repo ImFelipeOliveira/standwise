@@ -1,7 +1,8 @@
-import type { ConfigError } from '@standwise/core';
+import type { ConfigError, StandwiseConfig } from '@standwise/core';
 import {
   type ApiKeySummary,
   getConnection,
+  getConnectionInfo,
   listApiKeys,
   listFailedPersonDeliveryGroups,
   listFailedTeamDeliveries,
@@ -32,12 +33,29 @@ export type SetupStatus = {
   accessWarning: string | null;
   configRepo: { exists: true; defaultBranch: string } | { exists: false };
   slack: { connected: false } | { connected: true; workspace: string };
+  linear:
+    | { connected: false }
+    | { connected: true; workspace: string; urlKey: string; invalid: boolean };
+  trackerNotices: TrackerNotice[];
   teamFailures: TeamFailure[];
   personFailures: PersonFailureGroup[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
   webhooks: { manage: false } | ({ manage: true } & WebhookOverview);
   supportEmail: string;
 };
+
+export type TrackerNotice = 'linear_not_connected' | 'jira_coming_soon';
+
+function trackerNotices(
+  config: StandwiseConfig | null,
+  linear: SetupStatus['linear'],
+): TrackerNotice[] {
+  const providers = new Set(config?.teams.map((team) => team.tracker?.provider) ?? []);
+  const notices: TrackerNotice[] = [];
+  if (providers.has('linear') && !linear.connected) notices.push('linear_not_connected');
+  if (providers.has('jira')) notices.push('jira_coming_soon');
+  return notices;
+}
 
 type Octokit = Awaited<ReturnType<Deps['github']['installationOctokit']>>;
 
@@ -67,13 +85,15 @@ export async function getSetupStatus(
     installationId,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
-  const [configRepo, connection, teamFailures, personFailures, admin] = await Promise.all([
-    findConfigRepo(octokit, installation.accountLogin),
-    getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
-    listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
-    listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
-    isInstallationAdmin(deps, installation.id, current).catch(() => false),
-  ]);
+  const [configRepo, connection, linearConnection, teamFailures, personFailures, admin] =
+    await Promise.all([
+      findConfigRepo(octokit, installation.accountLogin),
+      getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
+      getConnectionInfo(deps.db, installation.id, 'linear'),
+      listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
+      listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
+      isInstallationAdmin(deps, installation.id, current).catch(() => false),
+    ]);
   const [apiKeys, webhooks]: [SetupStatus['apiKeys'], SetupStatus['webhooks']] = admin
     ? await Promise.all([
         listApiKeys(deps.db, installation.id).then((keys) => ({ manage: true as const, keys })),
@@ -93,6 +113,14 @@ export async function getSetupStatus(
             lastValid: operationalConfig(installation) !== null,
           }
         : { status: 'unconfigured', reason: installation.unconfiguredReason ?? 'no_repo' };
+  const linear: SetupStatus['linear'] = linearConnection
+    ? {
+        connected: true,
+        workspace: linearConnection.externalName ?? linearConnection.externalId,
+        urlKey: linearConnection.externalKey ?? '',
+        invalid: linearConnection.invalidatedAt !== null || !linearConnection.externalKey,
+      }
+    : { connected: false };
   return {
     installationId: installation.id,
     owner: installation.accountLogin,
@@ -104,6 +132,8 @@ export async function getSetupStatus(
     slack: connection
       ? { connected: true, workspace: connection.externalName ?? connection.externalId }
       : { connected: false },
+    linear,
+    trackerNotices: trackerNotices(operationalConfig(installation), linear),
     teamFailures,
     personFailures,
     apiKeys,

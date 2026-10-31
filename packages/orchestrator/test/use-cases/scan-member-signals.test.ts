@@ -5,13 +5,15 @@ import {
   deleteIdentities,
   getDelivery,
   listPendingSuggestions,
+  markConnectionInvalid,
+  saveConnection,
   setIdentity,
   setMemberInstallations,
 } from '@standwise/db';
 import { GitHubRateLimitError } from '@standwise/github';
 import { suggestions } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { scanMemberSignals } from '../../src';
+import { nullTracker, scanMemberSignals } from '../../src';
 import { fakeChat, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -22,7 +24,12 @@ const ago = (hours: number) => new Date(NOW.getTime() - hours * HOUR);
 const FP = `pr_no_review:acme/api#7@${ago(49).toISOString()}:0`;
 const DISMISSED_FP = `pr_no_review:acme/api#7@${ago(49).toISOString()}:1`;
 
-function teamConfig(directMessage = false, members = '[alice, bob]'): StandwiseConfig {
+function teamConfig(
+  directMessage = false,
+  members = '[alice, bob]',
+  tracker = '',
+  staleDays = 5,
+): StandwiseConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -32,7 +39,8 @@ teams:
     managers: [bob]
     members: ${members}
     chat: { provider: slack, channel: "#alpha" }
-    signals: { direct_message: ${directMessage} }
+    signals: { direct_message: ${directMessage}, card_stale_days: ${staleDays} }
+${tracker}
 `);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
   return parsed.config;
@@ -60,14 +68,35 @@ async function setup(
     link?: boolean;
     accountType?: 'Organization' | 'User';
     members?: string;
+    linear?: boolean;
+    staleDays?: number;
   } = {},
 ) {
-  await seedOrg(teamConfig(opts.directMessage ?? false, opts.members), {
+  const cfg = teamConfig(
+    opts.directMessage ?? false,
+    opts.members,
+    opts.linear ? '    tracker: { provider: linear, team: ENG }' : '',
+    opts.staleDays ?? 5,
+  );
+  await seedOrg(cfg, {
     accountType: opts.accountType ?? 'Organization',
   });
   const alice = await seedMember('Alice', 1);
   if (opts.link !== false) await setMemberInstallations(db, alice.id, [INST]);
   await setIdentity(db, INST, alice.id, 'slack', 'UALICE');
+  if (opts.linear) {
+    await saveConnection(
+      db,
+      INST,
+      'linear',
+      'org-1',
+      JSON.stringify({ accessToken: 'lin_at_1', refreshToken: null, expiresAt: null }),
+      new Uint8Array(32).fill(7),
+      'Acme',
+      'acme',
+    );
+    await setIdentity(db, INST, alice.id, 'linear', 'lin-alice');
+  }
   const snapshots: Record<string, PullRequestSnapshot[]> = { alice: [] };
   const fake = fakeDeps({ snapshots });
   fake.setNow(NOW);
@@ -75,7 +104,20 @@ async function setup(
   fake.deps.chatFor = async () => chat.chat;
   const pending = () => listPendingSuggestions(db, INST, alice.id);
   const scan = () => scanMemberSignals(fake.deps, { installationId: INST, login: 'Alice' });
-  return { ...fake, ...chat, alice, snapshots, pending, scan };
+  return { ...fake, ...chat, cfg, alice, snapshots, pending, scan };
+}
+
+const CARD_URL = 'https://linear.app/acme/issue/ENG-9/flaky-deploy';
+const cardFp = (startedAt: Date) => `card_stale:card-9@${startedAt.toISOString()}`;
+
+function staleCard(startedAt: Date = ago(6 * 24)) {
+  return {
+    id: 'card-9',
+    identifier: 'ENG-9',
+    url: CARD_URL,
+    title: 'Flaky deploy',
+    startedAt: startedAt.toISOString(),
+  };
 }
 
 async function states(memberId: string) {
@@ -346,5 +388,254 @@ describe('scanMemberSignals', () => {
       subject: 'alice',
     });
     expect(marker?.status).toBe('sent');
+  });
+
+  describe('card_stale', () => {
+    const quiet = () => spyOn(console, 'error').mockImplementation(() => {});
+
+    test('a card in progress for 6 days creates one pending card_stale, once', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      const first = await s.pending();
+      expect(first.map((p) => [p.kind, p.fingerprint, p.ref])).toEqual([
+        ['card_stale', cardFp(ago(6 * 24)), { kind: 'card', url: CARD_URL, title: 'Flaky deploy' }],
+      ]);
+      await s.scan();
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
+      ]);
+      expect(
+        s.linear.calls.queries.map((q) => [q.name, q.variables.userId, q.variables.teamKey]),
+      ).toEqual([
+        ['StaleInProgress', 'lin-alice', 'ENG'],
+        ['StaleInProgress', 'lin-alice', 'ENG'],
+      ]);
+    });
+
+    test('card_stale_days comes from the first team', async () => {
+      const s = await setup({ linear: true, staleDays: 7 });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      expect(await s.pending()).toEqual([]);
+    });
+
+    test('the tracker is built with the installation owner, the config and the first team', async () => {
+      const s = await setup({ linear: true });
+      const seen: unknown[] = [];
+      const build = s.deps.trackerFor;
+      s.deps.trackerFor = async (...args) => {
+        seen.push(args);
+        return build(...args);
+      };
+      await s.scan();
+      expect(seen).toEqual([
+        [INST, 'acme', s.cfg, { ...s.cfg.teams[0], memberLogins: ['alice', 'bob'] }],
+      ]);
+    });
+
+    test('a card moved out of progress resolves its suggestion', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.linear.state.stale = [];
+      await s.scan();
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'resolved', notified: false },
+      ]);
+    });
+
+    test('an ignored card stays ignored, a restarted card suggests again', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      const [row] = await s.pending();
+      await decideSuggestion(db, INST, s.alice.id, row?.id as string, 'ignored');
+      await s.scan();
+      expect(await s.pending()).toEqual([]);
+      s.linear.state.stale = [staleCard(ago(5 * 24))];
+      await s.scan();
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'ignored', notified: false },
+        { fingerprint: cardFp(ago(5 * 24)), state: 'pending', notified: false },
+      ]);
+    });
+
+    test('a Linear failure still syncs PRs, leaves cards untouched and rethrows', async () => {
+      const s = await setup({ linear: true });
+      s.snapshots.alice = [pr()];
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.snapshots.alice = [pr({ reviewCount: 1 })];
+      s.linear.state.stale = [];
+      s.linear.state.graphqlStatus = 500;
+      const spy = quiet();
+      const error = await s.scan().catch((e: unknown) => e);
+      const logged = JSON.stringify(spy.mock.calls);
+      spy.mockRestore();
+      expect(String(error)).toContain('linear http 500');
+      expect(logged).toContain('linear http 500');
+      expect(logged).toContain(`"installationId":"${INST}"`);
+      expect(logged).not.toContain('Flaky deploy');
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
+        { fingerprint: FP, state: 'resolved', notified: false },
+      ]);
+    });
+
+    test('a full page of cards skips the card sync and never resolves pending cards', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.linear.state.stale = Array.from({ length: 50 }, (_, i) => ({
+        ...staleCard(),
+        id: `other-${i}`,
+        identifier: `ENG-${100 + i}`,
+        url: `https://linear.app/acme/issue/ENG-${100 + i}`,
+      }));
+      const spy = quiet();
+      let logged = '';
+      try {
+        await s.scan();
+        logged = JSON.stringify(spy.mock.calls);
+      } finally {
+        spy.mockRestore();
+      }
+      expect(logged).toContain('signal scan card page truncated');
+      expect(logged).toContain(`"installationId":"${INST}"`);
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
+      ]);
+    });
+
+    test('a GitHub failure still syncs cards, leaves PRs untouched and rethrows', async () => {
+      const s = await setup({ linear: true });
+      s.snapshots.alice = [pr()];
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.deps.github.listOpenPullRequestSnapshots = async () => {
+        throw new GitHubRateLimitError(60);
+      };
+      s.linear.state.stale = [];
+      const spy = quiet();
+      const error = await s.scan().catch((e: unknown) => e);
+      const logged = JSON.stringify(spy.mock.calls);
+      spy.mockRestore();
+      expect(error).toBeInstanceOf(GitHubRateLimitError);
+      expect(logged).toContain('"retryAfterSeconds":"60"');
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'resolved', notified: false },
+        { fingerprint: FP, state: 'pending', notified: false },
+      ]);
+    });
+
+    test('when both sources fail nothing is synced and the GitHub error is rethrown', async () => {
+      const s = await setup({ linear: true });
+      s.snapshots.alice = [pr()];
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.deps.github.listOpenPullRequestSnapshots = async () => {
+        throw new Error('github down');
+      };
+      s.linear.state.graphqlStatus = 500;
+      const spy = quiet();
+      const error = await s.scan().catch((e: unknown) => e);
+      const logged = JSON.stringify(spy.mock.calls);
+      spy.mockRestore();
+      expect(String(error)).toContain('github down');
+      expect(logged).toContain('linear http 500');
+      expect((await states(s.alice.id)).map((r) => r.state)).toEqual(['pending', 'pending']);
+    });
+
+    test('a failed source does not record the daily scan marker', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.graphqlStatus = 500;
+      const spy = quiet();
+      await scanMemberSignals(s.deps, {
+        installationId: INST,
+        login: 'alice',
+        date: '2026-10-28',
+      }).catch(() => {});
+      spy.mockRestore();
+      const marker = await getDelivery(db, {
+        installationId: INST,
+        teamName: '',
+        date: '2026-10-28',
+        kind: 'signal_scan',
+        subject: 'alice',
+      });
+      expect(marker).toBeNull();
+    });
+
+    test('without a usable connection no card sync happens and pending cards remain', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.linear.state.stale = [];
+      await markConnectionInvalid(db, INST, 'linear');
+      const before = s.linear.calls.bearer.length;
+      await s.scan();
+      expect(s.linear.calls.bearer).toHaveLength(before);
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
+      ]);
+    });
+
+    test('a team without a tracker never touches card suggestions', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.deps.trackerFor = async () => nullTracker;
+      s.snapshots.alice = [pr()];
+      await s.scan();
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
+        { fingerprint: FP, state: 'pending', notified: false },
+      ]);
+    });
+
+    test('an unlinked linear identity resolves the pending card suggestions', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      await deleteIdentities(db, INST, 'linear');
+      const before = s.linear.calls.bearer.length;
+      await s.scan();
+      expect(s.linear.calls.bearer).toHaveLength(before);
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'resolved', notified: false },
+      ]);
+    });
+
+    test('direct_message sends the card DM only to the person, with the days', async () => {
+      const s = await setup({ linear: true, directMessage: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      expect(s.directs.map((d) => d.userId)).toEqual(['UALICE']);
+      const text = s.directs[0]?.msg.fallbackText ?? '';
+      expect(text).toContain('Suggestions just for you');
+      expect(text).toContain('The card Flaky deploy has been idle for over 5 days');
+      expect(text).toContain(CARD_URL);
+      expect(text).not.toContain('{days}');
+      expect(text).not.toContain('{hours}');
+      expect(s.posted).toEqual([]);
+      expect(s.replies).toEqual([]);
+      expect((await states(s.alice.id))[0]?.notified).toBe(true);
+      await s.scan();
+      expect(s.directs).toHaveLength(1);
+    });
+
+    test('a card DM is still sent when the GitHub source fails', async () => {
+      const s = await setup({ linear: true, directMessage: true });
+      s.deps.github.listOpenPullRequestSnapshots = async () => {
+        throw new Error('github down');
+      };
+      s.linear.state.stale = [staleCard()];
+      const spy = quiet();
+      await expect(s.scan()).rejects.toThrow('github down');
+      spy.mockRestore();
+      expect(s.directs.map((d) => d.userId)).toEqual(['UALICE']);
+      expect((await states(s.alice.id))[0]?.notified).toBe(true);
+    });
   });
 });

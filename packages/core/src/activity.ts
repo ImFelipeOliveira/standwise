@@ -1,7 +1,7 @@
 import { type Calendar, previousWorkday, startOfLocalDay } from './calendar';
 
 export type ActivityItem = {
-  kind: 'pr_opened' | 'pr_merged' | 'review' | 'commits';
+  kind: 'pr_opened' | 'pr_merged' | 'review' | 'commits' | 'card_started' | 'card_done';
   title: string;
   url: string;
   repo: string;

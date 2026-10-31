@@ -1,0 +1,13 @@
+{
+  "errors": [
+    {
+      "message": "Argument Validation Error",
+      "extensions": {
+        "type": "invalid input",
+        "code": "INVALID_INPUT",
+        "userPresentableMessage": "Could not find referenced Issue."
+      }
+    }
+  ],
+  "data": null
+}

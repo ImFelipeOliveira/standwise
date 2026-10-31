@@ -7,7 +7,10 @@ import {
 } from '@standwise/core';
 import { getLastDaily, listPendingSuggestions, type MemberRow } from '@standwise/db';
 import type { Deps } from '../deps';
-import { type MembershipCheck, resolveOrgContext } from './org-context';
+import { logError } from '../log-error';
+import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';
+
+const MAX_ACTIVITY = 50;
 
 export type DraftSuggestion = { id: string; kind: SignalKind; ref: Ref; since: string };
 
@@ -31,7 +34,11 @@ export async function getDraft(
   const lastDaily = await getLastDaily(deps.db, ctx.installationId, ctx.member.id, ctx.date);
   const since = activitySince({ date: ctx.date, cal, ...(lastDaily ? { lastDaily } : {}) });
   const octokit = await deps.github.installationOctokit(ctx.installationId);
-  const activity = await deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
+  const github = await deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
+  const cards = await listCards(deps, ctx, since);
+  const activity = [...github, ...cards]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, MAX_ACTIVITY);
   const pending = await listPendingSuggestions(deps.db, ctx.installationId, ctx.member.id);
   return {
     org: ctx.owner,
@@ -46,4 +53,16 @@ export async function getDraft(
       since: s.createdAt.toISOString(),
     })),
   };
+}
+
+async function listCards(deps: Deps, ctx: OrgContext, since: Date): Promise<ActivityItem[]> {
+  try {
+    const tracker = await deps.trackerFor(ctx.installationId, ctx.owner, ctx.config, ctx.mine[0]);
+    if (!tracker.connected) return [];
+    const items = await tracker.listActivity(ctx.member.login, since);
+    return items.map((item) => ({ ...item, title: clampTitle(item.title) }));
+  } catch (error) {
+    logError('draft card activity failed', error, { installationId: String(ctx.installationId) });
+    return [];
+  }
 }

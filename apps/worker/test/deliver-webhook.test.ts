@@ -69,7 +69,16 @@ function harness(resolved: string[] = ['93.184.216.34']) {
     chatFor: async () => null,
     github: {} as WorkerDeps['github'],
     webhookTransport: transport,
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
+    linear: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
+      refreshToken: async () => {
+        throw new Error('unused');
+      },
+    },
+    env: { linearClientId: 'lid', linearClientSecret: 'lsecret' },
   };
   return {
     deps,

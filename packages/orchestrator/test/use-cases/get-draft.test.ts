@@ -1,8 +1,16 @@
-import { describe, expect, test } from 'bun:test';
-import { clampTitle, DailySubmissionSchema, TITLE_MAX } from '@standwise/core';
+import { describe, expect, spyOn, test } from 'bun:test';
+import {
+  type ActivityItem,
+  clampTitle,
+  DailySubmissionSchema,
+  parseConfig,
+  TITLE_MAX,
+} from '@standwise/core';
 import {
   decideSuggestion,
   listPendingSuggestions,
+  saveConnection,
+  setIdentity,
   setMemberInstallations,
   syncSuggestions,
   upsertDaily,
@@ -20,6 +28,134 @@ async function setup(cfg = config()) {
   const fake = fakeDeps();
   return { ...fake, member, isMember: createMembershipCheck(fake.deps) };
 }
+
+const KEY = new Uint8Array(32).fill(7);
+
+function trackerConfig() {
+  const parsed = parseConfig(`
+teams:
+  - name: Alpha
+    timezone: America/Sao_Paulo
+    remind_at: "09:00"
+    digest_at: "10:00"
+    managers: [alice]
+    members: [alice, bob]
+    chat: { provider: slack, channel: "#alpha" }
+    tracker: { provider: linear, team: ENG }
+`);
+  if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+  return parsed.config;
+}
+
+async function connectLinear() {
+  await saveConnection(
+    db,
+    INST,
+    'linear',
+    'org-1',
+    JSON.stringify({ accessToken: 'lin_at_1', refreshToken: null, expiresAt: null }),
+    KEY,
+    'Acme',
+    'acme',
+  );
+}
+
+const pr = (n: number, at: string): ActivityItem => ({
+  kind: 'pr_opened',
+  title: `PR ${n}`,
+  url: `https://github.com/acme/api/pull/${n}`,
+  repo: 'acme/api',
+  at: new Date(at),
+});
+
+const node = (n: number, extra: Record<string, unknown>) => ({
+  id: `i${n}`,
+  identifier: `ENG-${n}`,
+  url: `https://linear.app/acme/issue/ENG-${n}/card`,
+  title: `Card ${n}`,
+  startedAt: null,
+  completedAt: null,
+  ...extra,
+});
+
+async function setupCards() {
+  const ctx = await setup(trackerConfig());
+  await connectLinear();
+  await setIdentity(db, INST, ctx.member.id, 'linear', 'u1');
+  return ctx;
+}
+
+describe('getDraft with linear cards', () => {
+  test('merges cards with pull requests newest first', async () => {
+    const { deps, isMember, member, linear } = await setupCards();
+    deps.github.listActivity = async () => [
+      pr(1, '2026-10-27T15:00:00Z'),
+      pr(2, '2026-10-27T11:00:00Z'),
+    ];
+    linear.state.activity = [
+      node(1, { startedAt: '2026-10-27T13:00:00Z' }),
+      node(2, { completedAt: '2026-10-27T17:00:00Z', startedAt: '2026-10-27T09:00:00Z' }),
+    ];
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    expect(draft.activity.map((a) => [a.kind, a.title])).toEqual([
+      ['card_done', 'Card 2'],
+      ['pr_opened', 'PR 1'],
+      ['card_started', 'Card 1'],
+      ['pr_opened', 'PR 2'],
+    ]);
+    expect(linear.calls.queries[0]?.variables.teamKey).toBe('ENG');
+    expect(linear.calls.queries[0]?.variables.since).toBe('2026-10-27T03:00:00.000Z');
+  });
+
+  test('card titles are clamped', async () => {
+    const { deps, isMember, member, linear } = await setupCards();
+    const raw = `Fix\tthe ${'x'.repeat(300)}`;
+    linear.state.activity = [node(1, { startedAt: '2026-10-27T13:00:00Z', title: raw })];
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    expect(draft.activity[0]?.title).toBe(clampTitle(raw));
+  });
+
+  test('a person without a linear identity gets no linear call', async () => {
+    const { deps, isMember, member, linear } = await setup(trackerConfig());
+    await connectLinear();
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    expect(draft.activity).toEqual([]);
+    expect(linear.calls.queries).toEqual([]);
+  });
+
+  test('without a connection there is no linear call', async () => {
+    const { deps, isMember, member, linear } = await setup(trackerConfig());
+    await setIdentity(db, INST, member.id, 'linear', 'u1');
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    expect(draft.activity).toEqual([]);
+    expect(linear.calls.bearer).toEqual([]);
+  });
+
+  test('a tracker error leaves the draft without cards', async () => {
+    const { deps, isMember, member, linear } = await setupCards();
+    deps.github.listActivity = async () => [pr(1, '2026-10-27T15:00:00Z')];
+    linear.state.graphqlStatus = 500;
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    spy.mockRestore();
+    expect(draft.activity.map((a) => a.title)).toEqual(['PR 1']);
+  });
+
+  test('the 50 item cap applies across both sources', async () => {
+    const { deps, isMember, member, linear } = await setupCards();
+    deps.github.listActivity = async () =>
+      Array.from({ length: 40 }, (_, i) =>
+        pr(i, new Date(Date.UTC(2026, 9, 27, 4, i)).toISOString()),
+      );
+    linear.state.activity = Array.from({ length: 20 }, (_, i) =>
+      node(i, { startedAt: new Date(Date.UTC(2026, 9, 27, 6, i)).toISOString() }),
+    );
+    const draft = await getDraft(deps, isMember, member, 'acme');
+    expect(draft.activity).toHaveLength(50);
+    expect(draft.activity.filter((a) => a.kind === 'card_started')).toHaveLength(20);
+    expect(draft.activity.filter((a) => a.kind === 'pr_opened')).toHaveLength(30);
+  });
+});
 
 describe('getDraft', () => {
   test('since window starts at the previous workday', async () => {

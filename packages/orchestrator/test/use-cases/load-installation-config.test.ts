@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
   getInstallation,
   listOperationalInstallations,
+  markConnectionInvalid,
+  saveConnection,
   setMemberInstallations,
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
@@ -98,4 +100,85 @@ describe('loadInstallationConfig access errors', () => {
       expect(await listOperationalInstallations(db)).toEqual([]);
     });
   }
+});
+
+describe('relinking linear identities after a config load', () => {
+  const LINEAR_TEAM = `${VALID}    tracker: { provider: linear, team: ENG }
+members:
+  bob: { linear: bob@corp.com }
+`;
+
+  async function connectLinear() {
+    await saveConnection(
+      db,
+      INST,
+      'linear',
+      'org-1',
+      '{}',
+      new Uint8Array(32).fill(7),
+      'Acme',
+      'acme',
+    );
+  }
+
+  async function loadWithSpy(source: string) {
+    const fake = fakeDeps({ source: { found: true, source } });
+    const options: unknown[] = [];
+    const enqueue = fake.deps.queue.enqueue.bind(fake.deps.queue);
+    fake.deps.queue.enqueue = async (name, data, opts) => {
+      options.push({ name, opts });
+      return enqueue(name, data, opts);
+    };
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    return { ...fake, options };
+  }
+
+  test('a linear team with a connection enqueues the link job', async () => {
+    await seedOrg();
+    await connectLinear();
+    const { queue, options } = await loadWithSpy(LINEAR_TEAM);
+    expect(queue.enqueued).toEqual([
+      { name: 'link-tracker-identities', data: { installationId: INST } },
+    ]);
+    expect(options).toEqual([
+      {
+        name: 'link-tracker-identities',
+        opts: { singletonKey: `link-tracker:${INST}`, policy: 'stately' },
+      },
+    ]);
+  });
+
+  test('a relink enqueued while one is active is kept', async () => {
+    await seedOrg();
+    await connectLinear();
+    const fake = fakeDeps({ source: { found: true, source: LINEAR_TEAM } });
+    let runs = 0;
+    await fake.deps.queue.work(
+      'link-tracker-identities',
+      async () => {
+        runs++;
+        if (runs === 1) await loadInstallationConfig(fake.deps, INST, 'acme');
+      },
+      { policies: ['stately'] },
+    );
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    await fake.queue.drain();
+    expect(runs).toBe(2);
+  });
+
+  test('no linear team, no connection or an invalid connection enqueues nothing', async () => {
+    await seedOrg();
+    expect((await loadWithSpy(LINEAR_TEAM)).queue.enqueued).toEqual([]);
+    await connectLinear();
+    expect((await loadWithSpy(VALID)).queue.enqueued).toEqual([]);
+    await markConnectionInvalid(db, INST, 'linear');
+    expect((await loadWithSpy(LINEAR_TEAM)).queue.enqueued).toEqual([]);
+  });
+
+  test('an invalid config enqueues nothing', async () => {
+    await seedOrg();
+    await connectLinear();
+    expect((await loadWithSpy('teams: nope')).queue.enqueued).toEqual([]);
+  });
 });

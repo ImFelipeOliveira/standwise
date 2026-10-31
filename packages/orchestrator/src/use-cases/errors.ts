@@ -10,6 +10,7 @@ export type DomainErrorCode =
   | 'installation_pending'
   | 'access_denied'
   | 'slack_oauth_failed'
+  | 'linear_oauth_failed'
   | 'rate_limited'
   | 'insufficient_scope'
   | 'not_found'

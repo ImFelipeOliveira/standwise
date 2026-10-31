@@ -6,6 +6,7 @@ import {
   failDelivery,
   getConnection,
   listMemberInstallations,
+  markConnectionInvalid,
   resolveSession,
   saveConnection,
   setInstallationAccessWarning,
@@ -18,13 +19,14 @@ import { csrfToken, type Deps, nullTracker } from '@standwise/orchestrator';
 import { createMemoryQueue } from '@standwise/queue';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
+import { fakeLinear } from '../../../packages/orchestrator/test/use-cases/fakes';
 import { createApp } from '../src/app';
 
 const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
 const FOREIGN = 12;
 
-function config(): StandwiseConfig {
+function config(extra = ''): StandwiseConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -34,7 +36,7 @@ teams:
     managers: [alice]
     members: [alice, bob]
     chat: { provider: slack, channel: "#alpha" }
-`);
+${extra}`);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
   return parsed.config;
 }
@@ -46,6 +48,7 @@ function harness(
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
   const admins = new Set(['alice']);
+  const linear = fakeLinear();
   const deps: Deps = {
     db,
     queue: createMemoryQueue(),
@@ -106,8 +109,9 @@ function harness(
         return { teamId: 'T123', teamName: 'Acme Workspace', botToken: 'xoxb-secret' };
       },
     },
+    linear: linear.deps,
     chatFor: async () => null,
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -118,10 +122,13 @@ function harness(
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
     },
   };
   return {
     app: createApp(deps, { getClientIp: () => '192.0.2.1' }),
+    linear,
     slackCalls,
     webCodes,
     orgMembers,
@@ -618,8 +625,169 @@ describe('slack connection', () => {
     expect(await getConnection(db, INST, 'slack', KEY)).toEqual({
       externalId: 'T123',
       externalName: 'Acme Workspace',
+      externalKey: null,
       secret: 'xoxb-secret',
+      invalidatedAt: null,
     });
+  });
+});
+
+describe('linear connection', () => {
+  useCleanDb();
+
+  const tracker = (provider: string) => async (id: number) => {
+    await setInstallationConfig(db, id, {
+      status: 'configured',
+      config: config(`    tracker: { provider: ${provider}, team: ENG }`),
+    });
+  };
+
+  async function startConnect(app: ReturnType<typeof createApp>, cookie: string) {
+    const res = await app.request(`/connect/linear?installation_id=${INST}`, {
+      headers: { cookie },
+    });
+    return { res, state: new URL(location(res)).searchParams.get('state') ?? '' };
+  }
+
+  test('connect redirects to linear with a signed state', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const { res, state } = await startConnect(app, cookie);
+    expect(res.status).toBe(302);
+    const url = new URL(location(res));
+    expect(url.origin + url.pathname).toBe('https://linear.app/oauth/authorize');
+    expect(url.searchParams.get('actor')).toBe('app');
+    expect(url.searchParams.get('redirect_uri')).toBe('https://sw.test/oauth/linear/callback');
+    expect(state).toContain('.');
+  });
+
+  test('connect without a session goes to login', async () => {
+    const { app } = harness();
+    await seed();
+    const res = await app.request(`/connect/linear?installation_id=${INST}`);
+    expect(res.status).toBe(302);
+    expect(location(res)).toContain('/auth/github/login');
+  });
+
+  test('callback saves the workspace and returns to setup', async () => {
+    const { app, linear } = harness();
+    const { cookie } = await seed();
+    const { state } = await startConnect(app, cookie);
+    const res = await app.request(
+      `/oauth/linear/callback?code=c1&state=${encodeURIComponent(state)}`,
+      { headers: { cookie } },
+    );
+    expect(res.status).toBe(302);
+    expect(location(res)).toBe(`/setup?installation_id=${INST}`);
+    expect(linear.calls.exchanges.map((e) => e.code)).toEqual(['c1']);
+    expect(await getConnection(db, INST, 'linear', KEY)).toMatchObject({
+      externalId: 'org-1',
+      externalName: 'Acme Linear',
+      externalKey: 'acme',
+    });
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain('Connected to the Acme Linear workspace.');
+    expect(html).toContain('Reconnect Linear');
+    expect(html).toContain(`/connect/linear?installation_id=${INST}`);
+  });
+
+  test('callback rejects a state started by another session', async () => {
+    const { app, linear } = harness();
+    const { cookie, member } = await seed();
+    const { state } = await startConnect(app, cookie);
+    const other = `sw_web=${await createSession(db, member.id, 'web')}`;
+    const res = await app.request(
+      `/oauth/linear/callback?code=c&state=${encodeURIComponent(state)}`,
+      { headers: { cookie: other } },
+    );
+    expect(res.status).toBe(400);
+    expect(linear.calls.exchanges).toEqual([]);
+    expect(await getConnection(db, INST, 'linear', KEY)).toBeNull();
+  });
+
+  test('linear access_denied renders a friendly page', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request('/oauth/linear/callback?error=access_denied', {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(403);
+    expect(await res.text()).toContain('Access was denied');
+  });
+
+  test('a failed exchange renders a friendly page', async () => {
+    const { app, linear } = harness();
+    linear.state.exchangeError = new Error('linear oauth http 500');
+    const { cookie } = await seed();
+    const { state } = await startConnect(app, cookie);
+    const res = await app.request(
+      `/oauth/linear/callback?code=c&state=${encodeURIComponent(state)}`,
+      { headers: { cookie, 'accept-language': 'pt-BR' } },
+    );
+    expect(res.status).toBe(502);
+    expect(await res.text()).toContain('Falha ao conectar o Linear');
+  });
+
+  test('the admin sees connect linear when nothing is connected', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain('Connect Linear');
+    expect(html).toContain(`/connect/linear?installation_id=${INST}`);
+  });
+
+  test('a member who is not an admin cannot connect linear', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed(async (id) => {
+      await saveConnection(db, id, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
+    });
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain('Acme Linear');
+    expect(html).not.toContain('/connect/linear');
+    expect(html).toContain('Only an admin can connect or reconnect Linear.');
+  });
+
+  test('an invalid connection asks to reconnect', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(async (id) => {
+      await saveConnection(db, id, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
+      await markConnectionInvalid(db, id, 'linear');
+    });
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain('The connection to the Acme Linear workspace stopped working.');
+    expect(html).toContain('Reconnect Linear');
+  });
+
+  test('warns when a team uses linear and linear is not connected', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(tracker('linear'));
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(html).toContain(
+      'This team uses Linear, but Linear is not connected to this installation yet.',
+    );
+  });
+
+  test('says jira is coming soon when a team uses jira', async () => {
+    const { app } = harness();
+    const { cookie } = await seed(tracker('jira'));
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(html).toContain('A integração com o Jira ainda não está disponível.');
+    expect(html).not.toContain('Linear ainda não está conectado');
   });
 });
 

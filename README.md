@@ -64,7 +64,8 @@ Standwise keeps the writing where people already work, inside their agent, and t
 - **Late dailies.** Sent after the digest, they are posted as a reply in the digest thread.
 - **Reminders.** At `remind_at`, people who have not sent their daily get one direct message, at most once a day, and never after the digest.
 - **Blocker routing.** A new blocker goes by direct message to whoever can help: the pull request's reviewers, then its CODEOWNERS, then the team managers.
-- **Suggested blockers, only for you.** A pull request waiting too long for review or with CI failing for a day shows up in your own draft. You confirm or ignore it; nobody else ever sees it.
+- **Linear cards.** Connect one Linear workspace (read-only) and your own cards that started or finished appear in your draft. A blocker that links a card goes to the people who own the blocking card.
+- **Suggested blockers, only for you.** A pull request waiting too long for review, CI failing for a day or a card in progress for days shows up in your own draft. You confirm or ignore it; nobody else ever sees it.
 - **Several teams, one daily.** People in two teams write once and appear in both digests.
 - **Configuration as code.** A single `standwise.yml` in your `.github` repository. Every push and pull request that changes `standwise.yml` is validated by a `Standwise config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
 - **Manager tools.** Managers read their team's dailies, digests and blockers from their own AI agent.
@@ -157,7 +158,7 @@ Every key is documented in the [configuration reference](docs/site/admin/configu
 
 ## Privacy principles
 
-- **Your code is never read.** Standwise reads `standwise.yml`, team and organization membership, and the titles, links and dates of your own pull requests, reviews and commits.
+- **Your code is never read.** Standwise reads `standwise.yml`, team and organization membership, and the titles, links and dates of your own pull requests, reviews and commits. If you connect Linear, it also reads card titles, links, states and dates, never descriptions or comments.
 - **Nothing is sent without your confirmation.**
 - **No rankings, scores or productivity metrics**, in any plan, ever.
 - **No AI model processes your data on the Standwise servers.** The writing happens in your own agent.
@@ -202,7 +203,7 @@ docker build --build-arg APP=worker --build-arg SUPPORT_EMAIL=you@example.com -t
 - The api runs the migrations on startup, so run a single api replica. Both services need Postgres.
 - Every variable is listed in [`.env.example`](.env.example).
 - Railway setup: [docs/deploy.md](docs/deploy.md).
-- Register the apps with [docs/github-app.md](docs/github-app.md) (or [the manifest](docs/github-app-manifest.json)) and [docs/slack-app-manifest.yml](docs/slack-app-manifest.yml).
+- Register the apps with [docs/github-app.md](docs/github-app.md) (or [the manifest](docs/github-app-manifest.json)), [docs/slack-app-manifest.yml](docs/slack-app-manifest.yml) and [docs/linear-app.md](docs/linear-app.md). `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` are required on the api and the worker.
 
 ## Development
 
@@ -242,7 +243,7 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for commit co
 - [x] Blocker routing to reviewers, CODEOWNERS or managers
 - [x] Suggested blockers (pull request without review, failing CI), visible only to you
 - [x] `standwise.yml` validation as a GitHub check run
-- [ ] Linear integration
+- [x] Linear integration: cards in the draft, card blocker routing and stale card suggestions
 - [ ] Jira and Google Chat
 
 ## Support

@@ -51,7 +51,7 @@ Around it, Standwise orchestrates the day:
 - suggested blockers, such as a pull request waiting for review or with failing CI, appear only to you, in your own draft;
 - every change to `standwise.yml` is validated by a GitHub check run.
 
-Coming soon: Google Chat, Linear and Jira, including card-based signals.
+Linear cards show up in the draft and in blocker routing. Coming soon: Google Chat and Jira.
 
 Read [How it works](/how-it-works) for the full cycle of a day.
 

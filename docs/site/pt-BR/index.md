@@ -52,7 +52,7 @@ Em volta disso, o Standwise orquestra o dia:
 - impedimentos sugeridos, como um pull request esperando revisão ou com CI falhando, aparecem só para você, no seu rascunho;
 - toda mudança no `standwise.yml` é validada por um check run no GitHub.
 
-Em breve: Google Chat, Linear e Jira, incluindo sinais de cards.
+Os cards do Linear aparecem no rascunho e no encaminhamento de impedimentos. Em breve: Google Chat e Jira.
 
 Veja [Como funciona](/pt-BR/how-it-works) para o ciclo completo de um dia.
 

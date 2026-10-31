@@ -8,9 +8,10 @@ import {
 } from '@standwise/core';
 import { setInstallationConfig, upsertInstallation, upsertMember } from '@standwise/db';
 import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
+import type { LinearOrganization, LinearTokens } from '@standwise/linear';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
-import { type Deps, nullTracker } from '../../src';
+import { createTrackerFor, type Deps } from '../../src';
 
 export const INST = 11;
 
@@ -44,10 +45,96 @@ export type FakeOptions = {
   codeowners?: Record<string, string | null>;
   checks?: { createError?: unknown };
   snapshots?: Record<string, PullRequestSnapshot[]>;
+  teams?: Record<string, string[]>;
 };
+
+export function fakeLinear() {
+  const state = {
+    organization: { id: 'org-1', name: 'Acme Linear', urlKey: 'acme' } as LinearOrganization,
+    tokens: {
+      accessToken: 'lin_at_1',
+      refreshToken: 'lin_rt_1',
+      expiresAt: '2026-10-29T15:00:00.000Z',
+    } as LinearTokens,
+    refreshed: {
+      accessToken: 'lin_at_2',
+      refreshToken: 'lin_rt_2',
+      expiresAt: '2026-10-29T16:00:00.000Z',
+    } as LinearTokens,
+    exchangeError: null as Error | null,
+    refreshError: null as Error | null,
+    graphqlStatus: 200,
+    users: new Map<string, string>(),
+    issues: new Map<string, unknown>(),
+    activity: [] as unknown[],
+    stale: [] as unknown[],
+  };
+  const calls = {
+    exchanges: [] as { code: string; redirectUri: string; clientId: string }[],
+    refreshes: [] as { refreshToken: string; clientId: string; clientSecret: string }[],
+    bearer: [] as string[],
+    userLookups: [] as string[],
+    queries: [] as { name: string; variables: Record<string, unknown> }[],
+  };
+  const fetchImpl = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+    calls.bearer.push(new Headers(init?.headers).get('authorization') ?? '');
+    if (state.graphqlStatus !== 200) return new Response('', { status: state.graphqlStatus });
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      query?: string;
+      variables?: { email?: string; identifier?: string };
+    };
+    const name = /query (\w+)/.exec(body.query ?? '')?.[1] ?? '';
+    calls.queries.push({ name, variables: { ...body.variables } });
+    if (name === 'Issue') {
+      const issue = state.issues.get(body.variables?.identifier ?? '');
+      if (issue) return Response.json({ data: { issue } });
+      return Response.json({
+        errors: [{ message: 'Entity not found: Issue', extensions: { code: 'INVALID_INPUT' } }],
+      });
+    }
+    if (name === 'CardActivity') {
+      return Response.json({ data: { issues: { nodes: state.activity } } });
+    }
+    if (name === 'StaleInProgress') {
+      return Response.json({ data: { issues: { nodes: state.stale } } });
+    }
+    if (body.query?.includes('UserByEmail')) {
+      const email = (body.variables?.email ?? '').toLowerCase();
+      calls.userLookups.push(email);
+      const id = state.users.get(email);
+      return Response.json({
+        data: { users: { nodes: id ? [{ id, email }] : [] } },
+      });
+    }
+    return Response.json({ data: { organization: state.organization } });
+  }) as typeof fetch;
+  const deps: Deps['linear'] = {
+    exchangeCode: async (input) => {
+      calls.exchanges.push({
+        code: input.code,
+        redirectUri: input.redirectUri,
+        clientId: input.clientId,
+      });
+      if (state.exchangeError) throw state.exchangeError;
+      return state.tokens;
+    },
+    refreshToken: async (input) => {
+      calls.refreshes.push({
+        refreshToken: input.refreshToken,
+        clientId: input.clientId,
+        clientSecret: input.clientSecret,
+      });
+      if (state.refreshError) throw state.refreshError;
+      return state.refreshed;
+    },
+    fetch: fetchImpl,
+  };
+  return { deps, state, calls };
+}
 
 export function fakeDeps(opts: FakeOptions = {}) {
   const queue = createMemoryQueue();
+  const linear = fakeLinear();
   const calls = {
     activity: [] as Date[],
     activityLogins: [] as string[],
@@ -125,7 +212,8 @@ export function fakeDeps(opts: FakeOptions = {}) {
         calls.activityLogins.push(login);
         return [];
       },
-      resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
+      resolveTeamMembers: async (_o, _owner, members) =>
+        members.flatMap((m) => opts.teams?.[m] ?? [m.toLowerCase()]),
       fetchConfigSource: async (_o, owner, options) => {
         calls.config.push(owner);
         calls.configRefs.push(options?.ref);
@@ -160,6 +248,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
         opts.slackExchange ??
         (async () => ({ teamId: 'T1', teamName: 'Acme Workspace', botToken: 'xoxb-1' })),
     },
+    linear: linear.deps,
     chatFor: async () =>
       ({
         findUserByEmail: async () => {
@@ -167,7 +256,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
           return 'U9';
         },
       }) as never,
-    tracker: nullTracker,
+    trackerFor: (...args) => createTrackerFor(deps)(...args),
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
@@ -178,11 +267,14 @@ export function fakeDeps(opts: FakeOptions = {}) {
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
     },
   };
   return {
     deps,
     queue,
+    linear,
     calls,
     orgMembers,
     roles,

@@ -12,7 +12,8 @@ import {
   listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
-import { createChatFor, type Deps, nullTracker } from '@standwise/orchestrator';
+import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
+import { createChatFor, createTrackerFor, type Deps } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
@@ -59,8 +60,9 @@ const deps: Deps = {
       }),
   },
   slack: { exchangeCode: exchangeSlackCode },
+  linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
-  tracker: nullTracker,
+  trackerFor: (...args) => createTrackerFor(deps)(...args),
   env: {
     publicUrl: env.PUBLIC_URL,
     supportEmail: env.SUPPORT_EMAIL,
@@ -71,6 +73,8 @@ const deps: Deps = {
     sessionSecret: env.SESSION_SECRET,
     slackClientId: env.SLACK_CLIENT_ID,
     slackClientSecret: env.SLACK_CLIENT_SECRET,
+    linearClientId: env.LINEAR_CLIENT_ID,
+    linearClientSecret: env.LINEAR_CLIENT_SECRET,
   },
 };
 

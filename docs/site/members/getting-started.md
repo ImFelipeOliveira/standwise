@@ -62,7 +62,7 @@ Pick the way that fits your tools:
 
 In every case, the flow is the same:
 
-1. Standwise builds a draft of yesterday from your GitHub activity since your last daily.
+1. Standwise builds a draft of yesterday from your GitHub activity since your last daily, plus your own Linear cards if your organization connected Linear.
 2. You fix yesterday, then write today and any blockers.
 3. You see the final daily and confirm it. Nothing is sent before that.
 

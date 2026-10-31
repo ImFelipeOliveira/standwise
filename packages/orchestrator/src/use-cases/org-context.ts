@@ -15,6 +15,7 @@ export type OrgContext = {
   member: MemberRow;
   installationId: number;
   owner: string;
+  config: NonNullable<ReturnType<typeof operationalConfig>>;
   mine: [ResolvedTeam, ...ResolvedTeam[]];
   date: string;
 };
@@ -55,6 +56,7 @@ export async function resolveOrgContext(
     member: current,
     installationId: installation.id,
     owner: installation.accountLogin,
+    config,
     mine: [first, ...rest],
     date: dailyDateFor(deps.now(), first),
   };

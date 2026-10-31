@@ -12,11 +12,13 @@ import {
   listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
+import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
 import {
   createChatFor,
+  createTrackerFor,
   DELIVER_WEBHOOK_JOB,
+  LINK_TRACKER_IDENTITIES_JOB,
   LOAD_CONFIG_JOB,
-  nullTracker,
   PRUNE_DATA_JOB,
   RESOLVE_CHECK_SUITE_JOB,
   ROUTE_BLOCKER_JOB,
@@ -27,6 +29,7 @@ import {
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
+import { linkTrackerIdentitiesJob } from './jobs/link-tracker-identities';
 import { loadConfigJob } from './jobs/load-config';
 import { pruneDataJob } from './jobs/prune-data';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
@@ -77,7 +80,12 @@ const deps: WorkerDeps = {
       }),
   },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
-  tracker: nullTracker,
+  trackerFor: (...args) => createTrackerFor(deps)(...args),
+  linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
+  env: {
+    linearClientId: env.LINEAR_CLIENT_ID,
+    linearClientSecret: env.LINEAR_CLIENT_SECRET,
+  },
 };
 
 await queue.start();
@@ -94,6 +102,7 @@ await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps), stately);
 await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps), plain);
 await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps), keyed);
 await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps), stately);
+await queue.work(LINK_TRACKER_IDENTITIES_JOB, linkTrackerIdentitiesJob(deps), stately);
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps), plain);
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps), plain);
 await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps), plain);

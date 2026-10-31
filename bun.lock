@@ -23,6 +23,7 @@
         "@standwise/core": "workspace:*",
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/orchestrator": "workspace:*",
         "@standwise/queue": "workspace:*",
         "@standwise/slack": "workspace:*",
@@ -48,6 +49,7 @@
       "dependencies": {
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/orchestrator": "workspace:*",
         "@standwise/queue": "workspace:*",
         "zod": "^4.6.7",
@@ -60,6 +62,14 @@
         "@octokit/app": "^16.0.0",
         "@octokit/core": "^7.0.0",
         "@standwise/core": "workspace:*",
+      },
+    },
+    "packages/adapters/linear": {
+      "name": "@standwise/linear",
+      "version": "0.0.0",
+      "dependencies": {
+        "@standwise/core": "workspace:*",
+        "zod": "^4.6.7",
       },
     },
     "packages/adapters/slack": {
@@ -99,6 +109,7 @@
         "@standwise/core": "workspace:*",
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/queue": "workspace:*",
         "@standwise/slack": "workspace:*",
       },
@@ -402,6 +413,8 @@
     "@standwise/db": ["@standwise/db@workspace:packages/db"],
 
     "@standwise/github": ["@standwise/github@workspace:packages/adapters/github"],
+
+    "@standwise/linear": ["@standwise/linear@workspace:packages/adapters/linear"],
 
     "@standwise/orchestrator": ["@standwise/orchestrator@workspace:packages/orchestrator"],
 

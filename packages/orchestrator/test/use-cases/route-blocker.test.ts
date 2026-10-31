@@ -8,7 +8,10 @@ import {
 } from '@standwise/core';
 import {
   claimDelivery,
+  getConnection,
   getDelivery,
+  saveConnection,
+  setIdentity,
   setMemberInstallations,
   upsertDaily,
   upsertMember,
@@ -40,6 +43,7 @@ teams:
     managers: ${managers}
     members: [alice, bob, carla]
     chat: { provider: slack, channel: "#alpha" }
+    tracker: { provider: linear, team: ENG }
 ${extra}`);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
   return parsed.config;
@@ -73,6 +77,65 @@ const prBlocker = (url = 'https://github.com/acme/api/pull/7'): Item => ({
   text: 'Waiting for review on the cache PR',
   ref: { kind: 'pull_request', url, title: 'Add cache' },
 });
+
+const KEY = new Uint8Array(32).fill(7);
+
+const cardBlocker = (url = 'https://linear.app/acme/issue/ENG-1/login'): Item => ({
+  text: 'Card blocked',
+  ref: { kind: 'card', url, title: 'Fix login' },
+});
+
+const lin = (id: string) => ({ id, email: null });
+
+async function connectLinear() {
+  if (await getConnection(db, INST, 'linear', KEY)) return;
+  await saveConnection(
+    db,
+    INST,
+    'linear',
+    'org-1',
+    JSON.stringify({ accessToken: 'lin_at_1', refreshToken: null, expiresAt: null }),
+    KEY,
+    'Acme',
+    'acme',
+  );
+}
+
+let nextUserId = 100;
+
+async function linkCard(
+  fake: { linear: { state: { issues: Map<string, unknown> } } },
+  people: { login: string; id: string }[],
+  card: {
+    assignee?: { id: string; email: null };
+    creator?: { id: string; email: null };
+    blockedBy?: { id: string; email: null }[];
+  } = {},
+) {
+  await connectLinear();
+  for (const person of people) {
+    const member = await upsertMember(db, {
+      githubUserId: nextUserId++,
+      login: person.login,
+      email: null,
+    });
+    await setIdentity(db, INST, member.id, 'linear', person.id);
+  }
+  fake.linear.state.issues.set('ENG-1', {
+    id: 'i1',
+    identifier: 'ENG-1',
+    url: 'https://linear.app/acme/issue/ENG-1/login',
+    title: 'Fix login',
+    assignee: card.assignee ?? null,
+    creator: card.creator ?? null,
+    inverseRelations: {
+      nodes: (card.blockedBy ?? []).map((assignee, i) => ({
+        type: 'blocks',
+        issue: { identifier: `BE-${9 + i}`, assignee },
+      })),
+    },
+  });
+}
 
 const team = (cfg: StandwiseConfig): ResolvedTeam => ({
   ...(cfg.teams[0] as StandwiseConfig['teams'][number]),
@@ -194,23 +257,134 @@ describe('resolveRouteTarget', () => {
     expect(await target(fake, prBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
   });
 
-  test('a card ref with the null tracker routes to managers', async () => {
+  test('a card blocked by another card routes to the blocking card assignee', async () => {
     const fake = await setup();
-    const card: Item = {
-      text: 'Card blocked',
-      ref: { kind: 'card', url: 'https://linear.app/acme/issue/ENG-1' },
-    };
-    expect(await target(fake, card)).toEqual({ reason: 'manager', logins: ['mgr'] });
+    await linkCard(
+      fake,
+      [
+        { login: 'Carla', id: 'lin-carla' },
+        { login: 'Alice', id: 'lin-alice' },
+      ],
+      { assignee: lin('lin-alice'), blockedBy: [lin('lin-carla')] },
+    );
+    expect(await target(fake, cardBlocker())).toEqual({
+      reason: 'card_blocker',
+      logins: ['carla'],
+    });
+    expect(fake.linear.calls.queries).toEqual([
+      { name: 'Issue', variables: { identifier: 'ENG-1' } },
+    ]);
   });
 
-  test('a card ref uses the tracker assignee when there is one', async () => {
+  test('without a blocker relation it routes to the assignee, then the creator', async () => {
     const fake = await setup();
-    fake.deps.tracker = { blockingAssignee: async () => 'Erin' };
-    const card: Item = {
-      text: 'Card blocked',
-      ref: { kind: 'card', url: 'https://linear.app/acme/issue/ENG-1' },
+    await linkCard(
+      fake,
+      [
+        { login: 'Alice', id: 'lin-alice' },
+        { login: 'Carla', id: 'lin-carla' },
+      ],
+      { assignee: lin('lin-alice'), creator: lin('lin-carla') },
+    );
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'card_owner', logins: ['alice'] });
+    await linkCard(fake, [], { creator: lin('lin-carla') });
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'card_owner', logins: ['carla'] });
+  });
+
+  test('a blocker assignee who is the author falls through to the next step', async () => {
+    const fake = await setup();
+    await linkCard(
+      fake,
+      [
+        { login: 'Bob', id: 'lin-bob' },
+        { login: 'Carla', id: 'lin-carla' },
+      ],
+      { blockedBy: [lin('lin-bob')], assignee: lin('lin-bob'), creator: lin('lin-carla') },
+    );
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'card_owner', logins: ['carla'] });
+  });
+
+  test('a blocker assignee not linked to anyone falls through', async () => {
+    const fake = await setup();
+    await linkCard(fake, [{ login: 'Alice', id: 'lin-alice' }], {
+      blockedBy: [lin('lin-ghost')],
+      assignee: lin('lin-alice'),
+    });
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'card_owner', logins: ['alice'] });
+    await linkCard(fake, [], { blockedBy: [lin('lin-ghost')] });
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+  });
+
+  test('a card from another workspace or a malformed url routes to managers without a fetch', async () => {
+    const fake = await setup();
+    await linkCard(fake, [{ login: 'Carla', id: 'lin-carla' }], { assignee: lin('lin-carla') });
+    for (const url of ['https://linear.app/other/issue/ENG-1', 'https://linear.app/acme/ENG-1']) {
+      expect(await target(fake, cardBlocker(url))).toEqual({ reason: 'manager', logins: ['mgr'] });
+    }
+    expect(fake.linear.calls.bearer).toEqual([]);
+  });
+
+  test('a card that is not found routes to managers', async () => {
+    const fake = await setup();
+    await connectLinear();
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+    expect(fake.linear.calls.queries.map((q) => q.name)).toEqual(['Issue']);
+  });
+
+  test('a linear auth error invalidates the connection and routes to managers', async () => {
+    const fake = await setup();
+    await linkCard(fake, [{ login: 'Carla', id: 'lin-carla' }], { assignee: lin('lin-carla') });
+    fake.linear.state.graphqlStatus = 401;
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(await target(fake, cardBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+      expect(JSON.stringify(spy.mock.calls)).not.toContain('Card blocked');
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeInstanceOf(Date);
+  });
+
+  test('without a linear connection the null tracker routes to managers', async () => {
+    const fake = await setup();
+    expect(await target(fake, cardBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+    expect(fake.linear.calls.bearer).toEqual([]);
+  });
+
+  test('a tracker failure routes to managers', async () => {
+    const fake = await setup();
+    fake.deps.trackerFor = async () => {
+      throw new Error('refresh down');
     };
-    expect(await target(fake, card)).toEqual({ reason: 'card_blocker', logins: ['erin'] });
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(await target(fake, cardBlocker())).toEqual({ reason: 'manager', logins: ['mgr'] });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('the card step passes the installation owner, the config and the first team', async () => {
+    const fake = await setup();
+    const seen: unknown[] = [];
+    fake.deps.trackerFor = async (...args) => {
+      seen.push(args);
+      return {
+        connected: true,
+        cardOwners: async () => ({
+          blockers: ['Erin', 'bob', 'erin', 'a1', 'a2', 'a3', 'a4', 'a5'],
+          assignee: null,
+          creator: null,
+        }),
+        listActivity: async () => [],
+        listStaleInProgress: async () => ({ cards: [], truncated: false }),
+      };
+    };
+    expect(await target(fake, cardBlocker())).toEqual({
+      reason: 'card_blocker',
+      logins: ['erin', 'a1', 'a2', 'a3', 'a4'],
+    });
+    expect(seen).toEqual([[INST, 'acme', fake.cfg, team(fake.cfg)]]);
   });
 
   test('a GitHub failure on the PR falls back to managers without rethrowing', async () => {
@@ -256,6 +430,21 @@ describe('resolveRouteTarget', () => {
 });
 
 describe('routeBlocker', () => {
+  test('a card blocker DMs the blocking card assignee with the card reason', async () => {
+    const fake = await setup();
+    await linkCard(fake, [{ login: 'Carla', id: 'lin-carla' }], {
+      blockedBy: [lin('lin-carla')],
+    });
+    const dailyId = await seedDaily([cardBlocker()]);
+    await routeBlocker(fake.deps, { installationId: INST, dailyId, blockerIndex: 0 });
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA']);
+    const text = fake.directs[0]?.msg.fallbackText ?? '';
+    expect(text).toContain('Card blocked');
+    expect(text).toContain('https://linear.app/acme/issue/ENG-1/login');
+    expect(text).toContain('you are responsible for the blocking card');
+    expect(text).not.toContain('secret');
+  });
+
   test('sends one DM per target and never twice', async () => {
     const fake = await setup({ pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla'] }) } });
     const dailyId = await seedDaily([prBlocker()]);
@@ -571,17 +760,25 @@ describe('buildBlockerRouted', () => {
       pr_reviewers: 'you are a requested reviewer on the PR',
       codeowners: 'you own code changed in the PR',
       card_blocker: 'you are responsible for the blocking card',
+      card_owner: 'you are responsible for or created the blocked card',
       manager: 'you manage the team',
     },
     'pt-BR': {
       pr_reviewers: 'você é revisor solicitado no PR',
       codeowners: 'você é dono de código alterado no PR',
       card_blocker: 'você é responsável pelo card que bloqueia',
+      card_owner: 'você é responsável pelo card bloqueado ou o criou',
       manager: 'você é gestor do time',
     },
   } as const;
   for (const lang of ['en', 'pt-BR'] as const) {
-    for (const reason of ['pr_reviewers', 'codeowners', 'card_blocker', 'manager'] as const) {
+    for (const reason of [
+      'pr_reviewers',
+      'codeowners',
+      'card_blocker',
+      'card_owner',
+      'manager',
+    ] as const) {
       test(`${lang} explains why the person got a ${reason} DM`, () => {
         const msg = buildBlockerRouted({
           lang,

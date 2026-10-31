@@ -7,6 +7,7 @@
   "dependencies": {
     "@standwise/db": "workspace:*",
     "@standwise/github": "workspace:*",
+    "@standwise/linear": "workspace:*",
     "@standwise/orchestrator": "workspace:*",
     "@standwise/queue": "workspace:*",
     "zod": "^4.6.7"

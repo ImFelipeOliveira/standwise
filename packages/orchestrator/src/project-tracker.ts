@@ -1,9 +1,19 @@
-import type { Ref } from '@standwise/core';
+import type { ActivityItem, CardSnapshot, Ref } from '@standwise/core';
+
+export type CardOwners = { blockers: string[]; assignee: string | null; creator: string | null };
+
+export type StaleCards = { cards: CardSnapshot[]; truncated: boolean };
 
 export interface ProjectTracker {
-  blockingAssignee(installationId: number, ref: Ref): Promise<string | null>;
+  readonly connected: boolean;
+  cardOwners(ref: Ref): Promise<CardOwners | null>;
+  listActivity(login: string, since: Date): Promise<ActivityItem[]>;
+  listStaleInProgress(login: string): Promise<StaleCards>;
 }
 
 export const nullTracker: ProjectTracker = {
-  blockingAssignee: async () => null,
+  connected: false,
+  cardOwners: async () => null,
+  listActivity: async () => [],
+  listStaleInProgress: async () => ({ cards: [], truncated: false }),
 };

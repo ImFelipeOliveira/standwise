@@ -14,9 +14,10 @@ Alice roda `/daily` no Claude Code. A skill pede um rascunho ao Standwise. O Sta
 - pull requests que ela abriu;
 - pull requests que ela mergeou;
 - pull requests que ela revisou (não os dela);
-- commits de autoria dela, agrupados por repositório.
+- commits de autoria dela, agrupados por repositório;
+- os cards dela no Linear, quando a organização conectou o Linear: `card_started` quando um card foi para em andamento e `card_done` quando foi concluído.
 
-A janela começa no envio da última daily, se ela foi no dia útil anterior ou depois. Senão, começa à meia-noite do dia útil anterior. Na segunda, o dia útil anterior é sexta, então o fim de semana entra. O rascunho tem até 50 itens, do mais recente para o mais antigo.
+A janela começa no envio da última daily, se ela foi no dia útil anterior ou depois. Senão, começa à meia-noite do dia útil anterior. Na segunda, o dia útil anterior é sexta, então o fim de semana entra. Os cards usam a mesma janela. O rascunho tem até 50 itens no total, do mais recente para o mais antigo. Se o Linear falhar, o rascunho ainda vem com a atividade do GitHub.
 
 Alice ajusta o ontem, escreve o hoje e um impedimento e confirma. O Standwise guarda a daily na data de hoje. Ela pode reenviar até o consolidado sair: vale a última versão.
 
@@ -53,16 +54,21 @@ Só a primeira daily atrasada do dia vai para a thread. Se o Bob reenviar, o Sta
 Cada impedimento novo de uma daily enviada vai uma vez, por mensagem direta, para quem pode ajudar, nesta ordem:
 
 1. Um link de pull request da sua própria organização vai para os revisores solicitados e os membros dos times solicitados. Sem nenhum deles, vai para os CODEOWNERS dos arquivos alterados no pull request, na branch base, com os times expandidos nos membros.
-2. Um link de card vai para o responsável pelo card que trava. Isso depende da integração com o Linear, que vem em breve, então hoje segue para o próximo passo.
-3. Senão, para os gestores do primeiro time do autor.
+2. Um link de card do workspace do Linear conectado vai para as pessoas de quem ele depende, nesta ordem:
+   1. os responsáveis pelos cards que o travam ("bloqueado por");
+   2. senão, o responsável pelo próprio card;
+   3. senão, quem criou o card;
+   4. senão, os gestores do primeiro time do autor.
+3. Qualquer outra coisa vai para os gestores do primeiro time do autor.
 
 Regras:
 
 - O autor nunca recebe o próprio impedimento, e no máximo 5 pessoas recebem.
+- Para cards, só entram pessoas ligadas ao Standwise, e cards de outro workspace do Linear nunca são lidos: vão para os gestores. Se o Linear não está conectado ou o acesso foi revogado, o impedimento de card vai para os gestores.
 - Se nenhuma das pessoas encontradas tem identidade no Slack, ou o GitHub não pôde ser lido, o impedimento vai para os gestores.
 - Pull requests de outras organizações não são lidos e vão para os gestores.
 - Um impedimento com link é identificado pelo link, então reescrever o texto ou enviar a daily de novo não envia outra vez. Sem link, o texto o identifica. No máximo 10 impedimentos diferentes por daily são encaminhados.
-- A mensagem diz por que a pessoa a recebeu: revisor solicitado, dono de código, responsável pelo card ou gestor do time.
+- A mensagem diz por que a pessoa a recebeu: revisor solicitado, dono de código, responsável pelo card que trava, responsável, criador ou gestor do time.
 - A mensagem traz só quem reportou, o texto do impedimento, o link e a data. Nunca o resto da daily.
 - Se não há nenhum destinatário, por exemplo quando o autor é o único gestor do time, a entrega com falha `no_route_target` aparece na página de setup. Um gestor sem identidade no Slack aparece como `no_chat_identity`.
 
@@ -70,12 +76,13 @@ Os impedimentos também aparecem no topo do consolidado, no webhook `blocker.ope
 
 ## Impedimentos sugeridos
 
-O Standwise pode perceber impedimentos que você deixou passar. São dois sinais:
+O Standwise pode perceber impedimentos que você deixou passar. São três sinais:
 
 - um pull request seu, aberto e que não é rascunho, sem revisão há `pr_review_hours` (padrão 48) desde que ficou pronto para revisão;
-- o CI falhando no commit head do seu pull request há 24 horas.
+- o CI falhando no commit head do seu pull request há 24 horas;
+- um card seu no Linear (`card_stale`) em andamento há `signals.card_stale_days` (padrão 5) dias ou mais, contando de quando foi iniciado.
 
-Eles são verificados cerca de uma hora antes do `remind_at`, e em tempo real quando um pull request, uma revisão ou um check suite muda. Só quem já entrou pelo menos uma vez recebe sugestões.
+Eles são verificados cerca de uma hora antes do `remind_at`, e, para sugestões de pull request, também em tempo real quando um pull request, uma revisão ou um check suite muda. Sugestões de card só são verificadas na varredura diária. Só quem já entrou pelo menos uma vez recebe sugestões. Se a sua ligação com o Linear some, as suas sugestões de card pendentes são resolvidas.
 
 Uma sugestão aparece só para você, no seu rascunho. Ela nunca aparece no consolidado, nas tools de organização ou de gestor, nos webhooks nem na página de setup. O gestor só vê um impedimento depois que você o coloca na sua daily. Com `signals.direct_message: true` (padrão `false`) você também recebe uma mensagem direta, uma vez por sugestão.
 
@@ -84,7 +91,7 @@ Para responder:
 - **Confirmar:** adicione aos seus impedimentos com o link. Enviar a daily confirma. Pelo terminal, `standwise suggestion confirm <id>`.
 - **Ignorar:** `standwise suggestion ignore <id>`, a tool MCP `standwise_decide_suggestion`, ou responda quando a skill `/daily` perguntar.
 
-Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou um novo período sem revisão, depois que uma revisão é descartada ou o pull request volta a ficar pronto para revisão. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standwise-suggestion).
+Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou um novo período sem revisão, depois que uma revisão é descartada ou o pull request volta a ficar pronto para revisão. Um card parado só volta se o card for reiniciado. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standwise-suggestion).
 
 ## Fuso, dias úteis e vários times
 
