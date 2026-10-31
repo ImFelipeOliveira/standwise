@@ -10,7 +10,7 @@ import {
 } from './setup-admin';
 import { FAILURE_KIND_LABELS, formatDate, type Translate, translator } from './setup-labels';
 import { SetupSteps, setupProgress } from './setup-steps';
-import { Badge, Card, ScrollTable } from './ui';
+import { Badge, Card } from './ui';
 
 export type { NewApiKey, NewWebhook };
 
@@ -25,59 +25,43 @@ function FailedDeliveries(props: { t: Translate; lang: Language; status: SetupSt
       {status.teamFailures.length > 0 ? (
         <>
           <h3>{t('web.setup.teamFailures')}</h3>
-          <ScrollTable>
-            <table class="table-compact table-fit">
-              <thead>
-                <tr>
-                  <th>{t('web.setup.kind')}</th>
-                  <th>{t('web.setup.team')}</th>
-                  <th>{t('web.setup.date')}</th>
-                  <th>{t('web.setup.error')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {status.teamFailures.map((d) => (
-                  <tr>
-                    <td>{t(FAILURE_KIND_LABELS[d.kind])}</td>
-                    <td>{d.team}</td>
-                    <td>{formatDate(props.lang, d.at)}</td>
-                    <td>
-                      <code>{d.error}</code>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollTable>
+          <ul class="item-list">
+            {status.teamFailures.map((d) => (
+              <li class="item">
+                <div class="item-head">
+                  <strong>{t(FAILURE_KIND_LABELS[d.kind])}</strong>
+                  <span class="small muted">{formatDate(props.lang, d.at)}</span>
+                </div>
+                <p class="small muted item-meta">
+                  {t('web.setup.team')}: {d.team}
+                </p>
+                <p class="small item-meta">
+                  <code>{d.error}</code>
+                </p>
+              </li>
+            ))}
+          </ul>
         </>
       ) : null}
       {status.personFailures.length > 0 ? (
         <>
           <h3>{t('web.setup.personFailures')}</h3>
-          <ScrollTable>
-            <table class="table-compact table-fit">
-              <thead>
-                <tr>
-                  <th>{t('web.setup.kind')}</th>
-                  <th>{t('web.setup.error')}</th>
-                  <th>{t('web.setup.count')}</th>
-                  <th>{t('web.setup.lastAt')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {status.personFailures.map((d) => (
-                  <tr>
-                    <td>{t(FAILURE_KIND_LABELS[d.kind])}</td>
-                    <td>
-                      <code>{d.error}</code>
-                    </td>
-                    <td>{d.count}</td>
-                    <td>{formatDate(props.lang, d.lastAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollTable>
+          <ul class="item-list">
+            {status.personFailures.map((d) => (
+              <li class="item">
+                <div class="item-head">
+                  <strong>{t(FAILURE_KIND_LABELS[d.kind])}</strong>
+                  <span class="small muted">{formatDate(props.lang, d.lastAt)}</span>
+                </div>
+                <p class="small muted item-meta">
+                  {t('web.setup.count')}: {d.count}
+                </p>
+                <p class="small item-meta">
+                  <code>{d.error}</code>
+                </p>
+              </li>
+            ))}
+          </ul>
         </>
       ) : null}
     </Card>
@@ -110,7 +94,9 @@ export function SetupPage(props: {
           <h1>{t('web.setup.heading')}</h1>
           <p class="muted">{t('web.setup.subtitle')}</p>
         </div>
-        <Badge tone="success">{t('web.setup.progress', progress)}</Badge>
+        <Badge tone={progress.done === progress.total ? 'success' : 'neutral'}>
+          {t('web.setup.progress', progress)}
+        </Badge>
       </div>
       <div class="layout">
         <div class="layout-main stack">

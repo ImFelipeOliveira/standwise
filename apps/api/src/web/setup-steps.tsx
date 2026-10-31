@@ -125,7 +125,9 @@ function SlackStep(props: StepProps) {
         ) : null
       }
     >
-      {status.admin ? null : <p class="small muted">{t('web.slack.adminOnly')}</p>}
+      {status.admin || status.slack.connected ? null : (
+        <p class="small muted">{t('web.slack.adminOnly')}</p>
+      )}
     </StepCard>
   );
 }
@@ -185,7 +187,9 @@ function LinearStep(props: StepProps) {
       {status.trackerNotices.map((notice) => (
         <Alert tone="warning" title={t(TRACKER_NOTICES[notice])} />
       ))}
-      {status.admin ? null : <p class="small muted">{t('setup.linear.adminOnly')}</p>}
+      {status.admin || state === 'done' ? null : (
+        <p class="small muted">{t('setup.linear.adminOnly')}</p>
+      )}
     </StepCard>
   );
 }
@@ -209,7 +213,7 @@ function TeamCard(props: { t: Translate; team: SetupStatus['teams'][number]; not
         {t('web.config.teamTimes', { remindAt: team.remindAt, digestAt: team.digestAt })}
       </p>
       {notices.map((notice) => (
-        <p class="small team-notice" role="alert">
+        <p class="small team-notice" role="status">
           <Icon name="alert" />
           <span>{noticeText(t, notice)}</span>
         </p>

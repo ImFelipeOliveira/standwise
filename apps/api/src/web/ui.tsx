@@ -66,9 +66,12 @@ export function ButtonLink(props: { href: string; variant?: ButtonVariant; child
   );
 }
 
-export function SubmitButton(props: { variant?: ButtonVariant; children?: Child }) {
+export function SubmitButton(props: { variant?: ButtonVariant; size?: 'sm'; children?: Child }) {
   return (
-    <button type="submit" class={`btn btn-${props.variant ?? 'primary'}`}>
+    <button
+      type="submit"
+      class={classes('btn', `btn-${props.variant ?? 'primary'}`, props.size && `btn-${props.size}`)}
+    >
       {props.children}
     </button>
   );

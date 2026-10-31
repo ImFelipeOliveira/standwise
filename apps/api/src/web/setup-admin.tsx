@@ -8,7 +8,7 @@ import {
   SCOPE_LABELS,
   type Translate,
 } from './setup-labels';
-import { Alert, Card, Code, ScrollTable, SubmitButton } from './ui';
+import { Alert, Badge, Card, Code, ScrollTable, SubmitButton } from './ui';
 
 export type NewApiKey = { name: string; key: string };
 export type NewWebhook = { url: string; secret: string };
@@ -71,45 +71,37 @@ export function ApiKeysCard(props: {
       {apiKeys.keys.length === 0 ? (
         <p class="small">{t('web.apiKeys.none')}</p>
       ) : (
-        <ScrollTable>
-          <table class="table-compact">
-            <thead>
-              <tr>
-                <th>{t('web.apiKeys.name')}</th>
-                <th>{t('web.apiKeys.prefix')}</th>
-                <th>{t('web.apiKeys.scopes')}</th>
-                <th>{t('web.apiKeys.createdAt')}</th>
-                <th>{t('web.apiKeys.lastUsed')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {apiKeys.keys.map((k) => (
-                <tr>
-                  <td>{k.name}</td>
-                  <td>
-                    <code>swk_{k.prefix}</code>
-                  </td>
-                  <td>{k.scopes.map((scope) => t(SCOPE_LABELS[scope])).join(', ')}</td>
-                  <td>{formatDate(props.lang, k.createdAt)}</td>
-                  <td>
-                    {k.lastUsedAt ? formatDate(props.lang, k.lastUsedAt) : t('web.apiKeys.never')}
-                  </td>
-                  <td>
-                    {k.revokedAt ? (
-                      t('web.apiKeys.revoked')
-                    ) : (
-                      <form method="post" action={`/setup/api-keys/${k.id}/revoke`}>
-                        <Hidden csrf={props.csrf} installationId={props.installationId} />
-                        <SubmitButton variant="danger">{t('web.apiKeys.revoke')}</SubmitButton>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollTable>
+        <ul class="item-list">
+          {apiKeys.keys.map((k) => (
+            <li class="item">
+              <div class="item-head">
+                <strong>{k.name}</strong>
+                <span class="row">
+                  <code>swk_{k.prefix}</code>
+                  {k.revokedAt ? <Badge tone="neutral">{t('web.apiKeys.revoked')}</Badge> : null}
+                </span>
+              </div>
+              <p class="small muted item-meta">
+                {k.scopes.map((scope) => t(SCOPE_LABELS[scope])).join(', ')}
+              </p>
+              <p class="small muted item-meta">
+                {t('web.apiKeys.createdAt')} {formatDate(props.lang, k.createdAt)} ·{' '}
+                {t('web.apiKeys.lastUsed')}:{' '}
+                {k.lastUsedAt ? formatDate(props.lang, k.lastUsedAt) : t('web.apiKeys.never')}
+              </p>
+              {k.revokedAt ? null : (
+                <div class="item-actions">
+                  <form method="post" action={`/setup/api-keys/${k.id}/revoke`}>
+                    <Hidden csrf={props.csrf} installationId={props.installationId} />
+                    <SubmitButton variant="danger" size="sm">
+                      {t('web.apiKeys.revoke')}
+                    </SubmitButton>
+                  </form>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
       <div id="new-api-key">
         <form method="post" action="/setup/api-keys">
@@ -137,12 +129,24 @@ export function ApiKeysCard(props: {
 
 function EndpointStatus(props: { t: Translate; endpoint: Webhooks['endpoints'][number] }) {
   const { t, endpoint } = props;
-  if (endpoint.active) return <>{t('web.webhooks.active')}</>;
+  if (endpoint.active) return <Badge tone="success">{t('web.webhooks.active')}</Badge>;
   if (endpoint.disabledReason === 'failures') {
-    return <>{t('web.webhooks.disabledFailures', { count: WEBHOOK_DISABLE_AFTER_FAILURES })}</>;
+    return (
+      <Badge tone="danger">
+        {t('web.webhooks.disabledFailures', { count: WEBHOOK_DISABLE_AFTER_FAILURES })}
+      </Badge>
+    );
   }
-  return <>{t('web.webhooks.disabled')}</>;
+  return <Badge tone="neutral">{t('web.webhooks.disabled')}</Badge>;
 }
+
+const lastDelivery = (webhooks: Webhooks, endpointId: string) =>
+  webhooks.deliveries
+    .filter((d) => d.endpointId === endpointId)
+    .reduce<Date | null>(
+      (latest, d) => (latest && latest > d.createdAt ? latest : d.createdAt),
+      null,
+    );
 
 export function WebhooksCard(props: {
   t: Translate;
@@ -164,51 +168,44 @@ export function WebhooksCard(props: {
       {webhooks.endpoints.length === 0 ? (
         <p class="small">{t('web.webhooks.none')}</p>
       ) : (
-        <ScrollTable>
-          <table class="table-compact">
-            <thead>
-              <tr>
-                <th>{t('web.webhooks.url')}</th>
-                <th>{t('web.webhooks.events')}</th>
-                <th>{t('web.webhooks.status')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {webhooks.endpoints.map((e) => (
-                <tr>
-                  <td>
-                    <code>{e.url}</code>
-                  </td>
-                  <td>
-                    {e.events.map((event) => (
-                      <code>{event} </code>
-                    ))}
-                  </td>
-                  <td>
-                    <EndpointStatus t={t} endpoint={e} />
-                  </td>
-                  <td>
-                    {e.active ? (
-                      <div class="row">
-                        <form method="post" action={`/setup/webhooks/${e.id}/test`}>
-                          <Hidden csrf={props.csrf} installationId={props.installationId} />
-                          <SubmitButton variant="secondary">
-                            {t('web.webhooks.sendTest')}
-                          </SubmitButton>
-                        </form>
-                        <form method="post" action={`/setup/webhooks/${e.id}/disable`}>
-                          <Hidden csrf={props.csrf} installationId={props.installationId} />
-                          <SubmitButton variant="danger">{t('web.webhooks.disable')}</SubmitButton>
-                        </form>
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollTable>
+        <ul class="item-list">
+          {webhooks.endpoints.map((e) => {
+            const last = lastDelivery(webhooks, e.id);
+            return (
+              <li class="item">
+                <div class="item-head">
+                  <code>{e.url}</code>
+                  <EndpointStatus t={t} endpoint={e} />
+                </div>
+                <p class="small muted item-meta">
+                  {e.events.map((event) => t(EVENT_LABELS[event])).join(', ')}
+                </p>
+                <p class="small muted item-meta">
+                  {t('web.webhooks.createdAt')} {formatDate(props.lang, e.createdAt)}
+                  {last
+                    ? ` · ${t('web.webhooks.lastDelivery')} ${formatDate(props.lang, last)}`
+                    : ''}
+                </p>
+                {e.active ? (
+                  <div class="item-actions">
+                    <form method="post" action={`/setup/webhooks/${e.id}/test`}>
+                      <Hidden csrf={props.csrf} installationId={props.installationId} />
+                      <SubmitButton variant="secondary" size="sm">
+                        {t('web.webhooks.sendTest')}
+                      </SubmitButton>
+                    </form>
+                    <form method="post" action={`/setup/webhooks/${e.id}/disable`}>
+                      <Hidden csrf={props.csrf} installationId={props.installationId} />
+                      <SubmitButton variant="danger" size="sm">
+                        {t('web.webhooks.disable')}
+                      </SubmitButton>
+                    </form>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
       )}
       <div id="new-webhook">
         <form method="post" action="/setup/webhooks">
@@ -243,7 +240,7 @@ export function WebhooksCard(props: {
         <p class="small">{t('web.webhooks.noDeliveries')}</p>
       ) : (
         <ScrollTable>
-          <table class="table-compact">
+          <table class="table-compact table-log">
             <thead>
               <tr>
                 <th>{t('web.webhooks.createdAt')}</th>
@@ -257,16 +254,16 @@ export function WebhooksCard(props: {
             <tbody>
               {webhooks.deliveries.map((d) => (
                 <tr>
-                  <td>{formatDate(props.lang, d.createdAt)}</td>
-                  <td>
+                  <td class="cell-nowrap">{formatDate(props.lang, d.createdAt)}</td>
+                  <td class="cell-nowrap">
                     <code>{d.event}</code>
                   </td>
-                  <td>
+                  <td class="cell-wrap">
                     <code>{d.endpointUrl}</code>
                   </td>
-                  <td>{t(DELIVERY_LABELS[d.status])}</td>
+                  <td class="cell-nowrap">{t(DELIVERY_LABELS[d.status])}</td>
                   <td>{d.attempts}</td>
-                  <td>
+                  <td class="cell-wrap">
                     {d.lastStatusCode ?? ''} {d.lastError ? <code>{d.lastError}</code> : null}
                   </td>
                 </tr>
