@@ -1,7 +1,8 @@
-import type { Language } from '@standwise/core';
+import { type Language, type MessageKey, t as translate } from '@standwise/core';
 import { raw } from 'hono/html';
 import type { Child } from 'hono/jsx';
 import { PAGE_CSS } from './styles';
+import { SubmitButton } from './ui';
 
 export { PAGE_CSS };
 
@@ -15,7 +16,76 @@ export function Logo() {
   );
 }
 
-export function Layout(props: { lang: Language; title: string; children?: Child }) {
+export type HeaderProps = {
+  owner: string;
+  installations: { id: number; owner: string }[];
+  currentId: number;
+  csrf: string;
+};
+
+function Org(props: { lang: Language; header: HeaderProps }) {
+  const t = (key: MessageKey) => translate(props.lang, key);
+  const { header } = props;
+  if (header.installations.length < 2) return <strong class="topbar-org">{header.owner}</strong>;
+  return (
+    <form method="get" action="/setup" class="topbar-switch">
+      <label class="sr-only" for="installation-switch">
+        {t('web.setup.organization')}
+      </label>
+      <select name="installation_id" id="installation-switch">
+        {header.installations.map((i) =>
+          i.id === header.currentId ? (
+            <option value={i.id} selected>
+              {i.owner}
+            </option>
+          ) : (
+            <option value={i.id}>{i.owner}</option>
+          ),
+        )}
+      </select>
+      <button type="submit" class="btn btn-secondary">
+        {t('web.header.switch')}
+      </button>
+    </form>
+  );
+}
+
+function Header(props: { lang: Language; header?: HeaderProps }) {
+  const t = (key: MessageKey) => translate(props.lang, key);
+  const { header } = props;
+  return (
+    <header class="topbar">
+      <span class="topbar-brand">
+        <Logo />
+        <span>Standwise</span>
+      </span>
+      {header ? (
+        <>
+          <span class="topbar-sep" aria-hidden="true">
+            /
+          </span>
+          <Org lang={props.lang} header={header} />
+          <nav class="topbar-actions">
+            <a href={props.lang === 'pt-BR' ? '/docs/pt-BR/' : '/docs/'} class="topbar-link">
+              {t('web.header.docs')}
+            </a>
+            <form method="post" action="/logout">
+              <input type="hidden" name="csrf" value={header.csrf} />
+              <SubmitButton variant="secondary">{t('web.setup.logout')}</SubmitButton>
+            </form>
+          </nav>
+        </>
+      ) : null}
+    </header>
+  );
+}
+
+export function Layout(props: {
+  lang: Language;
+  title: string;
+  header?: HeaderProps;
+  children?: Child;
+}) {
   return (
     <html lang={props.lang}>
       <head>
@@ -26,10 +96,7 @@ export function Layout(props: { lang: Language; title: string; children?: Child 
       </head>
       <body>
         <main class="page">
-          <header>
-            <Logo />
-            <span>Standwise</span>
-          </header>
+          <Header lang={props.lang} header={props.header} />
           {props.children}
         </main>
       </body>

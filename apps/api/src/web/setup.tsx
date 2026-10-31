@@ -82,15 +82,17 @@ export function SetupPage(props: {
   };
   const template = standwiseYmlTemplate(status.login, t('web.template.teamName'), props.lang);
   return (
-    <Layout lang={props.lang} title={t('web.setup.title')}>
+    <Layout
+      lang={props.lang}
+      title={t('web.setup.title')}
+      header={{
+        owner: status.owner,
+        installations: status.installations,
+        currentId: status.installationId,
+        csrf: props.csrf,
+      }}
+    >
       <h1>{t('web.setup.heading')}</h1>
-      <form method="post" action="/logout">
-        <input type="hidden" name="csrf" value={props.csrf} />
-        <button type="submit">{t('web.setup.logout')}</button>
-      </form>
-      <p>
-        {t('web.setup.organization')}: <strong>{status.owner}</strong>
-      </p>
       <section>
         <h2>{t('web.setup.configTitle')}</h2>
         {status.config.status === 'configured' ? <p>{t('web.setup.configOk')}</p> : null}

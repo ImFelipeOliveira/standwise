@@ -6,6 +6,7 @@ import {
   listApiKeys,
   listFailedPersonDeliveryGroups,
   listFailedTeamDeliveries,
+  listMemberInstallations,
   type MemberRow,
   operationalConfig,
   type PersonFailureGroup,
@@ -27,6 +28,7 @@ const TEAM_NOTICES_TIMEOUT_MS = 3000;
 export type SetupStatus = {
   installationId: number;
   owner: string;
+  installations: { id: number; owner: string }[];
   login: string;
   admin: boolean;
   config:
@@ -118,7 +120,7 @@ export async function getSetupStatus(
     operational,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
-  const [configRepo, connection, linearConnection, teamFailures, personFailures, admin] =
+  const [configRepo, connection, linearConnection, teamFailures, personFailures, admin, linked] =
     await Promise.all([
       findConfigRepo(octokit, installation.accountLogin),
       getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
@@ -126,6 +128,7 @@ export async function getSetupStatus(
       listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
       listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
       isInstallationAdmin(deps, installation.id, current).catch(() => false),
+      listMemberInstallations(deps.db, current.id),
     ]);
   const [apiKeys, webhooks]: [SetupStatus['apiKeys'], SetupStatus['webhooks']] = admin
     ? await Promise.all([
@@ -158,6 +161,9 @@ export async function getSetupStatus(
   return {
     installationId: installation.id,
     owner: installation.accountLogin,
+    installations: linked
+      .map((i) => ({ id: i.installationId, owner: i.accountLogin }))
+      .sort((a, b) => a.owner.localeCompare(b.owner, 'en', { sensitivity: 'base' })),
     login: current.login,
     admin,
     config,

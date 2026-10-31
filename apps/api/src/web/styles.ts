@@ -114,7 +114,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 const LAYOUT = `
 .page { max-width: 1120px; margin: 0 auto; padding: 24px 24px 64px; }
-.page > header { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; font-size: 18px; font-weight: 700; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 32px; font-size: 18px; font-weight: 700; }
+.topbar-brand { display: inline-flex; align-items: center; gap: 10px; }
+.topbar-sep { color: var(--muted-foreground); font-weight: 400; }
+.topbar-org { font-size: 15px; }
+.topbar-switch { display: flex; align-items: center; gap: 8px; margin: 0; }
+.topbar-switch select { font-size: 14px; font-weight: 500; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 14px; font-weight: 500; }
+.topbar-actions form { margin: 0; }
+.topbar-link { display: inline-flex; align-items: center; min-height: 36px; padding: 0 4px; color: var(--muted-foreground); text-decoration: none; }
+.topbar-link:hover { color: var(--foreground); text-decoration: underline; }
 .page > section:not([class]) { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; }
 .page > p, .page > section:not([class]) p, .page > section:not([class]) li { color: var(--muted-foreground); }
 .stack { display: flex; flex-direction: column; gap: 16px; }
@@ -178,6 +187,8 @@ const RESPONSIVE = `
   .grid-2 { grid-template-columns: minmax(0, 1fr); }
   h1 { font-size: 24px; }
   button, .btn, .button, input, select, textarea { min-height: 44px; }
+  .topbar-link { min-height: 44px; padding: 0 8px; }
+  .topbar-actions { margin-left: 0; width: 100%; justify-content: space-between; }
   input[type=checkbox], input[type=radio] { min-height: 0; width: 20px; height: 20px; }
   label.choice { min-height: 44px; }
   .badge { white-space: normal; }

@@ -48,6 +48,7 @@ function harness(
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
+  const orgs = new Set(['acme']);
   const admins = new Set(['alice']);
   const linear = fakeLinear();
   const deps: Deps = {
@@ -64,7 +65,10 @@ function harness(
               return { status: 200, data: { id: 1, login: 'alice' } };
             }
             if (route === 'GET /orgs/{org}/members/{username}') {
-              if (params.org !== 'acme' || !orgMembers.has(String(params.username).toLowerCase())) {
+              if (
+                !orgs.has(String(params.org)) ||
+                !orgMembers.has(String(params.username).toLowerCase())
+              ) {
                 throw Object.assign(new Error('not found'), { status: 404 });
               }
               return { status: 204 };
@@ -137,6 +141,7 @@ function harness(
     slackCalls,
     webCodes,
     orgMembers,
+    orgs,
     admins,
   };
 }
@@ -277,6 +282,82 @@ describe('web login', () => {
       expect(location(res)).toBe('/');
     });
   }
+});
+
+describe('setup header', () => {
+  useCleanDb();
+
+  const get = (app: ReturnType<typeof createApp>, cookie: string, id: number, lang = 'en') =>
+    app.request(`/setup?installation_id=${id}`, {
+      headers: { cookie, 'accept-language': lang },
+    });
+
+  test('a member with one installation sees the owner as text and no select', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const html = await (await get(app, cookie, INST)).text();
+    expect(html).toContain('<header class="topbar">');
+    expect(html).toContain('acme');
+    expect(html).not.toContain('<select');
+  });
+
+  test('a member with two installations gets a switcher with the current one selected', async () => {
+    const { app, orgs } = harness();
+    orgs.add('other');
+    const { cookie, member } = await seed();
+    await setMemberInstallations(db, member.id, [INST, FOREIGN]);
+    const html = await (await get(app, cookie, INST)).text();
+    expect(html).toContain('<form method="get" action="/setup"');
+    expect(html).toContain('<select name="installation_id"');
+    expect(html).toMatch(new RegExp(`<option value="${INST}" selected(="")?>acme</option>`));
+    expect(html).toContain(`<option value="${FOREIGN}">other</option>`);
+    expect(html).toContain('<button type="submit"');
+    expect(html).toContain('>Go<');
+    const pt = await (await get(app, cookie, INST, 'pt-BR')).text();
+    expect(pt).toContain('>Ir<');
+  });
+
+  test('opening the other installation shows the other organization', async () => {
+    const { app, orgs } = harness();
+    orgs.add('other');
+    const { cookie, member } = await seed();
+    await setMemberInstallations(db, member.id, [INST, FOREIGN]);
+    const res = await get(app, cookie, FOREIGN);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toMatch(
+      new RegExp(`<option value="${FOREIGN}" selected(="")?>other</option>`),
+    );
+  });
+
+  test('an installation the member is not linked to stays forbidden', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await get(app, cookie, FOREIGN);
+    expect(res.status).toBe(302);
+  });
+
+  test('docs and sign out links appear in en and pt-BR', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await (await get(app, cookie, INST)).text();
+    expect(en).toContain('<a href="/docs/"');
+    expect(en).toContain('Docs');
+    expect(en).toContain('Sign out');
+    const pt = await (await get(app, cookie, INST, 'pt-BR')).text();
+    expect(pt).toContain('<a href="/docs/pt-BR/"');
+    expect(pt).toContain('Docs');
+    expect(pt).toContain('Sair');
+  });
+
+  test('error pages keep the simple header', async () => {
+    const { app } = harness();
+    const res = await app.request('/setup?installation_id=1&resynced=1', {
+      headers: { 'accept-language': 'en' },
+    });
+    const html = await res.text();
+    expect(html).not.toContain('action="/logout"');
+    expect(html).not.toContain('/docs/');
+  });
 });
 
 describe('setup page', () => {

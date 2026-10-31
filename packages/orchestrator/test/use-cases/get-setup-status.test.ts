@@ -248,3 +248,18 @@ describe('getSetupStatus team notices', () => {
     expect(Date.now() - started).toBeLessThan(4500);
   }, 10000);
 });
+
+describe('getSetupStatus installations', () => {
+  test('lists every linked installation sorted by owner', async () => {
+    const { deps, isMember, member } = await setup(false);
+    await seedOrg(config(), { id: 12, accountLogin: 'zeta' });
+    await seedOrg(config(), { id: 13, accountLogin: 'Beta' });
+    await setMemberInstallations(db, member.id, [INST, 12, 13]);
+    const status = await getSetupStatus(deps, isMember, member, INST);
+    expect(status.installations).toEqual([
+      { id: 11, owner: 'acme' },
+      { id: 13, owner: 'Beta' },
+      { id: 12, owner: 'zeta' },
+    ]);
+  });
+});

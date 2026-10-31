@@ -291,6 +291,7 @@ function status(overrides: Partial<SetupStatus> = {}): SetupStatus {
   return {
     installationId: 11,
     owner: 'acme',
+    installations: [{ id: 11, owner: 'acme' }],
     login: 'alice',
     admin: true,
     config: { status: 'configured' },
