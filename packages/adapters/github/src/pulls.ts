@@ -1,6 +1,6 @@
 import type { Octokit } from '@octokit/core';
 import type { GitHubPullRef, PullRequestSnapshot } from '@standwise/core';
-import { httpStatus } from './errors';
+import { asRateLimitError, httpStatus } from './errors';
 
 const PER_PAGE = 100;
 const MAX_FILE_PAGES = 30;
@@ -93,16 +93,27 @@ export async function listPullRequestFiles(
   return files;
 }
 
-async function countReviews(octokit: Octokit, ref: GitHubPullRef): Promise<number> {
+type ReviewCounts = { reviewCount: number; dismissedReviewCount: number };
+
+async function countReviews(
+  octokit: Octokit,
+  ref: GitHubPullRef,
+  author: string,
+): Promise<ReviewCounts> {
   const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
     owner: ref.owner,
     repo: ref.repo,
     pull_number: ref.number,
     per_page: PER_PAGE,
   });
-  return (response.data as { state: string }[]).filter((review) =>
-    COUNTED_REVIEW_STATES.has(review.state),
-  ).length;
+  const authorLogin = author.toLowerCase();
+  const reviews = (response.data as { state: string; user?: { login?: string } | null }[]).filter(
+    (review) => !authorLogin || (review.user?.login ?? '').toLowerCase() !== authorLogin,
+  );
+  return {
+    reviewCount: reviews.filter((review) => COUNTED_REVIEW_STATES.has(review.state)).length,
+    dismissedReviewCount: reviews.filter((review) => review.state === 'DISMISSED').length,
+  };
 }
 
 async function readyAtOf(octokit: Octokit, ref: GitHubPullRef, createdAt: string): Promise<Date> {
@@ -163,6 +174,19 @@ export async function listOpenPullRequestSnapshots(
   ownerType: 'Organization' | 'User',
   author: string,
 ): Promise<PullRequestSnapshot[]> {
+  try {
+    return await collectSnapshots(octokit, owner, ownerType, author);
+  } catch (error) {
+    throw asRateLimitError(error);
+  }
+}
+
+async function collectSnapshots(
+  octokit: Octokit,
+  owner: string,
+  ownerType: 'Organization' | 'User',
+  author: string,
+): Promise<PullRequestSnapshot[]> {
   const scope = ownerType === 'User' ? `user:${owner}` : `org:${owner}`;
   const search = await octokit.request('GET /search/issues', {
     q: `is:pr is:open draft:false author:${author} ${scope}`,
@@ -175,8 +199,8 @@ export async function listOpenPullRequestSnapshots(
     if (!ref) continue;
     const detail = await getPullRequest(octokit, ref);
     if (detail?.state !== 'open') continue;
-    const [reviewCount, readyAt, failing] = await Promise.all([
-      countReviews(octokit, ref),
+    const [reviews, readyAt, failing] = await Promise.all([
+      countReviews(octokit, ref, detail.author),
       readyAtOf(octokit, ref, hit.created_at),
       failingSince(octokit, ref, detail.headSha),
     ]);
@@ -187,7 +211,8 @@ export async function listOpenPullRequestSnapshots(
       title: hit.title,
       draft: detail.draft,
       readyAt,
-      reviewCount,
+      reviewCount: reviews.reviewCount,
+      dismissedReviewCount: reviews.dismissedReviewCount,
       headSha: detail.headSha,
       failingChecksSince: failing,
     });

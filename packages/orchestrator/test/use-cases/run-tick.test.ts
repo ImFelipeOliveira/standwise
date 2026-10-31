@@ -8,8 +8,9 @@ import {
   setInstallationConfig,
   setMemberInstallations,
 } from '@standwise/db';
+import type { EnqueueOptions } from '@standwise/queue';
 import { db, useCleanDb } from '../../../db/test/setup';
-import { runTick } from '../../src';
+import { runTick, scanOffsetSeconds } from '../../src';
 import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';
 
 useCleanDb();
@@ -232,6 +233,49 @@ teams:
       fake.setNow(local('2026-10-28T08:00:00'));
       await runTick(fake.deps);
       expect(scans(fake)).toEqual([{ installationId: INST, login: 'alice', date: '2026-10-28' }]);
+    });
+
+    test('tick scans are spread over 30 minutes by a deterministic offset per login', async () => {
+      await seedOrg(remindingAt('09:00'));
+      await linkAlice();
+      const bob = await seedMember('Bob', 2);
+      await setMemberInstallations(db, bob.id, [INST]);
+      const capture = async () => {
+        const fake = fakeDeps();
+        const seen: { login: string; opts?: EnqueueOptions }[] = [];
+        const enqueue = fake.queue.enqueue.bind(fake.queue);
+        fake.deps.queue = {
+          ...fake.queue,
+          enqueue: async (name, data, opts) => {
+            if (name === 'scan-member-signals') {
+              seen.push({ login: (data as { login: string }).login, opts });
+            }
+            return enqueue(name, data, opts);
+          },
+        };
+        fake.setNow(local('2026-10-28T08:05:00'));
+        await runTick(fake.deps);
+        return seen;
+      };
+      const first = await capture();
+      const second = await capture();
+      expect(first.map((s) => s.login).sort()).toEqual(['alice', 'bob']);
+      expect(second).toEqual(first);
+      const windowStart = local('2026-10-28T08:00:00').getTime();
+      for (const { login, opts } of first) {
+        expect(opts?.singletonKey).toBe(`scan:${INST}:${login}`);
+        expect(opts?.policy).toBe('stately');
+        expect(opts?.startAfter?.getTime()).toBe(windowStart + scanOffsetSeconds(login) * 1000);
+      }
+      for (const login of ['alice', 'bob', 'carol', 'dave', 'erin', 'frank', 'grace']) {
+        const offset = scanOffsetSeconds(login);
+        expect(offset).toBe(scanOffsetSeconds(login.toUpperCase()));
+        expect(offset).toBeGreaterThanOrEqual(0);
+        expect(offset).toBeLessThan(30 * 60);
+      }
+      expect(
+        new Set(['alice', 'bob', 'carol', 'dave'].map(scanOffsetSeconds)).size,
+      ).toBeGreaterThan(1);
     });
 
     test('a day already scanned is not enqueued again', async () => {

@@ -17,6 +17,7 @@ const pr = (over: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot => ({
   draft: false,
   readyAt: hoursAgo(1),
   reviewCount: 0,
+  dismissedReviewCount: 0,
   headSha: 'abc123',
   failingChecksSince: null,
   ...over,
@@ -33,7 +34,8 @@ describe('detectPullRequestSignals', () => {
       title: 'Add thing',
     });
     expect(out[0]?.since).toEqual(hoursAgo(49));
-    expect(out[0]?.fingerprint).toBe(prNoReviewFingerprint('acme/api', 7));
+    expect(out[0]?.fingerprint).toBe(prNoReviewFingerprint('acme/api', 7, hoursAgo(49), 0));
+    expect(out[0]?.fingerprint).toBe(`pr_no_review:acme/api#7@${hoursAgo(49).toISOString()}:0`);
   });
 
   test('ignores a PR inside the threshold, with reviews, or in draft', () => {
@@ -69,11 +71,27 @@ describe('detectPullRequestSignals', () => {
   });
 
   test('fingerprints are stable and change with the head sha', () => {
-    expect(prNoReviewFingerprint('acme/api', 7)).toBe(prNoReviewFingerprint('acme/api', 7));
+    const ready = hoursAgo(50);
+    expect(prNoReviewFingerprint('acme/api', 7, ready, 0)).toBe(
+      prNoReviewFingerprint('acme/api', 7, new Date(ready.getTime()), 0),
+    );
     expect(ciFailingFingerprint('acme/api', 7, 'a')).toBe(ciFailingFingerprint('acme/api', 7, 'a'));
     expect(ciFailingFingerprint('acme/api', 7, 'a')).not.toBe(
       ciFailingFingerprint('acme/api', 7, 'b'),
     );
+  });
+
+  test('the no-review fingerprint changes with a new review episode', () => {
+    const ready = hoursAgo(50);
+    const base = prNoReviewFingerprint('acme/api', 7, ready, 0);
+    expect(prNoReviewFingerprint('acme/api', 7, ready, 1)).not.toBe(base);
+    expect(prNoReviewFingerprint('acme/api', 7, hoursAgo(49), 0)).not.toBe(base);
+    const [dismissed] = detectPullRequestSignals(
+      [pr({ readyAt: ready, dismissedReviewCount: 1 })],
+      now,
+      48,
+    );
+    expect(dismissed?.fingerprint).toBe(prNoReviewFingerprint('acme/api', 7, ready, 1));
   });
 
   test('thresholds are inclusive', () => {

@@ -12,6 +12,7 @@ export type PullRequestSnapshot = {
   draft: boolean;
   readyAt: Date;
   reviewCount: number;
+  dismissedReviewCount: number;
   headSha: string;
   failingChecksSince: Date | null;
 };
@@ -19,8 +20,13 @@ export type PullRequestSnapshot = {
 const HOUR_MS = 3_600_000;
 const DEFAULT_CI_FAILING_HOURS = 24;
 
-export function prNoReviewFingerprint(repo: string, number: number): string {
-  return `pr_no_review:${repo}#${number}`;
+export function prNoReviewFingerprint(
+  repo: string,
+  number: number,
+  readyAt: Date,
+  dismissedReviewCount: number,
+): string {
+  return `pr_no_review:${repo}#${number}@${readyAt.toISOString()}:${dismissedReviewCount}`;
 }
 
 export function ciFailingFingerprint(repo: string, number: number, headSha: string): string {
@@ -41,7 +47,7 @@ export function detectPullRequestSignals(
       signals.push({
         kind: 'pr_no_review',
         ref,
-        fingerprint: prNoReviewFingerprint(pr.repo, pr.number),
+        fingerprint: prNoReviewFingerprint(pr.repo, pr.number, pr.readyAt, pr.dismissedReviewCount),
         since: pr.readyAt,
       });
     }

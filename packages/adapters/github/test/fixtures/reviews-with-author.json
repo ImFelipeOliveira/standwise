@@ -1,0 +1,7 @@
+[
+  { "state": "COMMENTED", "user": { "login": "Alice" } },
+  { "state": "DISMISSED", "user": { "login": "alice" } },
+  { "state": "DISMISSED", "user": { "login": "bob" } },
+  { "state": "DISMISSED", "user": { "login": "carol" } },
+  { "state": "APPROVED", "user": { "login": "carol" } }
+]

@@ -63,8 +63,10 @@ describe('handleGitHubEvent', () => {
   test('the enqueued load-config job loads the config', async () => {
     const { deps, queue } = fakeDeps({ source: { found: true, source: VALID } });
     await handleGitHubEvent(deps, 'installation', created);
-    await queue.work('load-config', (data) =>
-      loadConfig(deps, data as { installationId: number; owner: string }),
+    await queue.work(
+      'load-config',
+      (data) => loadConfig(deps, data as { installationId: number; owner: string }),
+      { policies: ['stately'] },
     );
     await queue.drain();
     expect((await getInstallation(db, INST))?.status).toBe('configured');
@@ -282,8 +284,10 @@ describe('handleGitHubEvent signal scans', () => {
     expect(resolves).toBe(0);
     expect(octokits).toBe(0);
     expect(scans(queue)).toEqual([{ installationId: INST, login: 'carol' }]);
-    await queue.work('scan-member-signals', (data) =>
-      scanMemberSignals(deps, data as { installationId: number; login: string }),
+    await queue.work(
+      'scan-member-signals',
+      (data) => scanMemberSignals(deps, data as { installationId: number; login: string }),
+      { policies: ['stately'] },
     );
     await queue.drain();
     expect(calls.snapshots).toEqual([]);
@@ -291,7 +295,14 @@ describe('handleGitHubEvent signal scans', () => {
 
   test('pull_request actions that change signals enqueue a scan, others do not', async () => {
     await seedOrg(config(), { id: INST });
-    for (const action of ['opened', 'ready_for_review', 'synchronize', 'closed', 'reopened']) {
+    for (const action of [
+      'opened',
+      'ready_for_review',
+      'converted_to_draft',
+      'synchronize',
+      'closed',
+      'reopened',
+    ]) {
       const { deps, queue } = fakeDeps();
       await handleGitHubEvent(deps, 'pull_request', pullRequest(action, 'bob'));
       expect(scans(queue)).toEqual([{ installationId: INST, login: 'bob' }]);
@@ -300,6 +311,37 @@ describe('handleGitHubEvent signal scans', () => {
     await handleGitHubEvent(deps, 'pull_request', pullRequest('labeled', 'bob'));
     await handleGitHubEvent(deps, 'pull_request_review', pullRequest('edited', 'bob'));
     expect(scans(queue)).toEqual([]);
+  });
+
+  test('a webhook scan waits 120 seconds on the stately member key and absorbs bursts', async () => {
+    await seedOrg(config(), { id: INST });
+    const { deps, queue, setNow } = fakeDeps();
+    const now = new Date('2026-10-28T12:00:00Z');
+    setNow(now);
+    const seen: unknown[] = [];
+    const enqueue = queue.enqueue.bind(queue);
+    deps.queue = {
+      ...queue,
+      enqueue: async (name, data, opts) => {
+        if (name === 'scan-member-signals') seen.push(opts);
+        return enqueue(name, data, opts);
+      },
+    };
+    for (let i = 0; i < 3; i++) {
+      await handleGitHubEvent(deps, 'pull_request', pullRequest('synchronize', 'alice'));
+    }
+    expect(seen[0]).toEqual({
+      singletonKey: `scan:${INST}:alice`,
+      policy: 'stately',
+      startAfter: new Date(now.getTime() + 120_000),
+    });
+    expect(queue.enqueued.filter((j) => j.name === 'scan-member-signals')).toEqual([
+      {
+        name: 'scan-member-signals',
+        data: { installationId: INST, login: 'alice' },
+        startAfter: new Date(now.getTime() + 120_000),
+      },
+    ]);
   });
 
   test('a dismissed review enqueues a scan', async () => {

@@ -6,27 +6,43 @@ import {
   operationalConfig,
   syncSuggestions,
 } from '@standwise/db';
+import { GitHubRateLimitError } from '@standwise/github';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { CI_FAILING_HOURS, notifySuggestions } from './notify-suggestions';
 
 export const SCAN_MEMBER_SIGNALS_JOB = 'scan-member-signals';
+export const EVENT_SCAN_DELAY_SECONDS = 120;
 
-export const PULL_REQUEST_SIGNAL_KINDS: SignalKind[] = ['pr_no_review', 'ci_failing'];
+const PULL_REQUEST_SIGNAL_KINDS: SignalKind[] = ['pr_no_review', 'ci_failing'];
 
 export type ScanMemberSignalsJob = { installationId: number; login: string; date?: string };
 
-export async function enqueueMemberScan(
+export function memberScanKey(installationId: number, login: string): string {
+  return `scan:${installationId}:${login.toLowerCase()}`;
+}
+
+export async function enqueueScanJob(
   deps: Pick<WorkerDeps, 'queue'>,
+  job: ScanMemberSignalsJob,
+  startAfter: Date,
+): Promise<void> {
+  const login = job.login.toLowerCase();
+  await deps.queue.enqueue(
+    SCAN_MEMBER_SIGNALS_JOB,
+    { ...job, login },
+    { singletonKey: memberScanKey(job.installationId, login), policy: 'stately', startAfter },
+  );
+}
+
+export async function enqueueMemberScan(
+  deps: Pick<WorkerDeps, 'queue' | 'now'>,
   installationId: number,
   login: string,
 ): Promise<void> {
-  const lower = login.toLowerCase();
-  const job: ScanMemberSignalsJob = { installationId, login: lower };
-  await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
-    singletonKey: `scan:${installationId}:${lower}`,
-  });
+  const startAfter = new Date(deps.now().getTime() + EVENT_SCAN_DELAY_SECONDS * 1000);
+  await enqueueScanJob(deps, { installationId, login }, startAfter);
 }
 
 export async function scanMemberSignals(
@@ -57,7 +73,13 @@ export async function scanMemberSignals(
       login,
     );
   } catch (error) {
-    logError('signal scan github lookup failed', error);
+    logError(
+      'signal scan github lookup failed',
+      error,
+      error instanceof GitHubRateLimitError
+        ? { retryAfterSeconds: String(error.retryAfterSeconds) }
+        : {},
+    );
     throw error;
   }
 

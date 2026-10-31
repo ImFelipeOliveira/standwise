@@ -8,6 +8,7 @@ import {
   setIdentity,
   setMemberInstallations,
 } from '@standwise/db';
+import { GitHubRateLimitError } from '@standwise/github';
 import { suggestions } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { scanMemberSignals } from '../../src';
@@ -18,6 +19,8 @@ useCleanDb();
 const HOUR = 3_600_000;
 const NOW = new Date('2026-10-28T15:00:00Z');
 const ago = (hours: number) => new Date(NOW.getTime() - hours * HOUR);
+const FP = `pr_no_review:acme/api#7@${ago(49).toISOString()}:0`;
+const DISMISSED_FP = `pr_no_review:acme/api#7@${ago(49).toISOString()}:1`;
 
 function teamConfig(directMessage = false, members = '[alice, bob]'): StandwiseConfig {
   const parsed = parseConfig(`
@@ -44,6 +47,7 @@ function pr(overrides: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot {
     draft: false,
     readyAt: ago(49),
     reviewCount: 0,
+    dismissedReviewCount: 0,
     headSha: 'aaa',
     failingChecksSince: null,
     ...overrides,
@@ -88,12 +92,10 @@ describe('scanMemberSignals', () => {
     s.snapshots.alice = [pr()];
     await s.scan();
     const first = await s.pending();
-    expect(first.map((p) => [p.kind, p.fingerprint])).toEqual([
-      ['pr_no_review', 'pr_no_review:acme/api#7'],
-    ]);
+    expect(first.map((p) => [p.kind, p.fingerprint])).toEqual([['pr_no_review', FP]]);
     await s.scan();
     expect(await states(s.alice.id)).toEqual([
-      { fingerprint: 'pr_no_review:acme/api#7', state: 'pending', notified: false },
+      { fingerprint: FP, state: 'pending', notified: false },
     ]);
     expect(s.calls.snapshots).toEqual(['alice', 'alice']);
   });
@@ -115,7 +117,7 @@ describe('scanMemberSignals', () => {
     );
     await s.scan();
     expect(await states(s.alice.id)).toEqual([
-      { fingerprint: 'pr_no_review:acme/api#7', state: 'ignored', notified: false },
+      { fingerprint: FP, state: 'ignored', notified: false },
     ]);
   });
 
@@ -126,7 +128,67 @@ describe('scanMemberSignals', () => {
     s.snapshots.alice = [pr({ reviewCount: 1 })];
     await s.scan();
     expect(await states(s.alice.id)).toEqual([
-      { fingerprint: 'pr_no_review:acme/api#7', state: 'resolved', notified: false },
+      { fingerprint: FP, state: 'resolved', notified: false },
+    ]);
+  });
+
+  test('a dismissed review starts a new episode with a new pending suggestion', async () => {
+    const s = await setup();
+    s.snapshots.alice = [pr()];
+    await s.scan();
+    s.snapshots.alice = [pr({ reviewCount: 1 })];
+    await s.scan();
+    s.snapshots.alice = [pr({ dismissedReviewCount: 1 })];
+    await s.scan();
+    expect(await states(s.alice.id)).toEqual([
+      { fingerprint: FP, state: 'resolved', notified: false },
+      { fingerprint: DISMISSED_FP, state: 'pending', notified: false },
+    ]);
+  });
+
+  test('an ignored suggestion returns when a review is dismissed', async () => {
+    const s = await setup();
+    s.snapshots.alice = [pr()];
+    await s.scan();
+    const [row] = await s.pending();
+    await decideSuggestion(db, INST, s.alice.id, row?.id as string, 'ignored');
+    s.snapshots.alice = [pr({ dismissedReviewCount: 1 })];
+    await s.scan();
+    expect(await states(s.alice.id)).toEqual([
+      { fingerprint: FP, state: 'ignored', notified: false },
+      { fingerprint: DISMISSED_FP, state: 'pending', notified: false },
+    ]);
+  });
+
+  test('a PR marked ready again starts a new episode', async () => {
+    const s = await setup();
+    s.snapshots.alice = [pr()];
+    await s.scan();
+    const [row] = await s.pending();
+    await decideSuggestion(db, INST, s.alice.id, row?.id as string, 'ignored');
+    s.snapshots.alice = [pr({ readyAt: ago(48) })];
+    await s.scan();
+    expect((await s.pending()).map((p) => p.fingerprint)).toEqual([
+      `pr_no_review:acme/api#7@${ago(48).toISOString()}:0`,
+    ]);
+  });
+
+  test('a GitHub rate limit propagates without syncing suggestions', async () => {
+    const s = await setup();
+    s.snapshots.alice = [pr()];
+    await s.scan();
+    s.deps.github.listOpenPullRequestSnapshots = async () => {
+      throw new GitHubRateLimitError(60);
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const error = await s.scan().catch((e: unknown) => e);
+    const logged = JSON.stringify(spy.mock.calls);
+    spy.mockRestore();
+    expect(error).toBeInstanceOf(GitHubRateLimitError);
+    expect(logged).toContain('github_rate_limited');
+    expect(logged).toContain('"retryAfterSeconds":"60"');
+    expect(await states(s.alice.id)).toEqual([
+      { fingerprint: FP, state: 'pending', notified: false },
     ]);
   });
 
@@ -172,7 +234,7 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
+      subject: `${s.alice.id}:${FP}`,
     });
     expect(delivery?.status).toBe('sent');
 
@@ -200,7 +262,7 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
+      subject: `${s.alice.id}:${FP}`,
     });
     expect(delivery?.status).toBe('failed');
     expect(delivery?.error).toBe('no_chat_identity');
@@ -226,7 +288,7 @@ describe('scanMemberSignals', () => {
       teamName: '',
       date: '2026-10-28',
       kind: 'suggestion_dm',
-      subject: `${s.alice.id}:pr_no_review:acme/api#7`,
+      subject: `${s.alice.id}:${FP}`,
     });
     expect(failed?.status).toBe('failed');
   });

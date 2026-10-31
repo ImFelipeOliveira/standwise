@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { GitHubRateLimitError } from '../src/errors';
 import { getPullRequest, listOpenPullRequestSnapshots, listPullRequestFiles } from '../src/pulls';
 import { fixture, octokitWith } from './helpers';
 
@@ -84,6 +85,7 @@ describe('listOpenPullRequestSnapshots', () => {
       draft: false,
       readyAt: new Date('2026-10-26T09:00:00Z'),
       reviewCount: 0,
+      dismissedReviewCount: 1,
       headSha: 'abc123',
       failingChecksSince: new Date('2026-10-27T07:00:00Z'),
     });
@@ -95,6 +97,74 @@ describe('listOpenPullRequestSnapshots', () => {
     );
     const [snapshot] = await listOpenPullRequestSnapshots(octokit, 'acme', 'Organization', 'alice');
     expect(snapshot?.reviewCount).toBe(2);
+    expect(snapshot?.dismissedReviewCount).toBe(1);
+  });
+
+  test('reviews by the PR author are ignored', async () => {
+    const { octokit } = octokitWith(
+      snapshotRoutes('reviews-with-author.json', 'check-runs-recovered.json'),
+    );
+    const [snapshot] = await listOpenPullRequestSnapshots(octokit, 'acme', 'Organization', 'alice');
+    expect(snapshot?.reviewCount).toBe(1);
+    expect(snapshot?.dismissedReviewCount).toBe(2);
+  });
+
+  test('a secondary rate limit becomes a typed error with the retry-after hint', async () => {
+    const { octokit } = octokitWith({
+      'GET /search/issues': {
+        status: 403,
+        body: '{"message":"You have exceeded a secondary rate limit"}',
+        headers: { 'retry-after': '60' },
+      },
+    });
+    const error = await listOpenPullRequestSnapshots(
+      octokit,
+      'acme',
+      'Organization',
+      'alice',
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitHubRateLimitError);
+    expect((error as GitHubRateLimitError).retryAfterSeconds).toBe(60);
+  });
+
+  test('a primary rate limit uses x-ratelimit-reset', async () => {
+    const reset = Math.floor(Date.now() / 1000) + 300;
+    const { octokit } = octokitWith({
+      ...snapshotRoutes('reviews-dismissed.json', 'check-runs-recovered.json'),
+      'GET /repos/acme/api/pulls/7/reviews': {
+        status: 429,
+        body: '{"message":"API rate limit exceeded"}',
+        headers: { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(reset) },
+      },
+    });
+    const error = await listOpenPullRequestSnapshots(
+      octokit,
+      'acme',
+      'Organization',
+      'alice',
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitHubRateLimitError);
+    const seconds = (error as GitHubRateLimitError).retryAfterSeconds;
+    expect(seconds).toBeGreaterThan(290);
+    expect(seconds).toBeLessThanOrEqual(300);
+  });
+
+  test('a 403 without rate limit headers is not a rate limit', async () => {
+    const { octokit } = octokitWith({
+      'GET /search/issues': {
+        status: 403,
+        body: '{"message":"Forbidden"}',
+        headers: { 'x-ratelimit-remaining': '4000', 'x-ratelimit-reset': '1999999999' },
+      },
+    });
+    const error = await listOpenPullRequestSnapshots(
+      octokit,
+      'acme',
+      'Organization',
+      'alice',
+    ).catch((e: unknown) => e);
+    expect(error).not.toBeInstanceOf(GitHubRateLimitError);
+    expect((error as { status?: number }).status).toBe(403);
   });
 
   test('later green run of the same check clears failure', async () => {

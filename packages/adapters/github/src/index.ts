@@ -3,6 +3,7 @@ export * from './app';
 export * from './checks';
 export * from './codeowners-source';
 export * from './config-source';
+export { GitHubRateLimitError } from './errors';
 export * from './members';
 export * from './oauth';
 export * from './pulls';

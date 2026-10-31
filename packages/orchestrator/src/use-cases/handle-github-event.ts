@@ -33,7 +33,14 @@ export type GitHubEventPayload = {
 const CONFIG_PR_ACTIONS = ['opened', 'synchronize', 'reopened'];
 
 const SIGNAL_ACTIONS: Record<string, string[]> = {
-  pull_request: ['opened', 'ready_for_review', 'synchronize', 'closed', 'reopened'],
+  pull_request: [
+    'opened',
+    'ready_for_review',
+    'converted_to_draft',
+    'synchronize',
+    'closed',
+    'reopened',
+  ],
   pull_request_review: ['submitted', 'dismissed'],
   check_suite: ['completed'],
 };

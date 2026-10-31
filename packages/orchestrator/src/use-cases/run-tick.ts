@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   addCalendarDays,
   isDue,
@@ -17,7 +18,7 @@ import {
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
-import { SCAN_MEMBER_SIGNALS_JOB, type ScanMemberSignalsJob } from './scan-member-signals';
+import { enqueueScanJob } from './scan-member-signals';
 
 type OperationalInstallation = Awaited<ReturnType<typeof listOperationalInstallations>>[number];
 
@@ -86,8 +87,14 @@ async function enqueueReminders(
 
 const SCAN_LEAD_MINUTES = 60;
 const SCAN_GRACE_MINUTES = 60;
+const SCAN_SPREAD_SECONDS = 30 * 60;
 
-export function scanTime(remindAt: string): string {
+export function scanOffsetSeconds(login: string): number {
+  const digest = createHash('sha256').update(login.toLowerCase()).digest();
+  return digest.readUInt32BE(0) % SCAN_SPREAD_SECONDS;
+}
+
+function scanTime(remindAt: string): string {
   const [hours, minutes] = remindAt.split(':').map(Number);
   const total = Math.max(0, (hours as number) * 60 + (minutes as number) - SCAN_LEAD_MINUTES);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -117,7 +124,9 @@ async function enqueueScans(
   });
   if (!resolved) return;
   const linked = await getInstallationMemberIds(deps.db, installation.id, resolved.memberLogins);
+  const at = scanTime(team.remindAt);
   for (const date of dates) {
+    const windowStart = localInstant(date, at, team.timezone).getTime();
     const scanned = new Set(
       (await listPersonDeliveries(deps.db, installation.id, date, 'signal_scan'))
         .filter((r) => r.status === 'sent')
@@ -125,10 +134,11 @@ async function enqueueScans(
     );
     for (const login of resolved.memberLogins) {
       if (!linked.has(login) || scanned.has(login)) continue;
-      const job: ScanMemberSignalsJob = { installationId: installation.id, login, date };
-      await deps.queue.enqueue(SCAN_MEMBER_SIGNALS_JOB, job, {
-        singletonKey: `scan:${installation.id}:${login}:${date}`,
-      });
+      await enqueueScanJob(
+        deps,
+        { installationId: installation.id, login, date },
+        new Date(windowStart + scanOffsetSeconds(login) * 1000),
+      );
     }
   }
 }
