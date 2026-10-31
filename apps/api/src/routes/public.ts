@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { pingDatabase } from '@standwise/db';
 import type { Deps } from '@standwise/orchestrator';
-import { sql } from 'drizzle-orm';
 import type { GetClientIp } from '../middleware/rate-limit';
 import { apiKeyScheme } from '../openapi/document';
 import { HealthSchema } from '../openapi/schemas';
@@ -40,7 +40,7 @@ function createDatabaseProbe(deps: Deps, timeoutMs: number): () => Promise<boole
     const entry = {
       startedAt: Date.now(),
       query: Promise.resolve()
-        .then(() => deps.db.execute(sql`select 1`))
+        .then(() => pingDatabase(deps.db))
         .then(
           () => true,
           () => false,
