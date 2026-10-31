@@ -25,6 +25,7 @@ test('findUserByEmail passes the email as a variable', async () => {
   const sent = JSON.parse(f.calls[0]?.body ?? '');
   expect(sent.variables).toEqual({ email: 'a@x.com" } }) {' });
   expect(sent.query).not.toContain('a@x.com');
+  expect(sent.query).toContain('eqIgnoreCase');
 });
 
 test('findUserByEmail returns null when none or malformed', async () => {

@@ -15,20 +15,37 @@ const envelope = z.object({
     .array(
       z.object({
         message: z.string().optional(),
-        extensions: z.object({ code: z.string().optional() }).loose().optional(),
+        extensions: z
+          .object({
+            code: z.string().optional(),
+            type: z.string().optional(),
+            userPresentableMessage: z.string().optional(),
+          })
+          .loose()
+          .optional(),
       }),
     )
     .optional(),
 });
 
 function retryAfter(res: Response, now: number): number | null {
-  const reset = Number(res.headers.get('x-ratelimit-requests-reset'));
-  if (Number.isFinite(reset) && reset > 0) return Math.max(0, Math.ceil((reset - now) / 1000));
-  const header = Number(res.headers.get('retry-after'));
-  if (Number.isFinite(header) && header >= 0 && res.headers.get('retry-after') !== null) {
-    return Math.ceil(header);
+  const header = res.headers.get('retry-after');
+  if (header !== null) {
+    const n = Number(header);
+    if (Number.isFinite(n) && n >= 0) return Math.ceil(n);
   }
-  return null;
+  const resets = ['x-ratelimit-requests-reset', 'x-ratelimit-complexity-reset']
+    .map((name) => Number(res.headers.get(name)))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (resets.length === 0) return null;
+  return Math.max(0, Math.ceil((Math.max(...resets) - now) / 1000));
+}
+
+function graphqlMessage(code: string | null, type: string | null, message: string): string {
+  const label = code ?? type;
+  if (type === 'invalid input') return label ?? 'invalid input';
+  const text = message.slice(0, 200);
+  return label ? `${label}: ${text}` : text;
 }
 
 export function createLinearClient(
@@ -56,9 +73,20 @@ export function createLinearClient(
       const first = parsed.data.errors?.[0];
       if (first) {
         const code = first.extensions?.code ?? null;
-        if (code === 'AUTHENTICATION_ERROR') throw new LinearAuthError();
-        if (code === 'RATELIMITED') throw new LinearRateLimitError(retryAfter(res, Date.now()));
-        throw new LinearGraphqlError(code, first.message ?? 'graphql error');
+        const type = first.extensions?.type ?? null;
+        if (code === 'AUTHENTICATION_ERROR' || type === 'authentication error') {
+          throw new LinearAuthError();
+        }
+        if (code === 'RATELIMITED' || type === 'ratelimited') {
+          throw new LinearRateLimitError(retryAfter(res, Date.now()));
+        }
+        const message = first.message ?? 'graphql error';
+        throw new LinearGraphqlError(
+          code,
+          graphqlMessage(code, type, message),
+          message,
+          first.extensions?.userPresentableMessage ?? null,
+        );
       }
       if (!res.ok) throw new Error(`linear http ${res.status}`);
       return parsed.data.data as T;

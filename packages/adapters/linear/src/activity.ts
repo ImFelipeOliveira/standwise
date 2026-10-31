@@ -10,6 +10,7 @@ const ACTIVITY_QUERY = `query CardActivity($userId: ID!, $teamKey: String!, $sin
       updatedAt: { gte: $since }
     }
     first: 50
+    orderBy: updatedAt
   ) {
     nodes { id identifier url title startedAt completedAt }
   }

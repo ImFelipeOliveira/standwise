@@ -32,6 +32,11 @@ test('entity not found gives null', async () => {
   expect(await getIssue(createLinearClient('t', f.fetch), 'ENG-999')).toBeNull();
 });
 
+test('not found via userPresentableMessage gives null', async () => {
+  const f = fakeFetch({ body: fixture('issue-not-found-type.json') });
+  expect(await getIssue(createLinearClient('t', f.fetch), 'ENG-999')).toBeNull();
+});
+
 test('null issue or malformed node gives null', async () => {
   const a = fakeFetch({ body: '{"data":{"issue":null}}' });
   expect(await getIssue(createLinearClient('t', a.fetch), 'ENG-1')).toBeNull();

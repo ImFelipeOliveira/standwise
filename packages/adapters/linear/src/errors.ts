@@ -19,8 +19,10 @@ export class LinearGraphqlError extends Error {
   constructor(
     public code: string | null,
     message: string,
+    public rawMessage = '',
+    public userPresentableMessage: string | null = null,
   ) {
-    super(code ? `${code}: ${message}` : message);
+    super(message);
     this.name = 'LinearGraphqlError';
   }
 }

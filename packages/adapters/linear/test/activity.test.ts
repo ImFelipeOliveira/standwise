@@ -43,6 +43,7 @@ test('activity inputs go through variables with first 50', async () => {
     since: '2026-10-29T00:00:00.000Z',
   });
   expect(sent.query).toContain('first: 50');
+  expect(sent.query).toContain('orderBy: updatedAt');
   expect(sent.query).not.toContain('u1');
   expect(sent.query).not.toContain('ENG');
 });

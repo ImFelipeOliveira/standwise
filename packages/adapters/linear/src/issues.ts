@@ -46,7 +46,9 @@ const relationNode = z.object({
 });
 
 function isNotFound(e: unknown): boolean {
-  return e instanceof LinearGraphqlError && /entity not found/i.test(e.message);
+  if (!(e instanceof LinearGraphqlError)) return false;
+  const pattern = /entity not found|could not find/i;
+  return pattern.test(e.rawMessage) || pattern.test(e.userPresentableMessage ?? '');
 }
 
 export async function getIssue(

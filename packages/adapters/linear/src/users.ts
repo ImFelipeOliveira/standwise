@@ -15,7 +15,7 @@ export function toUser(node: unknown): LinearUser | null {
 const ORGANIZATION_QUERY = `query Organization { organization { id name urlKey } }`;
 
 const USER_BY_EMAIL_QUERY = `query UserByEmail($email: String!) {
-  users(filter: { email: { eq: $email } }, first: 1) { nodes { id email } }
+  users(filter: { email: { eqIgnoreCase: $email } }, first: 1) { nodes { id email } }
 }`;
 
 const organizationSchema = z.object({
