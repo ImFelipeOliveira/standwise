@@ -206,4 +206,115 @@ describe('listOpenPullRequestSnapshots', () => {
       [],
     );
   });
+  describe('pagination', () => {
+    const reviewPage = (page: number) =>
+      JSON.stringify(
+        Array.from({ length: page === 1 ? 100 : 50 }, (_, i) => ({
+          state: page === 2 && i === 0 ? 'APPROVED' : 'PENDING',
+          user: { login: `r${page}-${i}` },
+        })),
+      );
+
+    test('reviews are counted across pages', async () => {
+      const { octokit, calls } = octokitWith({
+        ...snapshotRoutes('reviews-dismissed.json', 'check-runs-recovered.json'),
+        'GET /repos/acme/api/pulls/7/reviews': (url) => ({
+          body: reviewPage(Number(url.searchParams.get('page'))),
+        }),
+      });
+      const [snapshot] = await listOpenPullRequestSnapshots(
+        octokit,
+        'acme',
+        'Organization',
+        'alice',
+      );
+      expect(snapshot?.reviewCount).toBe(1);
+      expect(calls.filter((call) => call.url.pathname.endsWith('/reviews'))).toHaveLength(2);
+    });
+
+    test('the last ready_for_review across pages wins', async () => {
+      const filler = Array.from({ length: 99 }, () => ({ event: 'commented' }));
+      const { octokit } = octokitWith({
+        ...snapshotRoutes('reviews-dismissed.json', 'check-runs-recovered.json'),
+        'GET /repos/acme/api/issues/7/timeline': (url) => ({
+          body: JSON.stringify(
+            url.searchParams.get('page') === '1'
+              ? [...filler, { event: 'ready_for_review', created_at: '2026-10-20T00:00:00Z' }]
+              : [{ event: 'ready_for_review', created_at: '2026-10-25T00:00:00Z' }],
+          ),
+        }),
+      });
+      const [snapshot] = await listOpenPullRequestSnapshots(
+        octokit,
+        'acme',
+        'Organization',
+        'alice',
+      );
+      expect(snapshot?.readyAt).toEqual(new Date('2026-10-25T00:00:00Z'));
+    });
+
+    test('a failing check on page 2 is detected and filter=latest is sent', async () => {
+      const ok = (name: string) => ({
+        name,
+        conclusion: 'success',
+        completed_at: '2026-10-27T09:00:00Z',
+      });
+      const { octokit, calls } = octokitWith({
+        ...snapshotRoutes('reviews-dismissed.json', 'check-runs-recovered.json'),
+        'GET /repos/acme/api/commits/abc123/check-runs': (url) => ({
+          body: JSON.stringify({
+            total_count: 120,
+            check_runs:
+              url.searchParams.get('page') === '1'
+                ? Array.from({ length: 100 }, (_, i) => ok(`c${i}`))
+                : [
+                    ...Array.from({ length: 19 }, (_, i) => ok(`d${i}`)),
+                    { name: 'e2e', conclusion: 'failure', completed_at: '2026-10-27T08:00:00Z' },
+                  ],
+          }),
+        }),
+      });
+      const [snapshot] = await listOpenPullRequestSnapshots(
+        octokit,
+        'acme',
+        'Organization',
+        'alice',
+      );
+      expect(snapshot?.failingChecksSince).toEqual(new Date('2026-10-27T08:00:00Z'));
+      const checkCalls = calls.filter((call) => call.url.pathname.endsWith('/check-runs'));
+      expect(checkCalls).toHaveLength(2);
+      expect(checkCalls[0]?.url.searchParams.get('filter')).toBe('latest');
+    });
+
+    test('each paginated read stops at 10 pages', async () => {
+      const { octokit, calls } = octokitWith({
+        ...snapshotRoutes('reviews-dismissed.json', 'check-runs-recovered.json'),
+        'GET /repos/acme/api/pulls/7/reviews': {
+          body: JSON.stringify(Array.from({ length: 100 }, () => ({ state: 'COMMENTED' }))),
+        },
+        'GET /repos/acme/api/issues/7/timeline': {
+          body: JSON.stringify(Array.from({ length: 100 }, () => ({ event: 'commented' }))),
+        },
+        'GET /repos/acme/api/commits/abc123/check-runs': {
+          body: JSON.stringify({
+            check_runs: Array.from({ length: 100 }, (_, i) => ({
+              name: `c${i}`,
+              conclusion: 'success',
+              completed_at: '2026-10-27T09:00:00Z',
+            })),
+          }),
+        },
+      });
+      const [snapshot] = await listOpenPullRequestSnapshots(
+        octokit,
+        'acme',
+        'Organization',
+        'alice',
+      );
+      expect(snapshot?.reviewCount).toBe(1000);
+      for (const suffix of ['/reviews', '/timeline', '/check-runs']) {
+        expect(calls.filter((call) => call.url.pathname.endsWith(suffix))).toHaveLength(10);
+      }
+    });
+  });
 });

@@ -4,6 +4,7 @@ import { asRateLimitError, httpStatus } from './errors';
 
 const PER_PAGE = 100;
 const MAX_FILE_PAGES = 30;
+const MAX_DETAIL_PAGES = 10;
 const MAX_SEARCH_RESULTS = 30;
 const COUNTED_REVIEW_STATES = new Set(['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED']);
 const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out']);
@@ -94,43 +95,81 @@ export async function listPullRequestFiles(
 }
 
 type ReviewCounts = { reviewCount: number; dismissedReviewCount: number };
+type ReviewData = { state: string; user?: { login?: string } | null };
+type TimelineEntry = { event?: string; created_at?: string };
 
 async function countReviews(
   octokit: Octokit,
   ref: GitHubPullRef,
   author: string,
 ): Promise<ReviewCounts> {
-  const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
-    owner: ref.owner,
-    repo: ref.repo,
-    pull_number: ref.number,
-    per_page: PER_PAGE,
-  });
   const authorLogin = author.toLowerCase();
-  const reviews = (response.data as { state: string; user?: { login?: string } | null }[]).filter(
-    (review) => !authorLogin || (review.user?.login ?? '').toLowerCase() !== authorLogin,
-  );
-  return {
-    reviewCount: reviews.filter((review) => COUNTED_REVIEW_STATES.has(review.state)).length,
-    dismissedReviewCount: reviews.filter((review) => review.state === 'DISMISSED').length,
-  };
+  let reviewCount = 0;
+  let dismissedReviewCount = 0;
+  for (let page = 1; page <= MAX_DETAIL_PAGES; page++) {
+    const response = await octokit.request(
+      'GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+      {
+        owner: ref.owner,
+        repo: ref.repo,
+        pull_number: ref.number,
+        per_page: PER_PAGE,
+        page,
+      },
+    );
+    const batch = response.data as ReviewData[];
+    for (const review of batch) {
+      if (authorLogin && (review.user?.login ?? '').toLowerCase() === authorLogin) continue;
+      if (COUNTED_REVIEW_STATES.has(review.state)) reviewCount++;
+      else if (review.state === 'DISMISSED') dismissedReviewCount++;
+    }
+    if (batch.length < PER_PAGE) break;
+  }
+  return { reviewCount, dismissedReviewCount };
 }
 
 async function readyAtOf(octokit: Octokit, ref: GitHubPullRef, createdAt: string): Promise<Date> {
-  const response = await octokit.request(
-    'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
-    {
+  let last: string | undefined;
+  for (let page = 1; page <= MAX_DETAIL_PAGES; page++) {
+    const response = await octokit.request(
+      'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
+      {
+        owner: ref.owner,
+        repo: ref.repo,
+        issue_number: ref.number,
+        per_page: PER_PAGE,
+        page,
+      },
+    );
+    const batch = response.data as TimelineEntry[];
+    for (const entry of batch) {
+      if (entry.event === 'ready_for_review' && entry.created_at) last = entry.created_at;
+    }
+    if (batch.length < PER_PAGE) break;
+  }
+  return new Date(last ?? createdAt);
+}
+
+async function listCheckRuns(
+  octokit: Octokit,
+  ref: GitHubPullRef,
+  headSha: string,
+): Promise<CheckRunData[]> {
+  const runs: CheckRunData[] = [];
+  for (let page = 1; page <= MAX_DETAIL_PAGES; page++) {
+    const response = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs', {
       owner: ref.owner,
       repo: ref.repo,
-      issue_number: ref.number,
+      ref: headSha,
+      filter: 'latest',
       per_page: PER_PAGE,
-    },
-  );
-  const events = (response.data as { event?: string; created_at?: string }[]).filter(
-    (entry) => entry.event === 'ready_for_review' && entry.created_at,
-  );
-  const last = events[events.length - 1]?.created_at;
-  return new Date(last ?? createdAt);
+      page,
+    });
+    const batch = (response.data as { check_runs: CheckRunData[] }).check_runs;
+    runs.push(...batch);
+    if (batch.length < PER_PAGE) break;
+  }
+  return runs;
 }
 
 async function failingSince(
@@ -138,13 +177,7 @@ async function failingSince(
   ref: GitHubPullRef,
   headSha: string,
 ): Promise<Date | null> {
-  const response = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs', {
-    owner: ref.owner,
-    repo: ref.repo,
-    ref: headSha,
-    per_page: PER_PAGE,
-  });
-  const runs = (response.data as { check_runs: CheckRunData[] }).check_runs;
+  const runs = await listCheckRuns(octokit, ref, headSha);
   let earliest: Date | null = null;
   for (const run of runs) {
     if (!run.completed_at || !run.conclusion || !FAILED_CONCLUSIONS.has(run.conclusion)) continue;

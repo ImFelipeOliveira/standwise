@@ -6,7 +6,7 @@ export function fixture(name: string): string {
   return readFileSync(join(import.meta.dir, 'fixtures', name), 'utf8');
 }
 
-export type Call = { method: string; url: URL };
+export type Call = { method: string; url: URL; headers: Headers };
 type Reply = { status?: number; body?: string; headers?: Record<string, string> };
 export type Route = Reply | ((url: URL) => Reply);
 
@@ -16,7 +16,7 @@ export function fakeFetch(routes: Record<string, Route>) {
     const request = input instanceof Request ? input : undefined;
     const url = new URL(request ? request.url : String(input));
     const method = (request?.method ?? init?.method ?? 'GET').toUpperCase();
-    calls.push({ method, url });
+    calls.push({ method, url, headers: new Headers(request?.headers ?? init?.headers) });
     const route = routes[`${method} ${url.pathname}`];
     if (!route) return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
     const resolved = typeof route === 'function' ? route(url) : route;

@@ -16,11 +16,9 @@ export async function fetchCodeowners(
         repo,
         path,
         ref,
+        headers: { accept: 'application/vnd.github.raw+json' },
       });
-      const data = response.data as { content?: string };
-      if (typeof data.content === 'string') {
-        return Buffer.from(data.content, 'base64').toString('utf8');
-      }
+      if (typeof response.data === 'string') return response.data;
     } catch (error) {
       if (httpStatus(error) !== 404) throw error;
     }

@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { fetchCodeowners } from '../src/codeowners-source';
-import { fixture, octokitWith } from './helpers';
+import { octokitWith } from './helpers';
+
+const RAW = { 'content-type': 'application/vnd.github.raw+json; charset=utf-8' };
 
 describe('fetchCodeowners', () => {
   test('reads .github/CODEOWNERS at the ref', async () => {
     const { octokit, calls } = octokitWith({
-      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: fixture('codeowners.json') },
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '* @alice\n', headers: RAW },
     });
     expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('* @alice\n');
     expect(calls[0]?.url.searchParams.get('ref')).toBe('main');
@@ -13,7 +15,7 @@ describe('fetchCodeowners', () => {
 
   test('falls back to the second path', async () => {
     const { octokit, calls } = octokitWith({
-      'GET /repos/acme/api/contents/CODEOWNERS': { body: fixture('codeowners.json') },
+      'GET /repos/acme/api/contents/CODEOWNERS': { body: '* @alice\n', headers: RAW },
     });
     expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('* @alice\n');
     expect(calls).toHaveLength(2);
@@ -21,7 +23,7 @@ describe('fetchCodeowners', () => {
 
   test('falls back to docs/CODEOWNERS', async () => {
     const { octokit } = octokitWith({
-      'GET /repos/acme/api/contents/docs/CODEOWNERS': { body: fixture('codeowners.json') },
+      'GET /repos/acme/api/contents/docs/CODEOWNERS': { body: '* @alice\n', headers: RAW },
     });
     expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('* @alice\n');
   });
@@ -37,5 +39,30 @@ describe('fetchCodeowners', () => {
       'GET /repos/acme/api/contents/.github/CODEOWNERS': { status: 500 },
     });
     await expect(fetchCodeowners(octokit, 'acme', 'api', 'main')).rejects.toThrow();
+  });
+
+  test('requests the raw media type', async () => {
+    const { octokit, calls } = octokitWith({
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '* @alice\n', headers: RAW },
+    });
+    await fetchCodeowners(octokit, 'acme', 'api', 'main');
+    expect(calls[0]?.headers.get('accept')).toContain('application/vnd.github.raw+json');
+  });
+
+  test('a 1.5 MB file comes back whole', async () => {
+    const big = `${'* @alice\n'.repeat(170000)}`;
+    const { octokit } = octokitWith({
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: big, headers: RAW },
+    });
+    const text = await fetchCodeowners(octokit, 'acme', 'api', 'main');
+    expect(text).toBe(big);
+    expect(big.length).toBeGreaterThan(1_500_000);
+  });
+
+  test('an empty file returns an empty string', async () => {
+    const { octokit } = octokitWith({
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '', headers: RAW },
+    });
+    expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('');
   });
 });
