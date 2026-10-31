@@ -27,7 +27,7 @@ Uma organização pode ter até 10 endpoints ativos.
 
 ## Testar um endpoint
 
-Clique em **Enviar evento de teste** ao lado do endpoint. O Standwise manda um evento `ping` assinado só para esse endpoint. A tabela **Últimas 20 entregas** mostra cada entrega com o evento, o estado, as tentativas e o último código de resposta ou erro.
+Clique em **Enviar evento de teste** ao lado do endpoint. O Standwise manda um evento `ping` assinado só para esse endpoint. A lista **Últimas 20 entregas** mostra cada entrega com o horário, o evento, o estado, as tentativas, o último código de resposta ou erro e a URL do endpoint.
 
 ## Novas tentativas e desativação automática
 

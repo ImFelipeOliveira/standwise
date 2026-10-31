@@ -30,8 +30,8 @@ The page is a checklist. A badge at the top counts the steps, for example **2 of
 
 - **GitHub App**: installed on your organization, with a warning when Standwise lost access to `.github`;
 - **Slack**: **Connect Slack**, or **Reconnect Slack** once connected, for admins;
-- **Linear**: **Connect Linear**, or **Reconnect Linear** once connected, for admins. It counts as a step only when a team uses Linear, and shows **Optional** otherwise;
-- **standwise.yml file**: the state of the file. When it does not exist, a button to create it from a template, and the template itself. When it exists, **Edit on GitHub** and one card per team, with its channel and times.
+- **Linear**: **Connect Linear**, or **Reconnect Linear** once connected, for admins. It counts as a step only when a team uses Linear, and then comes before the standwise.yml file. Otherwise it shows **Optional** and comes last;
+- **standwise.yml file**: the state of the file. When it does not exist, a button to create it from a template, and the template itself. When it exists, **Edit on GitHub**, even while the file is invalid. A valid file adds one card per team, with its channel and times, and an invalid one adds a table of its errors.
 
 The side column shows the latest failed deliveries and, for admins, API keys and webhooks, then the support address.
 
@@ -61,7 +61,7 @@ Change the team name, time zone, times, people and channel, then commit. The fil
 
 Full reference: [standwise.yml](/admin/configuration).
 
-Standwise reloads the file on every push to the default branch of `.github` that changes `standwise.yml`, and when the repositories of the installation change. Reload the setup page to see the new state. Once the file is valid, the step shows **Edit on GitHub**, which opens `standwise.yml` on GitHub.
+Standwise reloads the file on every push to the default branch of `.github` that changes `standwise.yml`, and when the repositories of the installation change. Reload the setup page to see the new state. Once the file exists, the step shows **Edit on GitHub**, which opens `standwise.yml` on GitHub, even while the file is invalid.
 
 ## 5. Connect Linear (optional)
 
@@ -97,7 +97,7 @@ The **To do** badge and "Not configured yet." Standwise could not find the file.
 
 ### Invalid
 
-The **Needs attention** badge and "standwise.yml is invalid. Fix the errors below and commit." The page lists each error as `path: message`, for example `teams.0.digest_at: must be HH:MM (24h)`. See the [common errors](/admin/configuration#common-validation-errors).
+The **Needs attention** badge and "standwise.yml is invalid. Fix the errors below and commit." The page lists the errors in a table with a **Path** and an **Error** column, for example the path `teams.0.digest_at` with the error `must be HH:MM (24h)`. Use **Edit on GitHub** to open the file and fix it. See the [common errors](/admin/configuration#common-validation-errors).
 
 If the file was valid right before the invalid push, the page also says "Standwise keeps using the last valid version until you fix it." Digests still go out and drafts and submissions still work, with the last valid version. Fix the file and commit to apply your changes. If there is no valid version in use (the file was never valid, or it was deleted before the invalid push), Standwise does not run for the organization: no digests are posted, and drafts and submissions fail with `org_not_configured`.
 

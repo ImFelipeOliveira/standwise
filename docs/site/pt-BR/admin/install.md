@@ -30,8 +30,8 @@ A página é uma lista de etapas. Um selo no topo conta as etapas, por exemplo *
 
 - **GitHub App**: instalado na sua organização, com um aviso quando o Standwise perdeu o acesso ao `.github`;
 - **Slack**: **Conectar Slack**, ou **Reconectar Slack** depois de conectado, para admins;
-- **Linear**: **Conectar o Linear**, ou **Reconectar o Linear** depois de conectado, para admins. Só conta como etapa quando algum time usa o Linear, e mostra **Opcional** nos outros casos;
-- **Arquivo standwise.yml**: o estado do arquivo. Quando ele não existe, um botão para criá-lo a partir de um modelo, e o próprio modelo. Quando existe, **Editar no GitHub** e um cartão por time, com o canal e os horários.
+- **Linear**: **Conectar o Linear**, ou **Reconectar o Linear** depois de conectado, para admins. Só conta como etapa quando algum time usa o Linear, e aí vem antes do arquivo standwise.yml. Nos outros casos, mostra **Opcional** e vem por último;
+- **Arquivo standwise.yml**: o estado do arquivo. Quando ele não existe, um botão para criá-lo a partir de um modelo, e o próprio modelo. Quando existe, **Editar no GitHub**, mesmo com o arquivo inválido. Um arquivo válido mostra também um cartão por time, com o canal e os horários, e um inválido, uma tabela com os erros.
 
 A coluna lateral mostra as últimas entregas com falha e, para admins, as API keys e os webhooks, e depois o endereço de suporte.
 
@@ -61,7 +61,7 @@ Troque o nome do time, o fuso, os horários, as pessoas e o canal e faça o comm
 
 Referência completa: [standwise.yml](/pt-BR/admin/configuration).
 
-O Standwise recarrega o arquivo a cada push na branch padrão do `.github` que altera o `standwise.yml`, e quando os repositórios da instalação mudam. Atualize a página de setup para ver o novo estado. Quando o arquivo está válido, a etapa mostra **Editar no GitHub**, que abre o `standwise.yml` no GitHub.
+O Standwise recarrega o arquivo a cada push na branch padrão do `.github` que altera o `standwise.yml`, e quando os repositórios da instalação mudam. Atualize a página de setup para ver o novo estado. Quando o arquivo existe, a etapa mostra **Editar no GitHub**, que abre o `standwise.yml` no GitHub, mesmo com o arquivo inválido.
 
 ## 5. Conecte o Linear (opcional)
 
@@ -97,7 +97,7 @@ O selo **Pendente** e "Ainda não configurado." O Standwise não encontrou o arq
 
 ### Inválido
 
-O selo **Requer atenção** e "O standwise.yml é inválido. Corrija os erros abaixo e faça o commit." A página lista cada erro como `caminho: mensagem`, por exemplo `teams.0.digest_at: must be HH:MM (24h)`. Veja os [erros comuns](/pt-BR/admin/configuration#erros-de-validacao-comuns).
+O selo **Requer atenção** e "O standwise.yml é inválido. Corrija os erros abaixo e faça o commit." A página lista os erros numa tabela com as colunas **Caminho** e **Erro**, por exemplo o caminho `teams.0.digest_at` com o erro `must be HH:MM (24h)`. Use **Editar no GitHub** para abrir o arquivo e corrigi-lo. Veja os [erros comuns](/pt-BR/admin/configuration#erros-de-validacao-comuns).
 
 Se o arquivo estava válido logo antes do push inválido, a página também diz "O Standwise continua usando a última versão válida até você corrigir." O consolidado sai e o rascunho e o envio continuam funcionando, com a última versão válida. Corrija o arquivo e faça o commit para aplicar as suas mudanças. Se não há uma versão válida em uso (o arquivo nunca foi válido, ou foi apagado antes do push inválido), o Standwise não roda para a organização: nenhum consolidado é publicado, e o rascunho e o envio falham com `org_not_configured`.
 
