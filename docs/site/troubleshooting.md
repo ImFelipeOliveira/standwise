@@ -29,14 +29,14 @@ The digest shows `@` and your GitHub login, as plain text, when Standwise does n
 2. **`standwise.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standwise login` again after it is fixed.
 3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)). The mapping is used from the next digest on.
 
-## The setup page shows "Reconnect Linear"
+## The setup page says the Linear connection stopped working
 
-Linear stopped accepting the connection, usually because access was revoked in the Linear workspace. Ask an admin to click **Reconnect Linear** on the setup page. Until then Linear features pause silently: drafts have no cards, card blockers go to the managers, and card suggestions are kept as they are. If the admin reconnects a different workspace, the Linear links are cleared and made again when people sign in.
+The setup page says that the connection to your Linear workspace "stopped working". Linear stopped accepting the connection, usually because access was revoked in the Linear workspace. Ask an admin to click **Reconnect Linear** on the setup page. Until then Linear features pause silently: drafts have no cards, card blockers go to the managers, and card suggestions are kept as they are. If the admin reconnects a different workspace, the Linear links are cleared and made again when people sign in.
 
 ## My cards do not show in the draft
 
-1. **Linear is connected.** Check the setup page. If it says "Reconnect Linear", reconnect.
-2. **The team uses Linear.** Check `tracker: { provider: linear, team: <KEY> }` in `standwise.yml`. The team key limits the cards to that Linear team.
+1. **Linear is connected.** Check the setup page. If it says the connection to the workspace "stopped working", ask an admin to reconnect. The **Reconnect Linear** button is always there for admins, so its presence alone does not mean anything is wrong.
+2. **Your first team uses Linear.** Cards come from the tracker of your first team in `standwise.yml`, the first one that lists you. Check `tracker: { provider: linear, team: <KEY> }` on that team. The team key limits the cards to that Linear team.
 3. **You are linked to your Linear user.** Standwise uses `members.<your-login>.linear` (an email) or, without it, your primary verified GitHub email. If your Linear email is different, ask your admin to set `members.<your-login>.linear`. Links are made when you sign in after Linear is connected, so run `standwise login` again.
 4. **The card moved in the window.** Only cards you own that moved to in progress, or were completed, since your last daily show up. Cards from another Linear workspace are never read.
 

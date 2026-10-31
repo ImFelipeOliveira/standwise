@@ -37,6 +37,7 @@ It does not read messages in any channel or conversation.
 If an admin connects Linear, Standwise uses an OAuth app that acts as itself (`actor=app`) with the read-only scope `read`, for one Linear workspace per installation. It reads:
 
 - for the person asking for the draft and for the card signals: the issue identifier, title, url, state type, started and completed dates, assignee, creator, the "blocks" relations and the team key;
+- to route a card blocker: the assignee and the creator of the referenced card, and the assignees of the cards blocking it, only to find who to notify;
 - the email of Linear users, only to link people to their Linear user.
 
 It never reads descriptions or comments, and it never writes to Linear. Cards from another workspace are never read. A person's own cards show only in their own draft and are never used to measure people.
@@ -54,7 +55,7 @@ Standwise does not connect to Jira yet, so it reads nothing from it.
 | Organization membership | Which installations each person belongs to | |
 | Slack identity | The Slack user id of each person, per installation | |
 | Slack connection | Workspace id and name, and the bot token | Bot token encrypted with AES-256-GCM |
-| Linear connection | Workspace id and name, and the access and refresh tokens | Tokens encrypted with AES-256-GCM |
+| Linear connection | Workspace id, name and URL key, and the access and refresh tokens | Tokens encrypted with AES-256-GCM |
 | Linear identity | The Linear user id of each person, per installation. The email is never stored | |
 | Sessions | A SHA-256 hash of each CLI and web session token, its kind and when it was created and last used | Only the hash; the token itself is never stored |
 | Dailies | Date, submission time, the yesterday, today and blocker items with their links, and whether the person (`human`) or the agent (`agent`) confirmed it | |
