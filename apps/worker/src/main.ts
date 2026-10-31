@@ -16,6 +16,7 @@ import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
 import {
   createChatFor,
   DELIVER_WEBHOOK_JOB,
+  LINK_TRACKER_IDENTITIES_JOB,
   LOAD_CONFIG_JOB,
   nullTracker,
   PRUNE_DATA_JOB,
@@ -28,6 +29,7 @@ import {
 import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
+import { linkTrackerIdentitiesJob } from './jobs/link-tracker-identities';
 import { loadConfigJob } from './jobs/load-config';
 import { pruneDataJob } from './jobs/prune-data';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
@@ -100,6 +102,7 @@ await queue.work(SCAN_MEMBER_SIGNALS_JOB, scanMemberSignalsJob(deps), stately);
 await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps), plain);
 await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps), keyed);
 await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps), stately);
+await queue.work(LINK_TRACKER_IDENTITIES_JOB, linkTrackerIdentitiesJob(deps), keyed);
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps), plain);
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps), plain);
 await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps), plain);

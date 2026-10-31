@@ -12,6 +12,7 @@ export * from './project-tracker';
 export * from './safe-fetch';
 export * from './state-token';
 export * from './teams';
+export * from './tracker-identity';
 export * from './ttl-cache';
 export * from './use-cases';
 export * from './webhook-sign';

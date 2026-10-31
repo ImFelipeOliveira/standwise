@@ -116,6 +116,14 @@ describe('completeLinearConnect', () => {
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
   });
 
+  test('enqueues tracker identity linking after a successful connect', async () => {
+    const h = await setup();
+    await connect(h);
+    expect(h.queue.enqueued).toEqual([
+      { name: 'link-tracker-identities', data: { installationId: INST } },
+    ]);
+  });
+
   test('forbids a non admin callback and saves nothing', async () => {
     const h = await setup();
     h.roles.set('alice', { role: 'member', state: 'active' });

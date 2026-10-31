@@ -13,6 +13,7 @@ import {
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { hashSessionToken, verifyState } from '../state-token';
+import { LINK_TRACKER_IDENTITIES_JOB } from '../tracker-identity';
 import { DomainError } from './errors';
 import type { MembershipCheck } from './org-context';
 import { requireAdmin } from './require-admin';
@@ -71,5 +72,16 @@ export async function completeLinearConnect(
     organization.name,
     organization.urlKey,
   );
+  await deps.queue
+    .enqueue(
+      LINK_TRACKER_IDENTITIES_JOB,
+      { installationId: installation.id },
+      { singletonKey: `link-tracker:${installation.id}` },
+    )
+    .catch((error: unknown) => {
+      logError('link tracker identities enqueue failed', error, {
+        installationId: String(installation.id),
+      });
+    });
   return { installationId: installation.id };
 }

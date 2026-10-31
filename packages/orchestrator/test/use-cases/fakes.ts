@@ -63,15 +63,29 @@ export function fakeLinear() {
     exchangeError: null as Error | null,
     refreshError: null as Error | null,
     graphqlStatus: 200,
+    users: new Map<string, string>(),
   };
   const calls = {
     exchanges: [] as { code: string; redirectUri: string; clientId: string }[],
     refreshes: [] as { refreshToken: string; clientId: string; clientSecret: string }[],
     bearer: [] as string[],
+    userLookups: [] as string[],
   };
   const fetchImpl = (async (_url: RequestInfo | URL, init?: RequestInit) => {
     calls.bearer.push(new Headers(init?.headers).get('authorization') ?? '');
     if (state.graphqlStatus !== 200) return new Response('', { status: state.graphqlStatus });
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      query?: string;
+      variables?: { email?: string };
+    };
+    if (body.query?.includes('UserByEmail')) {
+      const email = (body.variables?.email ?? '').toLowerCase();
+      calls.userLookups.push(email);
+      const id = state.users.get(email);
+      return Response.json({
+        data: { users: { nodes: id ? [{ id, email }] : [] } },
+      });
+    }
     return Response.json({ data: { organization: state.organization } });
   }) as typeof fetch;
   const deps: Deps['linear'] = {

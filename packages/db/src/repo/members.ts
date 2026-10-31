@@ -194,3 +194,52 @@ export async function removeMemberInstallation(
       ),
     );
 }
+
+export async function findMemberByIdentity(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+  externalId: string,
+): Promise<MemberRow | null> {
+  const [row] = await db
+    .select({ member: members })
+    .from(memberIdentities)
+    .innerJoin(members, eq(members.id, memberIdentities.memberId))
+    .where(
+      and(
+        eq(memberIdentities.installationId, installationId),
+        eq(memberIdentities.provider, provider),
+        eq(memberIdentities.externalId, externalId),
+      ),
+    );
+  return row?.member ?? null;
+}
+
+export async function deleteIdentity(
+  db: Db,
+  installationId: number,
+  memberId: string,
+  provider: Provider,
+): Promise<void> {
+  await db
+    .delete(memberIdentities)
+    .where(
+      and(
+        eq(memberIdentities.installationId, installationId),
+        eq(memberIdentities.memberId, memberId),
+        eq(memberIdentities.provider, provider),
+      ),
+    );
+}
+
+export async function listInstallationMembers(
+  db: Db,
+  installationId: number,
+): Promise<{ id: string; login: string; email: string | null }[]> {
+  return db
+    .select({ id: members.id, login: members.login, email: members.email })
+    .from(memberInstallations)
+    .innerJoin(members, eq(members.id, memberInstallations.memberId))
+    .where(eq(memberInstallations.installationId, installationId))
+    .orderBy(members.login);
+}
