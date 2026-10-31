@@ -5,7 +5,7 @@ const schema = z.object({
   installationId: z.number().int(),
   dailyId: z.string().min(1),
   blockerIndex: z.number().int().nonnegative(),
-  blockerHash: z.string().min(1).optional(),
+  blockerId: z.string().min(1).optional(),
 });
 
 export function routeBlockerJob(deps: WorkerDeps): (data: object) => Promise<void> {

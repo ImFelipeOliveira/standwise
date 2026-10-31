@@ -10,7 +10,7 @@ import {
 } from '@standwise/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
-  blockerHash,
+  blockerRouteId,
   createMembershipCheck,
   getToday,
   listOrgDailies,
@@ -112,7 +112,7 @@ describe('submitDaily', () => {
           installationId: INST,
           dailyId: row?.id,
           blockerIndex: 0,
-          blockerHash: blockerHash(blocker),
+          blockerId: blockerRouteId(blocker),
         },
       },
       {
@@ -121,11 +121,11 @@ describe('submitDaily', () => {
           installationId: INST,
           dailyId: row?.id,
           blockerIndex: 1,
-          blockerHash: blockerHash({ text: 'Flaky CI' }),
+          blockerId: blockerRouteId({ text: 'Flaky CI' }),
         },
       },
     ]);
-    expect(blockerHash({ text: '  need PROD access ' })).toBe(blockerHash(blocker));
+    expect(blockerRouteId({ text: '  need PROD access ' })).toBe(blockerRouteId(blocker));
   });
 
   test('a failing enqueue does not fail the submit and does not log the payload', async () => {

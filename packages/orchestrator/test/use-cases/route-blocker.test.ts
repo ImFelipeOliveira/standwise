@@ -16,7 +16,7 @@ import {
 import type { PullRequestDetail } from '@standwise/github';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
-  blockerHash,
+  blockerRouteId,
   createMembershipCheck,
   type RouteBlockerJob,
   resolveRouteTarget,
@@ -270,7 +270,7 @@ describe('routeBlocker', () => {
       teamName: '',
       date: DATE,
       kind: 'blocker_route' as const,
-      subject: `${dailyId}:${blockerHash(prBlocker())}:carla`,
+      subject: `${dailyId}:${blockerRouteId(prBlocker())}:carla`,
     };
     expect((await getDelivery(db, key))?.status).toBe('sent');
   });
@@ -296,7 +296,7 @@ describe('routeBlocker', () => {
       teamName: '',
       date: DATE,
       kind: 'blocker_route',
-      subject: `${dailyId}:${blockerHash(blocker)}:mgr`,
+      subject: `${dailyId}:${blockerRouteId(blocker)}:mgr`,
     });
     expect(failed?.status).toBe('failed');
     expect(failed?.error).toStartWith('no_chat_identity');
@@ -323,6 +323,83 @@ describe('routeBlocker', () => {
     expect(texts.filter((t) => t.includes('Flaky CI'))).toHaveLength(1);
   });
 
+  test('rewording a blocker with the same ref is not routed again', async () => {
+    const fake = await setup({ pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla'] }) } });
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const isMember = createMembershipCheck(fake.deps);
+    const routes = () =>
+      fake.queue.enqueued
+        .filter((j) => j.name === 'route-blocker')
+        .map((j) => j.data as RouteBlockerJob);
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [prBlocker()] });
+    const [job] = routes();
+    await routeBlocker(fake.deps, job as RouteBlockerJob);
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA']);
+    const reworded: Item = {
+      text: 'Still blocked: nobody reviewed the cache change',
+      ref: { kind: 'pull_request', url: 'https://GitHub.com/acme/api/pull/7/#top', title: 'x' },
+    };
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [reworded] });
+    expect(routes()).toHaveLength(1);
+    expect(blockerRouteId(reworded)).toBe(blockerRouteId(prBlocker()));
+    await routeBlocker(fake.deps, job as RouteBlockerJob);
+    expect(fake.directs).toHaveLength(1);
+  });
+
+  test('two blockers with different refs are routed separately', async () => {
+    const fake = await setup({
+      pulls: {
+        'acme/api#7': pull({ requestedReviewers: ['carla'] }),
+        'acme/api#8': pull({ requestedReviewers: ['carla'] }),
+      },
+    });
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const isMember = createMembershipCheck(fake.deps);
+    const same = 'Waiting for review on the cache PR';
+    await submitDaily(fake.deps, isMember, member, {
+      ...daily,
+      blockers: [
+        prBlocker(),
+        { text: same, ref: { kind: 'pull_request', url: 'https://github.com/acme/api/pull/8' } },
+      ],
+    });
+    const jobs = fake.queue.enqueued
+      .filter((j) => j.name === 'route-blocker')
+      .map((j) => j.data as RouteBlockerJob);
+    expect(jobs).toHaveLength(2);
+    for (const job of jobs) await routeBlocker(fake.deps, job);
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA', 'U0CARLA']);
+  });
+
+  test('at most 10 distinct blockers per daily are routed', async () => {
+    const fake = await setup();
+    const blockers: Item[] = Array.from({ length: 11 }, (_, i) => ({ text: `Blocker ${i}` }));
+    const dailyId = await seedDaily(blockers);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    for (let i = 0; i < blockers.length; i++) {
+      await routeBlocker(fake.deps, {
+        installationId: INST,
+        dailyId,
+        blockerIndex: i,
+        blockerId: blockerRouteId(blockers[i] as Item),
+      });
+    }
+    await routeBlocker(fake.deps, {
+      installationId: INST,
+      dailyId,
+      blockerIndex: 3,
+      blockerId: blockerRouteId(blockers[3] as Item),
+    });
+    const logged = JSON.stringify(spy.mock.calls);
+    spy.mockRestore();
+    expect(fake.directs).toHaveLength(10);
+    expect(fake.directs.some((d) => d.msg.fallbackText.includes('Blocker 10'))).toBe(false);
+    expect(logged).toContain('blocker route cap reached');
+    expect(logged).not.toContain('Blocker 10');
+  });
+
   test('a job whose blocker was removed does nothing', async () => {
     const fake = await setup();
     const dailyId = await seedDaily([{ text: 'Other' }]);
@@ -330,7 +407,7 @@ describe('routeBlocker', () => {
       installationId: INST,
       dailyId,
       blockerIndex: 0,
-      blockerHash: blockerHash({ text: 'Gone' }),
+      blockerId: blockerRouteId({ text: 'Gone' }),
     });
     expect(fake.directs).toEqual([]);
   });
@@ -344,7 +421,7 @@ describe('routeBlocker', () => {
       teamName: '',
       date: DATE,
       kind: 'blocker_route',
-      subject: `${dailyId}:${blockerHash(blocker)}:mgr`,
+      subject: `${dailyId}:${blockerRouteId(blocker)}:mgr`,
     });
     await expect(
       routeBlocker(fake.deps, { installationId: INST, dailyId, blockerIndex: 0 }),
@@ -363,7 +440,7 @@ describe('routeBlocker', () => {
       teamName: '',
       date: DATE,
       kind: 'blocker_route',
-      subject: `${dailyId}:${blockerHash(blocker)}:-`,
+      subject: `${dailyId}:${blockerRouteId(blocker)}:-`,
     });
     expect(failed?.status).toBe('failed');
     expect(failed?.error).toBe('no_route_target');
@@ -384,6 +461,25 @@ describe('routeBlocker', () => {
     fake.failWith(null);
     await routeBlocker(fake.deps, job);
     expect(fake.directs.map((d) => d.userId)).toEqual(['U0CARLA', 'U0DAVE']);
+  });
+
+  test('a failed send still reaches the remaining targets and the job retries', async () => {
+    const fake = await setup({
+      pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla', 'dave', 'erin'] }) },
+    });
+    const dailyId = await seedDaily([prBlocker()]);
+    const send = fake.chat.sendDirect;
+    let calls = 0;
+    fake.chat.sendDirect = async (userId, msg) => {
+      calls++;
+      if (calls === 1) throw new Error('slack down');
+      return send(userId, msg);
+    };
+    const job = { installationId: INST, dailyId, blockerIndex: 0 };
+    await expect(routeBlocker(fake.deps, job)).rejects.toThrow('slack down');
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0DAVE', 'U0ERIN']);
+    await routeBlocker(fake.deps, job);
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U0DAVE', 'U0ERIN', 'U0CARLA']);
   });
 
   test('a missing daily or index does nothing', async () => {
@@ -411,7 +507,7 @@ describe('routeBlocker', () => {
       teamName: '',
       date: DATE,
       kind: 'blocker_route',
-      subject: `${dailyId}:${blockerHash(blocker)}:mgr`,
+      subject: `${dailyId}:${blockerRouteId(blocker)}:mgr`,
     });
     expect(failed?.status).toBe('failed');
   });

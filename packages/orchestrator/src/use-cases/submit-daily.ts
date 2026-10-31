@@ -7,7 +7,7 @@ import {
   upsertDaily,
 } from '@standwise/db';
 import type { Deps } from '../deps';
-import { blockerHash, newBlockers } from '../events';
+import { blockerRouteId, newBlockers, newRoutedBlockers } from '../events';
 import { logError } from '../log-error';
 import { emitEventSafely } from './emit-event';
 import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';
@@ -50,16 +50,16 @@ async function enqueueBlockerRoutes(
   fresh: Item[],
 ): Promise<void> {
   for (const blocker of fresh) {
-    const hash = blockerHash(blocker);
+    const blockerId = blockerRouteId(blocker);
     const job: RouteBlockerJob = {
       installationId,
       dailyId,
       blockerIndex: blockers.indexOf(blocker),
-      blockerHash: hash,
+      blockerId,
     };
     try {
       await deps.queue.enqueue(ROUTE_BLOCKER_JOB, job, {
-        singletonKey: `route:${dailyId}:${hash}`,
+        singletonKey: `route:${dailyId}:${blockerId}`,
       });
     } catch (error) {
       logError('blocker route enqueue failed', error);
@@ -94,7 +94,13 @@ export async function submitDaily(
     });
   }
   const fresh = newBlockers(previous?.payload.blockers, payload.blockers);
-  await enqueueBlockerRoutes(deps, ctx.installationId, id, payload.blockers, fresh);
+  await enqueueBlockerRoutes(
+    deps,
+    ctx.installationId,
+    id,
+    payload.blockers,
+    newRoutedBlockers(previous?.payload.blockers, payload.blockers),
+  );
   await emitDailyEvents(deps, ctx, {
     id,
     teams,

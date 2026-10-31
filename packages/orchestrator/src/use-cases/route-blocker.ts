@@ -17,26 +17,28 @@ import {
   failDelivery,
   getDailyById,
   getInstallation,
+  listBlockerRoutes,
   operationalConfig,
 } from '@standwise/db';
 import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
-import { blockerHash } from '../events';
+import { blockerRouteId } from '../events';
 import { logError } from '../log-error';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
 
 export const ROUTE_BLOCKER_JOB = 'route-blocker';
-export const MAX_ROUTE_TARGETS = 5;
+const MAX_ROUTE_TARGETS = 5;
+const MAX_ROUTED_BLOCKERS_PER_DAILY = 10;
 
 export type RouteBlockerJob = {
   installationId: number;
   dailyId: string;
   blockerIndex: number;
-  blockerHash?: string;
+  blockerId?: string;
 };
 
-export type RouteTarget = { reason: BlockerRouteReason; logins: string[] };
+type RouteTarget = { reason: BlockerRouteReason; logins: string[] };
 
 type RouteContext = {
   installationId: number;
@@ -141,9 +143,9 @@ export async function resolveRouteTarget(
 
 function findBlocker(blockers: Item[], job: RouteBlockerJob): Item | undefined {
   const atIndex = blockers[job.blockerIndex];
-  if (!job.blockerHash) return atIndex;
-  if (atIndex && blockerHash(atIndex) === job.blockerHash) return atIndex;
-  return blockers.find((b) => blockerHash(b) === job.blockerHash);
+  if (!job.blockerId) return atIndex;
+  if (atIndex && blockerRouteId(atIndex) === job.blockerId) return atIndex;
+  return blockers.find((b) => blockerRouteId(b) === job.blockerId);
 }
 
 async function recordNoTarget(deps: WorkerDeps, key: DeliveryKey): Promise<void> {
@@ -164,6 +166,17 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
   const teams = await resolveTeams(deps, installation.id, installation.accountLogin, config);
   const firstTeam = teamsForMember(author, teams)[0];
   if (!firstTeam) return;
+  const blockerId = blockerRouteId(blocker);
+  const routed = await listBlockerRoutes(deps.db, job.installationId, daily.date, job.dailyId);
+  const previous = routed.get(blockerId);
+  if (!previous && routed.size >= MAX_ROUTED_BLOCKERS_PER_DAILY) {
+    console.error('blocker route cap reached', {
+      installationId: String(job.installationId),
+      dailyId: job.dailyId,
+      limit: String(MAX_ROUTED_BLOCKERS_PER_DAILY),
+    });
+    return;
+  }
 
   const ctx: RouteContext = {
     installationId: job.installationId,
@@ -181,14 +194,17 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
     author,
   ]);
   if (target.reason !== 'manager' && !target.logins.some((l) => ids.has(l))) target = fallback;
+  if (previous) {
+    target = { ...target, logins: target.logins.filter((l) => previous.has(l)) };
+    if (target.logins.length === 0) return;
+  }
 
-  const hash = blockerHash(blocker);
   const keyFor = (suffix: string): DeliveryKey => ({
     installationId: job.installationId,
     teamName: '',
     date: daily.date,
     kind: 'blocker_route',
-    subject: `${job.dailyId}:${hash}:${suffix}`,
+    subject: `${job.dailyId}:${blockerId}:${suffix}`,
   });
   if (target.logins.length === 0) {
     await recordNoTarget(deps, keyFor('-'));
@@ -198,6 +214,7 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
   const chat = await deps.chatFor(job.installationId, 'slack');
   const authorChatId = ids.get(author);
   let busy = false;
+  let failure: unknown = null;
   for (const login of target.logins) {
     const key = keyFor(login);
     const claim = await claimDelivery(deps.db, key);
@@ -226,8 +243,9 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
       await completeDelivery(deps.db, key, claim.token, ref);
     } catch (error) {
       await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
-      throw error;
+      failure ??= error;
     }
   }
+  if (failure) throw failure;
   if (busy) throw new Error('blocker_route_in_progress');
 }

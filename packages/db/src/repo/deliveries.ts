@@ -169,6 +169,35 @@ export async function listPersonDeliveries(
     );
 }
 
+export async function listBlockerRoutes(
+  db: Db,
+  installationId: number,
+  date: string,
+  dailyId: string,
+): Promise<Map<string, Set<string>>> {
+  const rows = await db
+    .select({
+      id: sql<string>`split_part(${deliveries.subject}, ':', 2)`,
+      recipient: sql<string>`split_part(${deliveries.subject}, ':', 3)`,
+    })
+    .from(deliveries)
+    .where(
+      and(
+        eq(deliveries.installationId, installationId),
+        eq(deliveries.date, date),
+        eq(deliveries.kind, 'blocker_route'),
+        sql`split_part(${deliveries.subject}, ':', 1) = ${dailyId}`,
+      ),
+    );
+  const routes = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const recipients = routes.get(row.id) ?? new Set<string>();
+    recipients.add(row.recipient);
+    routes.set(row.id, recipients);
+  }
+  return routes;
+}
+
 export const ADMIN_VISIBLE_DELIVERY_KINDS = [
   'digest',
   'late_daily',
