@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { DEFAULT_API_URL, FALLBACK_API_URL, resolveDefaultApiUrl } from '../src/api';
+import { DEFAULT_API_URL } from '../src/api';
+import { FALLBACK_API_URL, resolveDefaultApiUrl } from '../src/default-api-url';
 
 describe('default api url', () => {
   test('falls back when no build-time value is injected', () => {
