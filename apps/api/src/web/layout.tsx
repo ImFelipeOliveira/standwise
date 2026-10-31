@@ -59,6 +59,7 @@ function Header(props: { lang: Language; header?: HeaderProps }) {
       <span class="topbar-brand">
         <Logo />
         <span>Standwise</span>
+        <span class="badge badge-neutral topbar-beta">{t('web.header.beta')}</span>
       </span>
       {header ? (
         <>

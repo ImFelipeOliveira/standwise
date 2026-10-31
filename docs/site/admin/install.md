@@ -4,7 +4,7 @@ Set up Standwise for your organization in four steps. You need to be an owner of
 
 ## 1. Install the GitHub App
 
-On the Standwise GitHub App page, click **Install** and pick your organization or personal account.
+On the [Standwise GitHub App page](https://github.com/apps/standwise-daily/installations/new), click **Install** and pick your organization or personal account.
 
 Choose **All repositories**, or **Only select repositories** and include the `.github` repository. Standwise reads its configuration from that repository. If it does not exist yet, you can create it in step 4 and add it to the app afterwards.
 

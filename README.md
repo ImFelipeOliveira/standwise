@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml"><img src="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ImFelipeOliveira/standwise/releases"><img src="https://img.shields.io/github/v/release/ImFelipeOliveira/standwise?include_prereleases" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/status-public%20beta-orange.svg" alt="Status: public beta">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-runtime-000000.svg?logo=bun&logoColor=white" alt="Bun"></a>
@@ -25,6 +26,9 @@
 </p>
 
 ---
+
+> [!WARNING]
+> **Public beta.** Standwise is being tested with its first teams. Expect rough edges and changes to behaviour, configuration and the API before 1.0. Report problems in [GitHub issues](https://github.com/ImFelipeOliveira/standwise/issues) or at support.standwise@usefachada.dev.
 
 Each person runs `/daily` in their AI agent (Claude Code, Cursor, Codex, Claude Desktop, VS Code). Standwise drafts the daily from what they did on GitHub; the person edits it, adds today's plan and blockers, and **confirms before anything is sent**. At the time set in `standwise.yml`, Standwise posts one digest per team to Slack.
 
@@ -112,7 +116,7 @@ The full walkthrough is in [How it works](https://docs-standwise.usefachada.dev/
 
 You need to own the GitHub organization (or personal account).
 
-1. Install the Standwise GitHub App on your organization.
+1. [Install the Standwise GitHub App](https://github.com/apps/standwise-daily/installations/new) on your organization.
 2. Open the setup page that GitHub sends you to, sign in, and click **Connect Slack**.
 3. Create `standwise.yml` at the root of your `.github` repository, from the template on the setup page.
 

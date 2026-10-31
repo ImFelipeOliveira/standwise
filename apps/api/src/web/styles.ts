@@ -117,6 +117,7 @@ const LAYOUT = `
 .page { max-width: 1120px; margin: 0 auto; padding: 24px 24px 64px; }
 .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 32px; font-size: 18px; font-weight: 700; }
 .topbar-brand { display: inline-flex; align-items: center; gap: 10px; }
+.topbar-beta { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .topbar-sep { color: var(--muted-foreground); font-weight: 400; }
 .topbar-org { font-size: 15px; }
 .topbar-switch { display: flex; align-items: center; gap: 8px; margin: 0; }
