@@ -61,7 +61,7 @@ The generated `_headers` allows only the site's own scripts. Leave **Web Analyti
 
 If the project was created through **Workers & Pages > Create > Worker > Import a repository** (Workers Builds), Cloudflare runs `npx wrangler deploy` after the build. The repository root has a `wrangler.jsonc` for that case: it publishes `docs/site/.vitepress/dist` as static assets, and Workers static assets read the same `_headers` and `_redirects` files.
 
-- The Worker name in Cloudflare must be `standwise-docs`, the `name` in `wrangler.jsonc`. Rename one of them if they differ.
+- The Worker name in Cloudflare must be `standwise`, the `name` in `wrangler.jsonc`. Rename one of them if they differ.
 - Build command: `bun install --frozen-lockfile && bun run docs:build`. Deploy command: `npx wrangler deploy`.
 - Set the same build variables (`BUN_VERSION`, `SUPPORT_EMAIL`, `STANDWISE_PUBLIC_URL`) under the Worker's **Settings > Build > Variables and secrets**.
 - Add the custom domain under the Worker's **Settings > Domains & Routes**.
