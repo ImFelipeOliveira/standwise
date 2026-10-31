@@ -53,12 +53,18 @@ export function blockerHash(blocker: Item): string {
   return createHash('sha256').update(normalizeBlockerText(blocker.text)).digest('hex').slice(0, 32);
 }
 
+const CASE_INSENSITIVE_PATH_HOSTS = new Set(['github.com', 'linear.app']);
+
 export function normalizeRefUrl(url: string): string {
   const trimmed = url.trim();
   try {
     const parsed = new URL(trimmed);
-    const path = parsed.pathname.replace(/\/+$/, '');
-    return `${parsed.protocol}//${parsed.host}${path}${parsed.search}`;
+    const host = parsed.host.toLowerCase();
+    const rawPath = parsed.pathname.replace(/\/+$/, '');
+    const path = CASE_INSENSITIVE_PATH_HOSTS.has(parsed.hostname.toLowerCase())
+      ? rawPath.toLowerCase()
+      : rawPath;
+    return `${parsed.protocol}//${host}${path}`;
   } catch {
     return trimmed;
   }

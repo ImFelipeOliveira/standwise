@@ -537,6 +537,19 @@ describe('routeBlocker', () => {
     expect(fake.directs).toHaveLength(1);
   });
 
+  test('a resubmit whose blocker url differs only in case is not routed again', async () => {
+    const fake = await setup({ pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla'] }) } });
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const isMember = createMembershipCheck(fake.deps);
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [prBlocker()] });
+    await submitDaily(fake.deps, isMember, member, {
+      ...daily,
+      blockers: [prBlocker('https://github.com/Acme/API/pull/7')],
+    });
+    expect(fake.queue.enqueued.filter((j) => j.name === 'route-blocker')).toHaveLength(1);
+  });
+
   test('two blockers with different refs are routed separately', async () => {
     const fake = await setup({
       pulls: {

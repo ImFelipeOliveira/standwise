@@ -15,7 +15,9 @@ import {
   type Envelope,
   emitEvent,
   newBlockers,
+  newRoutedBlockers,
   normalizeBlockerText,
+  normalizeRefUrl,
   sendDigest,
   submitDaily,
 } from '../src';
@@ -79,6 +81,34 @@ describe('blocker text', () => {
     expect(newBlockers(undefined, after.slice(0, 1)).map((b) => b.text)).toEqual([
       'waiting  for db',
     ]);
+  });
+});
+
+describe('normalizeRefUrl', () => {
+  test('github paths ignore case, trailing slash, fragment and query', () => {
+    expect(normalizeRefUrl('https://github.com/Acme/API/pull/7/')).toBe(
+      normalizeRefUrl('https://github.com/acme/api/pull/7#discussion'),
+    );
+    expect(normalizeRefUrl('https://GitHub.com/acme/api/pull/7?x=1')).toBe(
+      'https://github.com/acme/api/pull/7',
+    );
+  });
+
+  test('linear identifiers ignore case', () => {
+    const a = {
+      text: 'a',
+      ref: { kind: 'card' as const, url: 'https://linear.app/acme/issue/ENG-9/Flaky' },
+    };
+    const b = {
+      text: 'b',
+      ref: { kind: 'card' as const, url: 'https://linear.app/acme/issue/eng-9/flaky' },
+    };
+    expect(normalizeRefUrl(a.ref.url)).toBe(normalizeRefUrl(b.ref.url));
+    expect(newRoutedBlockers([a], [b])).toEqual([]);
+  });
+
+  test('other hosts keep path case', () => {
+    expect(normalizeRefUrl('https://Example.com/Foo/Bar/')).toBe('https://example.com/Foo/Bar');
   });
 });
 

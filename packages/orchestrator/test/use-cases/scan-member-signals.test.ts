@@ -390,6 +390,17 @@ describe('scanMemberSignals', () => {
     expect(marker?.status).toBe('sent');
   });
 
+  test('a scan whose day is already marked sent makes no github or linear call', async () => {
+    const s = await setup({ linear: true });
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    const githubCalls = s.calls.snapshots.length;
+    const linearCalls = s.linear.calls.queries.length;
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    expect(s.calls.snapshots).toHaveLength(githubCalls);
+    expect(s.linear.calls.queries).toHaveLength(linearCalls);
+    expect(githubCalls).toBe(1);
+  });
+
   describe('card_stale', () => {
     const quiet = () => spyOn(console, 'error').mockImplementation(() => {});
 
