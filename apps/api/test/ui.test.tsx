@@ -79,6 +79,7 @@ describe('design tokens', () => {
     expect(tokens['--primary-hover']).toBe('#2A3796');
     expect(tokens['--success']).toBe('#16A34A');
     expect(tokens['--danger']).toBe('#B91C1C');
+    expect(tokens['--step-todo']).toBe('#64748B');
   });
 
   test('a dark block redefines every core token', () => {
@@ -185,15 +186,18 @@ describe('component kit', () => {
     expect(await render(<Alert tone="warning" title="W" />)).toContain('alert-warning');
   });
 
-  test('StepStatus shows a check, the index or an x', async () => {
-    const done = await render(<StepStatus state="done" index={1} />);
+  test('StepStatus shows a check, the index or an x, with a screen reader label', async () => {
+    const done = await render(<StepStatus state="done" index={1} label="Done" />);
     expect(done).toContain('class="step step-done"');
     expect(done).toContain('icon-check');
-    const todo = await render(<StepStatus state="todo" index={2} />);
-    expect(todo).toBe('<span class="step step-todo">2</span>');
-    const error = await render(<StepStatus state="error" index={3} />);
+    expect(done).toContain('aria-hidden="true"');
+    expect(done).toContain('<span class="sr-only">Done</span>');
+    const todo = await render(<StepStatus state="todo" index={2} label="To do" />);
+    expect(todo).toBe('<span class="step step-todo">2<span class="sr-only">To do</span></span>');
+    const error = await render(<StepStatus state="error" index={3} label="Error" />);
     expect(error).toContain('class="step step-error"');
     expect(error).toContain('icon-x');
+    expect(error).toContain('<span class="sr-only">Error</span>');
   });
 
   test('Icon is a hidden inline svg drawn with currentColor', async () => {
@@ -216,6 +220,33 @@ describe('component kit', () => {
       ),
     ).toBe('<div class="table-scroll"><table></table></div>');
     expect(await render(<Code>a.b</Code>)).toBe('<code class="code">a.b</code>');
+  });
+
+  test('a ButtonLink inside an Alert action keeps the button colors', async () => {
+    const html = await render(
+      <Alert tone="warning" title="Reconnect" action={<ButtonLink href="/go">Go</ButtonLink>} />,
+    );
+    expect(html).toContain('<div class="alert-action"><a class="btn btn-primary" href="/go">');
+    expect(PAGE_CSS).toContain(
+      '.btn-primary { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }',
+    );
+    const inheriting = [...PAGE_CSS.matchAll(/([^{}]+)\{[^}]*color: inherit/g)].map((m) =>
+      (m[1] as string).trim(),
+    );
+    for (const selector of inheriting.flatMap((s) => s.split(',').map((x) => x.trim()))) {
+      if (/\ba\b/.test(selector)) expect(selector).toContain(':not(.btn)');
+    }
+    for (const scope of ['.alert', '.card-warning', '.card-danger', '.card-info']) {
+      expect(inheriting.join(',')).toContain(`${scope} a:not(.btn)`);
+    }
+  });
+
+  test('sr-only hides text visually and badges wrap on a phone', () => {
+    expect(PAGE_CSS).toMatch(
+      /\.sr-only \{[^}]*position: absolute;[^}]*width: 1px;[^}]*height: 1px;[^}]*overflow: hidden;[^}]*clip: rect\(0, 0, 0, 0\);[^}]*white-space: nowrap;/,
+    );
+    const phone = PAGE_CSS.slice(PAGE_CSS.indexOf('@media (max-width: 639px)'));
+    expect(phone).toMatch(/\.badge \{[^}]*white-space: normal;/);
   });
 
   test('every component class has a rule in the css', () => {
@@ -247,6 +278,7 @@ describe('component kit', () => {
       '.icon',
       '.table-scroll',
       '.code',
+      '.sr-only',
     ]) {
       expect(PAGE_CSS).toMatch(new RegExp(`${selector.replace('.', '\\.')}[ ,:{>]`));
     }

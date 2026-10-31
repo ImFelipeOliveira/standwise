@@ -90,12 +90,17 @@ export function Alert(props: {
   );
 }
 
-export function StepStatus(props: { state: 'done' | 'todo' | 'error'; index: number }) {
+export function StepStatus(props: {
+  state: 'done' | 'todo' | 'error';
+  index: number;
+  label: string;
+}) {
   return (
     <span class={`step step-${props.state}`}>
       {props.state === 'done' ? <Icon name="check" /> : null}
       {props.state === 'error' ? <Icon name="x" /> : null}
       {props.state === 'todo' ? props.index : null}
+      <span class="sr-only">{props.label}</span>
     </span>
   );
 }

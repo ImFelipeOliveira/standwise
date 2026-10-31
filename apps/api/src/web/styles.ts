@@ -38,7 +38,7 @@ const LIGHT = `
   --info-text: #2A3796;
   --neutral-bg: #F1F5F9;
   --neutral-text: #334155;
-  --step-todo: #94A3B8;
+  --step-todo: #64748B;
 }`;
 
 const DARK = `
@@ -109,6 +109,7 @@ label { color: var(--foreground); }
 label.choice { display: flex; align-items: center; gap: 8px; min-height: 32px; flex-wrap: wrap; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .logo { fill: var(--primary); flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 `;
 
 const LAYOUT = `
@@ -155,8 +156,8 @@ const COMPONENTS = `
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
 .alert-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 .alert-info { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
-.alert a { color: inherit; font-weight: 600; }
-.step { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 999px; border: 2px solid transparent; font-size: 13px; font-weight: 600; }
+.alert a:not(.btn), .card-warning a:not(.btn), .card-danger a:not(.btn), .card-info a:not(.btn) { color: inherit; font-weight: 600; }
+.step { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 999px; border: 2px solid transparent; font-size: 13px; font-weight: 600; }
 .step-done { background: var(--success); border-color: var(--success); color: var(--success-foreground); }
 .step-todo { border: 2px dashed var(--step-todo); color: var(--muted-foreground); }
 .step-error { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
@@ -179,6 +180,7 @@ const RESPONSIVE = `
   button, .btn, .button, input, select, textarea { min-height: 44px; }
   input[type=checkbox], input[type=radio] { min-height: 0; width: 20px; height: 20px; }
   label.choice { min-height: 44px; }
+  .badge { white-space: normal; }
   .card, .page > section:not([class]) { padding: 16px; }
 }
 `;
