@@ -22,6 +22,7 @@ export type LinearAccessDeps = Pick<Deps, 'db' | 'encryptionKey' | 'linear' | 'n
 export type LinearAccess = {
   client: LinearClient;
   organization: { id: string; urlKey: string };
+  invalidate: () => Promise<void>;
 };
 
 const stringOrNull = (value: unknown): value is string | null =>
@@ -145,8 +146,10 @@ export async function linearClientFor(
       new UnreadableLinearConnection(),
     );
   }
+  const { ciphertext } = connection;
   return {
     client: createLinearClient(access.tokens.accessToken, deps.linear.fetch),
     organization: access.organization,
+    invalidate: () => markConnectionInvalid(deps.db, installationId, 'linear', ciphertext),
   };
 }

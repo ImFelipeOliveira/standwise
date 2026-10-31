@@ -48,6 +48,7 @@ describe('linearClientFor', () => {
     const { deps, linear } = await setup();
     const access = await linearClientFor(deps, INST);
     expect(access?.organization).toEqual({ id: 'org-1', urlKey: 'acme' });
+    expect(typeof access?.invalidate).toBe('function');
     if (!access) throw new Error('expected access');
     await getOrganization(access.client);
     expect(linear.calls.bearer).toEqual(['Bearer lin_at_1']);
@@ -200,6 +201,25 @@ describe('linearClientFor', () => {
     expect(await pending).toBeNull();
     expect(linear.calls.refreshes).toEqual([]);
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeInstanceOf(Date);
+  });
+
+  test('invalidate marks the connection that was used', async () => {
+    const { deps } = await setup();
+    const access = await linearClientFor(deps, INST);
+    if (!access) throw new Error('expected access');
+    await access.invalidate();
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeInstanceOf(Date);
+    expect(await linearClientFor(deps, INST)).toBeNull();
+  });
+
+  test('invalidate after a reconnect keeps the fresh connection valid', async () => {
+    const { deps } = await setup();
+    const access = await linearClientFor(deps, INST);
+    if (!access) throw new Error('expected access');
+    await saveConnection(db, INST, 'linear', 'org-1', JSON.stringify(stored), KEY, 'Acme', 'acme');
+    await access.invalidate();
+    expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeNull();
+    expect(await linearClientFor(deps, INST)).not.toBeNull();
   });
 
   test('the setup shows reconnect after a refresh auth failure', async () => {
