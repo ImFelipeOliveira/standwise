@@ -4,11 +4,13 @@ outline: [2, 3]
 
 # Changelog
 
-O que mudou no Standwise. A seção da API segue a [política de versionamento](/pt-BR/api/overview#versionamento): mudanças incompatíveis são anunciadas com pelo menos 90 dias de antecedência.
+O que mudou no Standwise. As versões são as mesmas dos [releases no GitHub](https://github.com/ImFelipeOliveira/standwise/releases). A seção da API segue a [política de versionamento](/pt-BR/api/overview#versionamento).
 
 ## Produto
 
-### Não lançado
+### 0.2.0 — 31/10/2026
+
+Primeiro beta público.
 
 - Reforço de robustez:
   - A página de setup mostra um aviso quando um time do GitHub no `standwise.yml` não é encontrado ou é grande demais (só os primeiros 5.000 membros são usados).
