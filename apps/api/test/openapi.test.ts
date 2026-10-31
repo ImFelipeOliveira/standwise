@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Validator } from '@seriousme/openapi-schema-validator';
+import rootPackage from '../../../package.json' with { type: 'json' };
 import { useCleanDb } from '../../../packages/db/test/setup';
 import { STATUS } from '../src/http/errors';
 import { createTestApp } from './support';
@@ -42,7 +43,7 @@ describe('public openapi document', () => {
     const doc = (await res.json()) as Doc;
     expect(doc.openapi).toBe('3.1.0');
     expect(doc.info.title).toBe('Standwise API');
-    expect(doc.info.version).toBe('1.2.0');
+    expect(doc.info.version).toBe(rootPackage.version);
     expect(doc.info.contact.email).toBe('help@sw.test');
     expect(doc.servers).toEqual([{ url: 'https://sw.test' }]);
     expect(doc.tags.map((t) => t.name)).toEqual(['Organization', 'Webhooks', 'Meta']);

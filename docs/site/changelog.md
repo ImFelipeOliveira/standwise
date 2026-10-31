@@ -4,11 +4,13 @@ outline: [2, 3]
 
 # Changelog
 
-What changed in Standwise. The API section follows the [versioning policy](/api/overview#versioning): breaking changes are announced at least 90 days in advance.
+What changed in Standwise. Versions match the [GitHub releases](https://github.com/ImFelipeOliveira/standwise/releases). The API section follows the [versioning policy](/api/overview#versioning).
 
 ## Product
 
-### Unreleased
+### 0.2.0 — 2026-10-31
+
+First public beta.
 
 - Hardening:
   - The setup page shows a notice when a GitHub team in `standwise.yml` cannot be found or is too large (only the first 5,000 members are used).
