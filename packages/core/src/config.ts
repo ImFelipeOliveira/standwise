@@ -95,7 +95,7 @@ export function memberOverrides(config: StandwiseConfig, login: string): MemberO
 const overridesSchema = z.strictObject({
   slack: z.string().regex(SLACK_USER_ID, 'must be a Slack user id like U0123ABCD').optional(),
   google_chat: z.string().optional(),
-  linear: z.string().optional(),
+  linear: z.email('linear must be an email address').optional(),
   jira: z.string().optional(),
 });
 

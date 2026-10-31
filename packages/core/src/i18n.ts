@@ -170,6 +170,13 @@ const ptBR = {
     'Os checks do PR {title} estão falhando há mais de {hours}h. Quer mencioná-lo como impedimento?',
   'suggestion.card_stale':
     'O card {title} está parado há mais de {days} dias. Quer mencioná-lo como impedimento?',
+  'setup.linear.title': 'Linear',
+  'setup.linear.connect': 'Conectar o Linear',
+  'setup.linear.connected': 'Conectado ao workspace {workspace}.',
+  'setup.linear.reconnect': 'Reconectar o Linear',
+  'setup.tracker.jiraComingSoon': 'A integração com o Jira ainda não está disponível.',
+  'setup.tracker.notConnected':
+    'Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação.',
   'suggestion.dm.title': 'Sugestões só para você',
   'checkRun.success.title': 'standwise.yml válido',
   'checkRun.failure.title': 'standwise.yml inválido',
@@ -347,6 +354,13 @@ const en = {
     'The checks on PR {title} have been failing for over {hours}h. Want to mention it as a blocker?',
   'suggestion.card_stale':
     'The card {title} has been idle for over {days} days. Want to mention it as a blocker?',
+  'setup.linear.title': 'Linear',
+  'setup.linear.connect': 'Connect Linear',
+  'setup.linear.connected': 'Connected to the {workspace} workspace.',
+  'setup.linear.reconnect': 'Reconnect Linear',
+  'setup.tracker.jiraComingSoon': 'The Jira integration is not available yet.',
+  'setup.tracker.notConnected':
+    'This team uses Linear, but Linear is not connected to this installation yet.',
   'suggestion.dm.title': 'Suggestions just for you',
   'checkRun.success.title': 'standwise.yml is valid',
   'checkRun.failure.title': 'standwise.yml is invalid',

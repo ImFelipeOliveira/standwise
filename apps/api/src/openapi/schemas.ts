@@ -92,7 +92,7 @@ export const SessionSchema = z
 
 export const ActivityItemSchema = z
   .object({
-    kind: z.enum(['pr_opened', 'pr_merged', 'review', 'commits']),
+    kind: z.enum(['pr_opened', 'pr_merged', 'review', 'commits', 'card_started', 'card_done']),
     title: z.string(),
     url: z.string(),
     repo: z.string(),
