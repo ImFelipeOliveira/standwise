@@ -47,6 +47,28 @@ describe('health', () => {
     expect(Date.now() - started).toBeLessThan(2500);
   });
 
+  test('does not pile up probes while a query is still running', async () => {
+    let calls = 0;
+    const hanging = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'execute') {
+          return () => {
+            calls++;
+            return new Promise(() => {});
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Deps['db'];
+    const { app } = createTestApp({ db: hanging, healthTimeoutMs: 20 });
+    const first = await app.request('/health');
+    const second = await app.request('/health');
+    expect(first.status).toBe(503);
+    expect(second.status).toBe(503);
+    expect(await second.json()).toEqual({ ok: false });
+    expect(calls).toBe(1);
+  });
+
   test('documents the 503 response', async () => {
     const { app } = createTestApp();
     const doc = (await (await app.request('/openapi.json')).json()) as {
