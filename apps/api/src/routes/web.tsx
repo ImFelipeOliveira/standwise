@@ -171,7 +171,10 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
     const lang = negotiateLanguage(c.req.header('accept-language'));
     if (!(error instanceof DomainError)) {
       logError('unhandled web error', error);
-      return c.html(<ErrorPage lang={lang} code="generic" />, 500);
+      return c.html(
+        <ErrorPage lang={lang} code="generic" supportEmail={deps.env.supportEmail} />,
+        500,
+      );
     }
     const url = new URL(c.req.url);
     const action = SIGN_IN_CODES.includes(error.code)
@@ -179,7 +182,15 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
       : error.code === 'installation_pending'
         ? { kind: 'refresh' as const, href: `${url.pathname}${url.search}` }
         : undefined;
-    return c.html(<ErrorPage lang={lang} code={error.code} action={action} />, STATUS[error.code]);
+    return c.html(
+      <ErrorPage
+        lang={lang}
+        code={error.code}
+        action={action}
+        supportEmail={deps.env.supportEmail}
+      />,
+      STATUS[error.code],
+    );
   });
 
   const resyncOnPending = async <T,>(c: Context, run: () => Promise<T>): Promise<T | Response> => {

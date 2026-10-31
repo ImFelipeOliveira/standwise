@@ -6,7 +6,7 @@ O Standwise publica o consolidado de cada time num canal do Slack. Cada instala�
 
 Só um admin da organização pode conectar ou reconectar o Slack: um admin da organização no GitHub, ou o dono da conta, numa conta pessoal. O Standwise confere o papel com o GitHub quando a conexão começa e de novo quando o Slack devolve o admin. Os outros membros veem a conexão na página de setup só para leitura.
 
-Na página de setup, clique em **Conectar Slack** e aprove o app. A página passa a mostrar "Conectado ao workspace" e o nome do workspace.
+Na página de setup, clique em **Conectar Slack** e aprove o app. A etapa do Slack passa a mostrar "Conectado a" e o nome do workspace.
 
 Para conectar de novo, por exemplo depois que o app foi removido do Slack ou para levar os consolidados para outro workspace, clique em **Reconectar Slack** na página de setup. O fluxo de aprovação é o mesmo e substitui a conexão anterior.
 

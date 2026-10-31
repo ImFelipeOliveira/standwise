@@ -21,6 +21,7 @@ import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { fakeLinear } from '../../../packages/orchestrator/test/use-cases/fakes';
 import { createApp } from '../src/app';
+import { PAGE_CSS } from '../src/web/layout';
 
 const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
@@ -42,11 +43,17 @@ ${extra}`);
 }
 
 function harness(
-  opts: { hasConfigRepo?: boolean; slackFails?: boolean; githubInstallations?: number[] } = {},
+  opts: {
+    hasConfigRepo?: boolean;
+    slackFails?: boolean;
+    githubInstallations?: number[];
+    ipFails?: boolean;
+  } = {},
 ) {
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
   const orgMembers = new Set(['alice']);
+  const orgs = new Set(['acme']);
   const admins = new Set(['alice']);
   const linear = fakeLinear();
   const deps: Deps = {
@@ -63,7 +70,10 @@ function harness(
               return { status: 200, data: { id: 1, login: 'alice' } };
             }
             if (route === 'GET /orgs/{org}/members/{username}') {
-              if (params.org !== 'acme' || !orgMembers.has(String(params.username).toLowerCase())) {
+              if (
+                !orgs.has(String(params.org)) ||
+                !orgMembers.has(String(params.username).toLowerCase())
+              ) {
                 throw Object.assign(new Error('not found'), { status: 404 });
               }
               return { status: 204 };
@@ -131,11 +141,17 @@ function harness(
     },
   };
   return {
-    app: createApp(deps, { getClientIp: () => '192.0.2.1' }),
+    app: createApp(deps, {
+      getClientIp: () => {
+        if (opts.ipFails) throw new Error('connection address is unavailable');
+        return '192.0.2.1';
+      },
+    }),
     linear,
     slackCalls,
     webCodes,
     orgMembers,
+    orgs,
     admins,
   };
 }
@@ -278,6 +294,89 @@ describe('web login', () => {
   }
 });
 
+describe('setup header', () => {
+  useCleanDb();
+
+  const get = (app: ReturnType<typeof createApp>, cookie: string, id: number, lang = 'en') =>
+    app.request(`/setup?installation_id=${id}`, {
+      headers: { cookie, 'accept-language': lang },
+    });
+
+  test('a member with one installation sees the owner as text and no select', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const html = await (await get(app, cookie, INST)).text();
+    expect(html).toContain('<div class="page"><header class="topbar">');
+    expect(html).toContain('</header><main>');
+    expect(html).toContain('<nav class="topbar-actions" aria-label="Account">');
+    expect(html).toContain('acme');
+    expect(html).not.toContain('<select');
+  });
+
+  test('a member with two installations gets a switcher with the current one selected', async () => {
+    const { app, orgs } = harness();
+    orgs.add('other');
+    const { cookie, member } = await seed();
+    await setMemberInstallations(db, member.id, [INST, FOREIGN]);
+    const html = await (await get(app, cookie, INST)).text();
+    expect(html).toContain('<form method="get" action="/setup"');
+    expect(html).toContain('<select name="installation_id"');
+    expect(html).toMatch(new RegExp(`<option value="${INST}" selected(="")?>acme</option>`));
+    expect(html).toContain(`<option value="${FOREIGN}">other</option>`);
+    expect(html).toContain('<button type="submit"');
+    expect(html).toContain('>Go<');
+    const pt = await (await get(app, cookie, INST, 'pt-BR')).text();
+    expect(pt).toContain('>Ir<');
+  });
+
+  test('opening the other installation shows the other organization', async () => {
+    const { app, orgs } = harness();
+    orgs.add('other');
+    const { cookie, member } = await seed();
+    await setMemberInstallations(db, member.id, [INST, FOREIGN]);
+    const res = await get(app, cookie, FOREIGN);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toMatch(
+      new RegExp(`<option value="${FOREIGN}" selected(="")?>other</option>`),
+    );
+  });
+
+  test('an installation the member is not linked to stays forbidden', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await get(app, cookie, FOREIGN);
+    expect(res.status).toBe(302);
+  });
+
+  test('docs and sign out links appear in en and pt-BR', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await (await get(app, cookie, INST)).text();
+    expect(en).toContain('<a href="/docs/"');
+    expect(en).toContain('Docs');
+    expect(en).toContain('Sign out');
+    const pt = await (await get(app, cookie, INST, 'pt-BR')).text();
+    expect(pt).toContain('<a href="/docs/pt-BR/"');
+    expect(pt).toContain('Docs');
+    expect(pt).toContain('Sair');
+  });
+
+  test('error pages keep the simple header', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const forbidden = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(forbidden.status).toBe(403);
+    const html = await forbidden.text();
+    expect(html).toContain('<div class="page"><header class="topbar">');
+    expect(html).toContain('</header><main>');
+    expect(html).toContain('Access denied');
+    expect(html).not.toContain('action="/logout"');
+    expect(html).not.toContain('/docs/');
+  });
+});
+
 describe('setup page', () => {
   useCleanDb();
 
@@ -359,7 +458,9 @@ describe('setup page', () => {
 
   test('setup prefilled link', async () => {
     const { app } = harness();
-    const { cookie } = await seed();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, { status: 'unconfigured', reason: 'no_file' });
+    });
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = (await res.text()).replaceAll('&amp;', '&');
     expect(html).toContain(
@@ -370,7 +471,9 @@ describe('setup page', () => {
 
   test('setup links to repo creation when .github is missing', async () => {
     const { app } = harness({ hasConfigRepo: false });
-    const { cookie } = await seed();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, { status: 'unconfigured', reason: 'no_repo' });
+    });
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = await res.text();
     expect(html).toContain('https://github.com/new?name=.github');
@@ -462,7 +565,20 @@ describe('setup page', () => {
     expect(html).toContain('Only an admin can connect or reconnect Slack.');
   });
 
-  test('a member who is not an admin sees the admin note when slack is connected', async () => {
+  test('a member who is not an admin sees the admin note while slack is not connected', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed();
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(html).not.toContain('/connect/slack');
+    expect(html).toContain('Só um admin pode conectar ou reconectar o Slack.');
+  });
+
+  test('a member who is not an admin sees no admin note once slack is connected', async () => {
     const { app, admins } = harness();
     admins.delete('alice');
     const { cookie } = await seed(async (id) => {
@@ -475,7 +591,7 @@ describe('setup page', () => {
     ).text();
     expect(html).toContain('Acme Workspace');
     expect(html).not.toContain('/connect/slack');
-    expect(html).toContain('Só um admin pode conectar ou reconectar o Slack.');
+    expect(html).not.toContain('Só um admin pode conectar ou reconectar o Slack.');
   });
 
   test('setup shows the access warning while keeping the configuration', async () => {
@@ -486,9 +602,31 @@ describe('setup page', () => {
     const html = await (
       await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
     ).text();
-    expect(html).toContain('Configured.');
+    expect(html).toContain('>Configured<');
     expect(html).toContain('Standwise has no access to the .github repository.');
     expect(html).toContain('Standwise keeps using the current configuration.');
+  });
+
+  test('a configured install shows its teams, the edit link and the progress', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(en).toContain('2 of 3 steps done');
+    expect(en).toContain('<h3>Alpha</h3>');
+    expect(en).toContain('#alpha');
+    expect(en).toContain('reminder 09:00 · digest 10:00');
+    expect(en).toContain('href="https://github.com/acme/.github/blob/trunk/standwise.yml"');
+    expect(en).toContain('Edit on GitHub');
+    expect(en).not.toContain('filename=standwise.yml');
+    const pt = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(pt).toContain('2 de 3 etapas concluídas');
+    expect(pt).toContain('Editar no GitHub');
   });
 
   test('the admin sees reconnect when slack is connected', async () => {
@@ -755,7 +893,25 @@ describe('linear connection', () => {
     ).text();
     expect(html).toContain('Acme Linear');
     expect(html).not.toContain('/connect/linear');
-    expect(html).toContain('Only an admin can connect or reconnect Linear.');
+    expect(html).not.toContain('Only an admin can connect or reconnect Linear.');
+  });
+
+  test('a member who is not an admin sees the linear admin note until it works', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed();
+    const todo = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(todo).not.toContain('/connect/linear');
+    expect(todo).toContain('Only an admin can connect or reconnect Linear.');
+    await saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
+    await markConnectionInvalid(db, INST, 'linear');
+    const broken = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(broken).toContain('Linear stopped working');
+    expect(broken).toContain('Only an admin can connect or reconnect Linear.');
   });
 
   test('an invalid connection asks to reconnect', async () => {
@@ -906,6 +1062,7 @@ describe('security headers', () => {
     const html = await res.text();
     const style = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
     expect(style).toContain('font-family');
+    expect(style).toBe(PAGE_CSS);
     const hash = new Bun.CryptoHasher('sha256').update(style).digest('base64');
     expect(csp).toContain(`style-src 'sha256-${hash}'`);
     expect(html).toContain('<form method="post" action="/setup/api-keys">');
@@ -1090,6 +1247,51 @@ describe('web rate limit', () => {
 
 describe('browser error pages', () => {
   useCleanDb();
+
+  test('forbidden renders the danger card with the sign in button and the support line', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(403);
+    const html = await res.text();
+    expect(html).toContain('class="card error-card"');
+    expect(html).toContain('class="status-icon status-icon-danger"');
+    expect(html).toContain('<a class="btn btn-primary" href="/auth/github/login">');
+    expect(html).toContain('Questions?');
+    expect(html).toContain('<a href="mailto:help@sw.test">help@sw.test</a>');
+  });
+
+  test('the pending page renders the warning card with the refresh button', async () => {
+    const { app } = harness({ githubInstallations: [INST, 777] });
+    await seed();
+    const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=777&resynced=1');
+    const login = await callback(app, state, loginCookie);
+    const cookie = /sw_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
+    const res = await app.request('/setup?installation_id=777&resynced=1', {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(409);
+    const html = (await res.text()).replaceAll('&amp;', '&');
+    expect(html).toContain('class="status-icon status-icon-warning"');
+    expect(html).toContain(
+      '<a class="btn btn-primary" href="/setup?installation_id=777&resynced=1">Refresh the page</a>',
+    );
+  });
+
+  test('an unexpected error renders the 500 page without a session', async () => {
+    const { app } = harness({ ipFails: true });
+    const res = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(500);
+    const html = await res.text();
+    expect(html).toContain('Something went wrong');
+    expect(html).toContain('class="status-icon status-icon-neutral"');
+    expect(html).toContain('help@sw.test');
+    expect(html).not.toContain('action="/logout"');
+  });
 
   test('forbidden renders a localized html page in english and pt-BR', async () => {
     const { app } = harness();

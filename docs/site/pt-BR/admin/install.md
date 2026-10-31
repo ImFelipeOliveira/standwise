@@ -26,22 +26,22 @@ Depois da instalação, o GitHub leva você para a página de setup do Standwise
 
 Qualquer membro da organização que entrar pode abrir a página de setup. Só admins podem conectar ou reconectar o Slack e o Linear, e só admins veem as seções **API keys** e **Webhooks**. Admin é quem é admin da organização no GitHub, ou o dono da conta, numa conta pessoal.
 
-A página mostra:
+A página é uma lista de etapas. Um selo no topo conta as etapas, por exemplo **2 de 3 etapas concluídas**, e fica verde quando todas estão concluídas. Cada etapa tem um ícone de estado (um visto quando concluída, o número dela enquanto pendente, um x quando requer atenção) e um selo:
 
-- a organização e o estado do `standwise.yml`;
-- um botão para criar o arquivo a partir de um modelo, e o próprio modelo;
-- a conexão com o Slack, com **Conectar Slack** ou **Reconectar Slack** para admins;
-- a conexão com o Linear, com **Conectar o Linear** ou **Reconectar o Linear** para admins;
-- as 5 últimas entregas com falha, com time, data e erro;
-- para admins, as API keys e os webhooks.
+- **GitHub App**: instalado na sua organização, com um aviso quando o Standwise perdeu o acesso ao `.github`;
+- **Slack**: **Conectar Slack**, ou **Reconectar Slack** depois de conectado, para admins;
+- **Linear**: **Conectar o Linear**, ou **Reconectar o Linear** depois de conectado, para admins. Só conta como etapa quando algum time usa o Linear, e aí vem antes do arquivo standwise.yml. Nos outros casos, mostra **Opcional** e vem por último;
+- **Arquivo standwise.yml**: o estado do arquivo. Quando ele não existe, um botão para criá-lo a partir de um modelo, e o próprio modelo. Quando existe, **Editar no GitHub**, mesmo com o arquivo inválido. Um arquivo válido mostra também um cartão por time, com o canal e os horários, e um inválido, uma tabela com os erros.
+
+A coluna lateral mostra as últimas entregas com falha e, para admins, as API keys e os webhooks, e depois o endereço de suporte.
 
 ## 3. Conecte o Slack
 
-Um admin clica em **Conectar Slack** e aprova o app no workspace do Slack. A página passa a mostrar "Conectado ao workspace" e o nome do workspace, e um botão **Reconectar Slack** para conectar de novo. Os outros membros veem a conexão só para leitura, com "Só um admin pode conectar ou reconectar o Slack." Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
+Um admin clica em **Conectar Slack** e aprova o app no workspace do Slack. A etapa do Slack passa a mostrar um visto, o selo **Conectado** e "Conectado a" com o nome do workspace, e um botão **Reconectar Slack** para conectar de novo. Os outros membros veem a conexão só para leitura. Enquanto o Slack ainda não está conectado, eles veem "Só um admin pode conectar ou reconectar o Slack." Veja [Slack](/pt-BR/admin/slack) para as permissões e os canais privados.
 
 ## 4. Crie o `standwise.yml`
 
-Clique em **Criar standwise.yml com o modelo**. O GitHub abre o editor na branch padrão do repositório `.github`, com o arquivo já preenchido. O modelo usa o seu login como gestor e membro:
+Na etapa **Arquivo standwise.yml**, clique em **Criar standwise.yml com o modelo**. O GitHub abre o editor na branch padrão do repositório `.github`, com o arquivo já preenchido. O modelo usa o seu login como gestor e membro:
 
 ```text
 teams:
@@ -61,15 +61,15 @@ Troque o nome do time, o fuso, os horários, as pessoas e o canal e faça o comm
 
 Referência completa: [standwise.yml](/pt-BR/admin/configuration).
 
-O Standwise recarrega o arquivo a cada push na branch padrão do `.github` que altera o `standwise.yml`, e quando os repositórios da instalação mudam. Atualize a página de setup para ver o novo estado.
+O Standwise recarrega o arquivo a cada push na branch padrão do `.github` que altera o `standwise.yml`, e quando os repositórios da instalação mudam. Atualize a página de setup para ver o novo estado. Quando o arquivo existe, a etapa mostra **Editar no GitHub**, que abre o `standwise.yml` no GitHub, mesmo com o arquivo inválido.
 
 ## 5. Conecte o Linear (opcional)
 
-Pule este passo se os seus times não usam o Linear. Um admin clica em **Conectar o Linear** na seção do Linear da página de setup e aprova o app no workspace do Linear. A página passa a mostrar `Conectado ao workspace <workspace>.` e um botão **Reconectar o Linear**.
+Pule este passo se os seus times não usam o Linear. Um admin clica em **Conectar o Linear** na etapa do Linear da página de setup e aprova o app no workspace do Linear. A etapa passa a mostrar `Conectado ao workspace <workspace>.` e um botão **Reconectar o Linear**.
 
 - A conexão é só leitura (escopo `read`) e o app age como ele mesmo, não como o admin. Há um workspace do Linear por instalação. Os tokens são criptografados e renovados automaticamente.
-- Só um admin pode conectar ou reconectar o Linear. Os outros membros veem "Só um admin pode conectar ou reconectar o Linear."
-- Se o acesso ao Linear for revogado, a página mostra `A conexão com o workspace <workspace> parou de funcionar. Reconecte o Linear.` e **Reconectar o Linear**. Até lá, os recursos do Linear pausam em silêncio: os rascunhos ficam sem cards, os impedimentos de card vão para os gestores e as sugestões de card ficam como estão.
+- Só um admin pode conectar ou reconectar o Linear. Enquanto o Linear não está conectado, ou parou de funcionar, os outros membros veem "Só um admin pode conectar ou reconectar o Linear."
+- Se o acesso ao Linear for revogado, a etapa mostra o selo **Requer atenção**, "O Linear parou de funcionar", `A conexão com o workspace <workspace> parou de funcionar. Reconecte o Linear.` e **Reconectar o Linear**. Até lá, os recursos do Linear pausam em silêncio: os rascunhos ficam sem cards, os impedimentos de card vão para os gestores e as sugestões de card ficam como estão.
 - Reconectar um workspace diferente apaga as ligações com o Linear da instalação. As pessoas são ligadas de novo quando entram e sempre que o `standwise.yml` muda.
 - A página avisa "Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação." quando um time tem `tracker.provider: linear` e o Linear não está conectado. Para `tracker.provider: jira`, mostra "A integração com o Jira ainda não está disponível."
 
@@ -77,15 +77,15 @@ Depois, defina o tracker de cada time no `standwise.yml`. Veja [`tracker`](/pt-B
 
 ## Estados da configuração
 
-A página de setup mostra um de três estados.
+A etapa **Arquivo standwise.yml** mostra um de três estados.
 
 ### Configurado
 
-"Configurado." O Standwise está funcionando: as pessoas podem enviar dailies e os consolidados saem.
+O selo **Configurado**. O Standwise está funcionando: as pessoas podem enviar dailies e os consolidados saem.
 
 ### Não configurado
 
-"Ainda não configurado." O Standwise não encontrou o arquivo. Apagar o arquivo, ou apagar o repositório `.github`, desliga o Standwise para a organização: a configuração anterior é descartada, então um arquivo inválido depois não a traz de volta. A página mostra o motivo:
+O selo **Pendente** e "Ainda não configurado." O Standwise não encontrou o arquivo. Apagar o arquivo, ou apagar o repositório `.github`, desliga o Standwise para a organização: a configuração anterior é descartada, então um arquivo inválido depois não a traz de volta. A página mostra o motivo:
 
 | Motivo | Significado | Como resolver |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ A página de setup mostra um de três estados.
 
 ### Inválido
 
-"O standwise.yml é inválido. Corrija os erros abaixo e faça o commit." A página lista cada erro como `caminho: mensagem`, por exemplo `teams.0.digest_at: must be HH:MM (24h)`. Veja os [erros comuns](/pt-BR/admin/configuration#erros-de-validacao-comuns).
+O selo **Requer atenção** e "O standwise.yml é inválido. Corrija os erros abaixo e faça o commit." A página lista os erros numa tabela com as colunas **Caminho** e **Erro**, por exemplo o caminho `teams.0.digest_at` com o erro `must be HH:MM (24h)`. Use **Editar no GitHub** para abrir o arquivo e corrigi-lo. Veja os [erros comuns](/pt-BR/admin/configuration#erros-de-validacao-comuns).
 
 Se o arquivo estava válido logo antes do push inválido, a página também diz "O Standwise continua usando a última versão válida até você corrigir." O consolidado sai e o rascunho e o envio continuam funcionando, com a última versão válida. Corrija o arquivo e faça o commit para aplicar as suas mudanças. Se não há uma versão válida em uso (o arquivo nunca foi válido, ou foi apagado antes do push inválido), o Standwise não roda para a organização: nenhum consolidado é publicado, e o rascunho e o envio falham com `org_not_configured`.
 

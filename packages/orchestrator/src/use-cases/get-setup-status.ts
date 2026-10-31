@@ -6,6 +6,7 @@ import {
   listApiKeys,
   listFailedPersonDeliveryGroups,
   listFailedTeamDeliveries,
+  listMemberInstallations,
   type MemberRow,
   operationalConfig,
   type PersonFailureGroup,
@@ -27,6 +28,7 @@ const TEAM_NOTICES_TIMEOUT_MS = 3000;
 export type SetupStatus = {
   installationId: number;
   owner: string;
+  installations: { id: number; owner: string }[];
   login: string;
   admin: boolean;
   config:
@@ -41,12 +43,42 @@ export type SetupStatus = {
     | { connected: true; workspace: string; urlKey: string; invalid: boolean };
   trackerNotices: TrackerNotice[];
   teamNotices: TeamNotice[];
+  teams: SetupTeam[];
+  configFileUrl: string | null;
   teamFailures: TeamFailure[];
   personFailures: PersonFailureGroup[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
   webhooks: { manage: false } | ({ manage: true } & WebhookOverview);
   supportEmail: string;
 };
+
+export type SetupTeam = {
+  name: string;
+  channel: string | null;
+  remindAt: string;
+  digestAt: string;
+  tracker: 'linear' | 'jira' | null;
+};
+
+function setupTeams(config: StandwiseConfig | null): SetupTeam[] {
+  return (config?.teams ?? []).map((team) => ({
+    name: team.name,
+    channel: team.chat.channel || null,
+    remindAt: team.remindAt,
+    digestAt: team.digestAt,
+    tracker: team.tracker?.provider ?? null,
+  }));
+}
+
+function configFileUrl(
+  owner: string,
+  configRepo: SetupStatus['configRepo'],
+  config: SetupStatus['config'],
+): string | null {
+  if (!configRepo.exists || config.status === 'unconfigured') return null;
+  const branch = configRepo.defaultBranch.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${encodeURIComponent(owner)}/.github/blob/${branch}/standwise.yml`;
+}
 
 export type TrackerNotice = 'linear_not_connected' | 'jira_coming_soon';
 
@@ -118,7 +150,7 @@ export async function getSetupStatus(
     operational,
   );
   const octokit = await deps.github.installationOctokit(installation.id);
-  const [configRepo, connection, linearConnection, teamFailures, personFailures, admin] =
+  const [configRepo, connection, linearConnection, teamFailures, personFailures, admin, linked] =
     await Promise.all([
       findConfigRepo(octokit, installation.accountLogin),
       getConnection(deps.db, installation.id, 'slack', deps.encryptionKey),
@@ -126,6 +158,7 @@ export async function getSetupStatus(
       listFailedTeamDeliveries(deps.db, installation.id, TEAM_FAILURE_LIMIT),
       listFailedPersonDeliveryGroups(deps.db, installation.id, PERSON_FAILURE_GROUP_LIMIT),
       isInstallationAdmin(deps, installation.id, current).catch(() => false),
+      listMemberInstallations(deps.db, current.id),
     ]);
   const [apiKeys, webhooks]: [SetupStatus['apiKeys'], SetupStatus['webhooks']] = admin
     ? await Promise.all([
@@ -158,6 +191,9 @@ export async function getSetupStatus(
   return {
     installationId: installation.id,
     owner: installation.accountLogin,
+    installations: linked
+      .map((i) => ({ id: i.installationId, owner: i.accountLogin }))
+      .sort((a, b) => a.owner.localeCompare(b.owner, 'en', { sensitivity: 'base' })),
     login: current.login,
     admin,
     config,
@@ -169,6 +205,8 @@ export async function getSetupStatus(
     linear,
     trackerNotices: trackerNotices(operational, linear),
     teamNotices,
+    teams: setupTeams(operational),
+    configFileUrl: configFileUrl(installation.accountLogin, configRepo, config),
     teamFailures,
     personFailures,
     apiKeys,

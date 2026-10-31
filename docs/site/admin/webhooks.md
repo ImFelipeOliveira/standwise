@@ -27,7 +27,7 @@ An organization can have up to 10 active endpoints.
 
 ## Test an endpoint
 
-Click **Send test event** next to the endpoint. Standwise sends a signed `ping` event to that endpoint only. The **Latest 20 deliveries** table shows each delivery with its event, status, attempts and the last response code or error.
+Click **Send test event** next to the endpoint. Standwise sends a signed `ping` event to that endpoint only. The **Latest 20 deliveries** list shows each delivery with its time, event, status, attempts, the last response code or error, and the endpoint URL.
 
 ## Retries and automatic disabling
 
