@@ -15,9 +15,11 @@ import { logError } from './log-error';
 import { resolveTeams } from './teams';
 
 export const LINK_TRACKER_IDENTITIES_JOB = 'link-tracker-identities';
+export const LINK_TRACKER_IDENTITY_JOB = 'link-tracker-identity';
 export const LINK_TRACKER_BATCH = 200;
 
-export type LinkTrackerIdentitiesJob = { installationId: number };
+export type LinkTrackerIdentitiesJob = { installationId: number; afterLogin?: string };
+export type LinkTrackerIdentityJob = { installationId: number; memberId: string };
 
 type LinkDeps = Pick<WorkerDeps, 'db' | 'encryptionKey' | 'linear' | 'now' | 'env'>;
 
@@ -33,18 +35,43 @@ class LinkStopped extends Error {
   }
 }
 
+function enqueueRelinkPage(
+  deps: Pick<Deps, 'queue'>,
+  installationId: number,
+  afterLogin?: string,
+): Promise<void> {
+  const data: LinkTrackerIdentitiesJob =
+    afterLogin === undefined ? { installationId } : { installationId, afterLogin };
+  return deps.queue.enqueue(LINK_TRACKER_IDENTITIES_JOB, data, {
+    singletonKey: `link-tracker:${installationId}:${afterLogin ?? ''}`,
+    policy: 'stately',
+  });
+}
+
 export async function enqueueLinkTrackerIdentities(
   deps: Pick<Deps, 'queue'>,
   installationId: number,
 ): Promise<void> {
+  await enqueueRelinkPage(deps, installationId).catch((error: unknown) => {
+    logError('link tracker identities enqueue failed', error, {
+      installationId: String(installationId),
+    });
+  });
+}
+
+export async function enqueueLinkTrackerIdentity(
+  deps: Pick<Deps, 'queue'>,
+  installationId: number,
+  memberId: string,
+): Promise<void> {
+  const data: LinkTrackerIdentityJob = { installationId, memberId };
   await deps.queue
-    .enqueue(
-      LINK_TRACKER_IDENTITIES_JOB,
-      { installationId },
-      { singletonKey: `link-tracker:${installationId}`, policy: 'stately' },
-    )
+    .enqueue(LINK_TRACKER_IDENTITY_JOB, data, {
+      singletonKey: `link-tracker:${installationId}:${memberId}`,
+      policy: 'stately',
+    })
     .catch((error: unknown) => {
-      logError('link tracker identities enqueue failed', error, {
+      logError('link tracker identity enqueue failed', error, {
         installationId: String(installationId),
       });
     });
@@ -101,11 +128,11 @@ async function linkOne(
 const causeOf = (error: unknown) => (error instanceof LinkStopped ? (error.cause ?? error) : error);
 
 export async function linkTrackerIdentity(
-  deps: Deps,
+  deps: LinkDeps,
   installationId: number,
   memberId: string,
-  githubEmail: string | null,
 ): Promise<void> {
+  const extra = { installationId: String(installationId) };
   try {
     const member = await getMemberById(deps.db, memberId);
     if (!member) return;
@@ -113,17 +140,17 @@ export async function linkTrackerIdentity(
     if (!config) return;
     const access = await linearClientFor(deps, installationId);
     if (!access) return;
-    await linkOne(deps, access, installationId, config, member, githubEmail);
+    await linkOne(deps, access, installationId, config, member, member.email);
   } catch (error) {
-    logError('tracker identity link failed', causeOf(error), {
-      installationId: String(installationId),
-    });
+    logError('tracker identity link failed', causeOf(error), extra);
+    if (error instanceof LinkStopped && error.reason === 'rate_limited') throw causeOf(error);
   }
 }
 
 export async function linkTrackerIdentities(
   deps: WorkerDeps,
   installationId: number,
+  afterLogin?: string,
 ): Promise<void> {
   const installation = await getInstallation(deps.db, installationId);
   const config = operationalConfig(installation);
@@ -131,9 +158,11 @@ export async function linkTrackerIdentities(
   const access = await linearClientFor(deps, installationId);
   if (!access) return;
   const logins = await configPeople(deps, installationId, installation.accountLogin, config);
-  const candidates = (await listInstallationMembers(deps.db, installationId))
-    .filter((m) => logins.has(m.login.toLowerCase()))
-    .slice(0, LINK_TRACKER_BATCH);
+  const candidates = await listInstallationMembers(deps.db, installationId, {
+    logins: [...logins],
+    ...(afterLogin === undefined ? {} : { afterLogin }),
+    limit: LINK_TRACKER_BATCH,
+  });
   const extra = { installationId: String(installationId) };
   for (const member of candidates) {
     const current = await getConnectionExternalId(deps.db, installationId, 'linear');
@@ -152,6 +181,10 @@ export async function linkTrackerIdentities(
       if (error.reason === 'rate_limited') throw causeOf(error);
       return;
     }
+  }
+  const last = candidates[candidates.length - 1];
+  if (candidates.length === LINK_TRACKER_BATCH && last) {
+    await enqueueRelinkPage(deps, installationId, last.login.toLowerCase());
   }
 }
 

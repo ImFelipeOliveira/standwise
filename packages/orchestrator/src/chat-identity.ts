@@ -1,6 +1,8 @@
 import { memberOverrides, type StandwiseConfig } from '@standwise/core';
-import { getIdentities } from '@standwise/db';
+import { deleteIdentityByLogin, getIdentities } from '@standwise/db';
+import { ChatDeliveryError } from '@standwise/slack';
 import type { Deps } from './deps';
+import { logError } from './log-error';
 
 export async function chatUserIdsFor(
   deps: Pick<Deps, 'db'>,
@@ -26,4 +28,32 @@ export async function chatUserIdFor(
 ): Promise<string | null> {
   const ids = await chatUserIdsFor(deps, installationId, config, [login]);
   return ids.get(login.toLowerCase()) ?? null;
+}
+
+const STALE_CHAT_USER = new Set(['user_not_found', 'account_inactive']);
+
+export async function forgetChatIdentity(
+  deps: Pick<Deps, 'db'>,
+  installationId: number,
+  memberLogin: string,
+  externalId: string,
+): Promise<void> {
+  await deleteIdentityByLogin(deps.db, installationId, 'slack', memberLogin, externalId);
+}
+
+export async function forgetStaleChatIdentity(
+  deps: Pick<Deps, 'db'>,
+  installationId: number,
+  config: StandwiseConfig,
+  memberLogin: string,
+  externalId: string,
+  error: unknown,
+): Promise<void> {
+  if (!(error instanceof ChatDeliveryError) || !STALE_CHAT_USER.has(error.code)) return;
+  if (memberOverrides(config, memberLogin.toLowerCase()).slack !== undefined) return;
+  try {
+    await forgetChatIdentity(deps, installationId, memberLogin, externalId);
+  } catch (cause) {
+    logError('chat identity cleanup failed', cause, { installationId: String(installationId) });
+  }
 }

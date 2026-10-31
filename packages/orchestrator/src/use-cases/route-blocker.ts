@@ -21,7 +21,7 @@ import {
   operationalConfig,
   reserveBlockerRoute,
 } from '@standwise/db';
-import { chatUserIdsFor } from '../chat-identity';
+import { chatUserIdsFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { blockerRouteId } from '../events';
 import { logError } from '../log-error';
@@ -275,6 +275,10 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
       await completeDelivery(deps.db, key, claim.token, ref);
     } catch (error) {
       await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
+      const chatUserId = ids.get(login);
+      if (chatUserId) {
+        await forgetStaleChatIdentity(deps, job.installationId, config, login, chatUserId, error);
+      }
       failure ??= error;
     }
   }

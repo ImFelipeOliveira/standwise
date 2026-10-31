@@ -2,7 +2,7 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import { type PullRequestSnapshot, parseConfig, type StandwiseConfig } from '@standwise/core';
 import {
   decideSuggestion,
-  deleteIdentities,
+  deleteIdentityByLogin,
   getDelivery,
   listPendingSuggestions,
   markConnectionInvalid,
@@ -296,7 +296,7 @@ describe('scanMemberSignals', () => {
 
   test('a person without a chat identity gets a failed delivery and no DM', async () => {
     const s = await setup({ directMessage: true });
-    await deleteIdentities(db, INST, 'slack');
+    await deleteIdentityByLogin(db, INST, 'slack', 'alice', 'UALICE');
     s.snapshots.alice = [pr()];
     await s.scan();
     expect(s.directs).toEqual([]);
@@ -629,7 +629,7 @@ describe('scanMemberSignals', () => {
       const s = await setup({ linear: true });
       s.linear.state.stale = [staleCard()];
       await s.scan();
-      await deleteIdentities(db, INST, 'linear');
+      await deleteIdentityByLogin(db, INST, 'linear', 'alice', 'lin-alice');
       const before = s.linear.calls.bearer.length;
       await s.scan();
       expect(s.linear.calls.bearer).toHaveLength(before);

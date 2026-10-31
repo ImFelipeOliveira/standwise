@@ -18,6 +18,7 @@ import {
   createTrackerFor,
   DELIVER_WEBHOOK_JOB,
   LINK_TRACKER_IDENTITIES_JOB,
+  LINK_TRACKER_IDENTITY_JOB,
   LOAD_CONFIG_JOB,
   PRUNE_DATA_JOB,
   RESOLVE_CHECK_SUITE_JOB,
@@ -30,6 +31,7 @@ import { createPgBossQueue } from '@standwise/queue';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { linkTrackerIdentitiesJob } from './jobs/link-tracker-identities';
+import { linkTrackerIdentityJob } from './jobs/link-tracker-identity';
 import { loadConfigJob } from './jobs/load-config';
 import { pruneDataJob } from './jobs/prune-data';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
@@ -103,6 +105,7 @@ await queue.work(RESOLVE_CHECK_SUITE_JOB, resolveCheckSuiteJob(deps), plain);
 await queue.work(VALIDATE_CONFIG_JOB, validateConfigJob(deps), keyed);
 await queue.work(LOAD_CONFIG_JOB, loadConfigJob(deps), stately);
 await queue.work(LINK_TRACKER_IDENTITIES_JOB, linkTrackerIdentitiesJob(deps), stately);
+await queue.work(LINK_TRACKER_IDENTITY_JOB, linkTrackerIdentityJob(deps), stately);
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps), plain);
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps), plain);
 await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps), plain);

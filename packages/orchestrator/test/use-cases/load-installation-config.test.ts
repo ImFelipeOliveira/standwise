@@ -143,7 +143,7 @@ members:
     expect(options).toEqual([
       {
         name: 'link-tracker-identities',
-        opts: { singletonKey: `link-tracker:${INST}`, policy: 'stately' },
+        opts: { singletonKey: `link-tracker:${INST}:`, policy: 'stately' },
       },
     ]);
   });

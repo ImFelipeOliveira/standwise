@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { getMemberById, insertWebhookEndpoint, listOverdueWebhookDeliveries } from '@standwise/db';
+import {
+  getMemberById,
+  insertWebhookEndpoint,
+  listOverdueWebhookDeliveries,
+  saveConnection,
+} from '@standwise/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   deliverWebhook,
@@ -126,6 +131,7 @@ describe('safe logging', () => {
 
   test('linkChatIdentities logs a failed link instead of swallowing it', async () => {
     await seedOrg();
+    await saveConnection(db, 11, 'slack', 'T1', 'xoxb-1', KEY, 'Acme Workspace');
     const member = await seedMember();
     const { deps } = fakeDeps({ findUserError: leaky() });
     await linkChatIdentities(deps, member.id, 'alice@acme.com', [11]);

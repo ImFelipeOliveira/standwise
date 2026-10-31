@@ -13,7 +13,7 @@ import {
   markSuggestionNotified,
   type SuggestionRow,
 } from '@standwise/db';
-import { chatUserIdFor } from '../chat-identity';
+import { chatUserIdFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { describeDeliveryError } from './delivery-error';
@@ -54,13 +54,14 @@ export async function notifySuggestions(
     };
     const claim = await claimDelivery(deps.db, key);
     if (claim.status !== 'claimed') continue;
+    let chatUserId: string | null = null;
     try {
       const chat = await deps.chatFor(input.installationId, 'slack');
       if (!chat) {
         await failDelivery(deps.db, key, claim.token, 'no_chat_connection');
         continue;
       }
-      const chatUserId = await chatUserIdFor(deps, input.installationId, input.config, login);
+      chatUserId = await chatUserIdFor(deps, input.installationId, input.config, login);
       if (!chatUserId) {
         await failDelivery(deps.db, key, claim.token, 'no_chat_identity');
         continue;
@@ -71,6 +72,16 @@ export async function notifySuggestions(
     } catch (error) {
       await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
       logError('suggestion dm failed', error);
+      if (chatUserId) {
+        await forgetStaleChatIdentity(
+          deps,
+          input.installationId,
+          input.config,
+          login,
+          chatUserId,
+          error,
+        );
+      }
     }
   }
 }

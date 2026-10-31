@@ -10,6 +10,7 @@ const MESSAGES: Record<string, string> = {
   not_authed: 'the Slack connection is no longer valid',
   token_revoked: 'the Slack connection is no longer valid',
   account_inactive: 'the Slack connection is no longer valid',
+  user_not_found: 'the Slack user was not found',
   ratelimited: 'Slack rate limited the request',
   timeout: 'Slack did not answer in time',
   deadline_exceeded: 'the attempt ran past its deadline',

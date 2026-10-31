@@ -10,6 +10,7 @@ import {
   listMemberInstallations,
   listPendingSuggestions,
   resolveSession,
+  saveConnection,
   setInstallationConfig,
   syncSuggestions,
   upsertInstallation,
@@ -170,6 +171,7 @@ async function seed(cfg: StandwiseConfig | null = config()): Promise<void> {
     INST,
     cfg ? { status: 'configured', config: cfg } : { status: 'unconfigured', reason: 'no_repo' },
   );
+  await saveConnection(db, INST, 'slack', 'T1', 'xoxb-1', KEY, 'Acme Workspace');
 }
 
 async function login(h: Harness): Promise<string> {

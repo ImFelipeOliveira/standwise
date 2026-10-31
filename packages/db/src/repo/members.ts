@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, ne, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import {
   installations,
@@ -98,21 +98,6 @@ export async function setIdentity(
       ],
       set: { externalId },
     });
-}
-
-export async function deleteIdentities(
-  db: Db,
-  installationId: number,
-  provider: Provider,
-): Promise<void> {
-  await db
-    .delete(memberIdentities)
-    .where(
-      and(
-        eq(memberIdentities.installationId, installationId),
-        eq(memberIdentities.provider, provider),
-      ),
-    );
 }
 
 export async function getIdentities(
@@ -216,19 +201,27 @@ export async function findMemberByIdentity(
   return rows.length === 1 ? (rows[0]?.member ?? null) : null;
 }
 
-export async function deleteIdentity(
+export async function deleteIdentityByLogin(
   db: Db,
   installationId: number,
-  memberId: string,
   provider: Provider,
+  login: string,
+  externalId: string,
 ): Promise<void> {
   await db
     .delete(memberIdentities)
     .where(
       and(
         eq(memberIdentities.installationId, installationId),
-        eq(memberIdentities.memberId, memberId),
         eq(memberIdentities.provider, provider),
+        eq(memberIdentities.externalId, externalId),
+        inArray(
+          memberIdentities.memberId,
+          db
+            .select({ id: members.id })
+            .from(members)
+            .where(sql`lower(${members.login}) = ${login.toLowerCase()}`),
+        ),
       ),
     );
 }
@@ -236,13 +229,27 @@ export async function deleteIdentity(
 export async function listInstallationMembers(
   db: Db,
   installationId: number,
+  page: { logins?: string[]; afterLogin?: string; limit?: number } = {},
 ): Promise<{ id: string; login: string; email: string | null }[]> {
-  return db
+  const lower = sql<string>`lower(${members.login})`;
+  const filters = [eq(memberInstallations.installationId, installationId)];
+  if (page.logins) {
+    if (page.logins.length === 0) return [];
+    filters.push(
+      inArray(
+        lower,
+        page.logins.map((l) => l.toLowerCase()),
+      ),
+    );
+  }
+  if (page.afterLogin !== undefined) filters.push(gt(lower, page.afterLogin.toLowerCase()));
+  const query = db
     .select({ id: members.id, login: members.login, email: members.email })
     .from(memberInstallations)
     .innerJoin(members, eq(members.id, memberInstallations.memberId))
-    .where(eq(memberInstallations.installationId, installationId))
-    .orderBy(members.login);
+    .where(and(...filters))
+    .orderBy(lower);
+  return page.limit === undefined ? query : query.limit(page.limit);
 }
 
 export async function getIdentityByLogin(
