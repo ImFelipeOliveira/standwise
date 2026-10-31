@@ -8,6 +8,8 @@
 }
 
 .dark {
+  --vp-c-text-1: rgba(255, 255, 245, 0.86);
+  --vp-home-hero-name-color: #8c98f0;
   --vp-c-brand-1: #8c98f0;
   --vp-c-brand-2: #a7b0f4;
   --vp-c-brand-3: #3b4bc8;
