@@ -1,0 +1,23 @@
+{
+  "data": {
+    "issue": {
+      "id": "i1",
+      "identifier": "ENG-12",
+      "url": "https://linear.app/acme/issue/ENG-12/fix",
+      "title": "Fix login",
+      "assignee": { "id": "u1", "email": "a@x.com" },
+      "creator": { "id": "u2", "email": null },
+      "inverseRelations": {
+        "nodes": [
+          {
+            "type": "blocks",
+            "issue": { "identifier": "ENG-3", "assignee": { "id": "u3", "email": "c@x.com" } }
+          },
+          { "type": "related", "issue": { "identifier": "ENG-4", "assignee": null } },
+          { "type": "blocks", "issue": { "identifier": "ENG-5", "assignee": null } },
+          { "bogus": true }
+        ]
+      }
+    }
+  }
+}
