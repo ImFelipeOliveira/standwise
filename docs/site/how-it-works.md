@@ -82,7 +82,7 @@ Standwise can notice blockers you may have missed. There are three signals:
 - failing CI on the head commit of your pull request for 24 hours;
 - one of your Linear cards (`card_stale`) in progress for `signals.card_stale_days` (default 5) days or more, counting from when it was started.
 
-They are checked about an hour before `remind_at`, and in real time when a pull request, review or check suite changes. Only people who have signed in at least once get them. If your Linear link goes away, your pending card suggestions are resolved.
+They are checked about an hour before `remind_at`, and, for pull request suggestions, also in real time when a pull request, review or check suite changes. Card suggestions are only checked by the daily scan. Only people who have signed in at least once get them. If your Linear link goes away, your pending card suggestions are resolved.
 
 A suggestion shows only to you, in your draft. It never appears in the digest, the organization or manager tools, webhooks or the setup page. Your manager sees a blocker only after you put it in your daily. With `signals.direct_message: true` (default `false`) you also get a direct message, once per suggestion.
 

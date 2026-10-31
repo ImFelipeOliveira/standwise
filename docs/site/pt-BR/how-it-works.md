@@ -82,7 +82,7 @@ O Standwise pode perceber impedimentos que você deixou passar. São três sinai
 - o CI falhando no commit head do seu pull request há 24 horas;
 - um card seu no Linear (`card_stale`) em andamento há `signals.card_stale_days` (padrão 5) dias ou mais, contando de quando foi iniciado.
 
-Eles são verificados cerca de uma hora antes do `remind_at`, e em tempo real quando um pull request, uma revisão ou um check suite muda. Só quem já entrou pelo menos uma vez recebe sugestões. Se a sua ligação com o Linear some, as suas sugestões de card pendentes são resolvidas.
+Eles são verificados cerca de uma hora antes do `remind_at`, e, para sugestões de pull request, também em tempo real quando um pull request, uma revisão ou um check suite muda. Sugestões de card só são verificadas na varredura diária. Só quem já entrou pelo menos uma vez recebe sugestões. Se a sua ligação com o Linear some, as suas sugestões de card pendentes são resolvidas.
 
 Uma sugestão aparece só para você, no seu rascunho. Ela nunca aparece no consolidado, nas tools de organização ou de gestor, nos webhooks nem na página de setup. O gestor só vê um impedimento depois que você o coloca na sua daily. Com `signals.direct_message: true` (padrão `false`) você também recebe uma mensagem direta, uma vez por sugestão.
 
