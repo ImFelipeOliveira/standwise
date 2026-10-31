@@ -23,6 +23,7 @@ Railway passes service variables to the Docker build as build arguments. Set the
 | --- | --- |
 | `APP` | `api` on the api service, `worker` on the worker service |
 | `SUPPORT_EMAIL` | `support@standwise.dev`. The docs site is built into the image and the build fails without it |
+| `STANDWISE_PUBLIC_URL` | The api's public URL, shown in the docs examples (install command, base URL, `curl` calls). It must use `https` and have no trailing slash, or the build fails. When it is not set, the docs show `https://api.standwise.dev`. Set it on the api and worker services, like `SUPPORT_EMAIL` |
 
 ## Runtime variables
 
@@ -54,18 +55,25 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 
 ## Deploying without the final domain
 
-You can deploy before the final domain exists, with an interim domain of your own (for example `standwise.usefachada.dev`) or the address Railway generates (`*.up.railway.app`). Set `PUBLIC_URL` to that address, and point everything below at it:
+You can deploy before the final domain exists, with an interim domain of your own (for example `api-standwise.usefachada.dev`) or the address Railway generates (`*.up.railway.app`). The interim domain points at the api service, which also serves setup, OAuth, webhooks, `/docs` and `/install.sh`. Set `PUBLIC_URL` to that address, for example `https://api-standwise.usefachada.dev`, and point everything below at it:
 
 - **GitHub App:** the callback URL, the webhook URL and the setup URL. See [github-app.md](github-app.md).
 - **Slack app:** the redirect URLs.
 - **Linear app:** the redirect URL. See [linear-app.md](linear-app.md).
 - **`SUPPORT_EMAIL`:** set it to an address you read, on both the build variable and the runtime variable.
+- **`STANDWISE_PUBLIC_URL`:** set the build variable to the interim address, so the docs built into the image show it.
+- **README.md and `packages/plugin/skills/daily/SKILL.md`:** they are read on GitHub and in the plugin, not built, so they name the interim address directly.
 - **CLI:** the released binary points at `https://api.standwise.dev` unless the release is built with `STANDWISE_DEFAULT_API_URL`. The release workflow sets it to the interim address. Without a release build, people run `standwise login --api-url <url>` or set `STANDWISE_API_URL`.
 
 ### When the final domain arrives
 
+Change every place that names the interim address:
+
 1. Add the final domain to the api service and set `PUBLIC_URL` to it.
-2. Update the GitHub App callback, webhook and setup URLs, and the Slack and Linear redirect URLs, to the final domain.
-3. Update `SUPPORT_EMAIL` if the support address changes.
-4. Change `STANDWISE_DEFAULT_API_URL` in the release workflow and publish a new release, so new installs use the final domain.
-5. Keep the interim domain pointing at the api. The CLI saves the `apiUrl` it signed in with in the user's credentials, and keeps using it until the person signs in again with `standwise login --api-url <url>`. Removing the old domain breaks every CLI that was installed before.
+2. Update `SUPPORT_EMAIL`, on the build variable and the runtime variable, if the support address changes.
+3. Set the `STANDWISE_PUBLIC_URL` build variable to the final domain on the api and worker services, so the docs show it.
+4. Change `STANDWISE_DEFAULT_API_URL` in `.github/workflows/release-please.yml` and publish a new release, so new installs use the final domain.
+5. Update the GitHub App callback, webhook and setup URLs to the final domain.
+6. Update the Slack and Linear redirect URLs to the final domain.
+7. Update the install command and API URLs in `README.md` and `packages/plugin/skills/daily/SKILL.md`.
+8. Keep the interim domain pointing at the api. The CLI saves the `apiUrl` it signed in with in the user's credentials, and keeps using it until the person signs in again with `standwise login --api-url <url>`. Removing the old domain breaks every CLI that was installed before.

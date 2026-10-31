@@ -125,6 +125,8 @@ export async function checkDocs(siteDir: string): Promise<string[]> {
 }
 
 const CANONICAL_INSTALL_URL = 'https://api.standwise.dev/install.sh';
+export const PUBLISHED_INSTALL_URL = 'https://api-standwise.usefachada.dev/install.sh';
+const PUBLISHED_FILES = ['README.md', 'packages/plugin/skills/daily/SKILL.md'];
 
 async function markdownFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true });
@@ -135,11 +137,15 @@ async function markdownFiles(dir: string): Promise<string[]> {
     .map((entry) => join(dir, entry));
 }
 
-export function installUrlProblems(file: string, text: string): string[] {
+export function installUrlProblems(
+  file: string,
+  text: string,
+  expected: string = CANONICAL_INSTALL_URL,
+): string[] {
   const problems: string[] = [];
   for (const match of text.matchAll(/https?:\/\/[^\s)'"`>]*install\.sh/g)) {
-    if (match[0] !== CANONICAL_INSTALL_URL) {
-      problems.push(`${file}: install url must be ${CANONICAL_INSTALL_URL}, found ${match[0]}`);
+    if (match[0] !== expected) {
+      problems.push(`${file}: install url must be ${expected}, found ${match[0]}`);
     }
   }
   if (text.includes('<standwise-host>')) problems.push(`${file}: placeholder <standwise-host>`);
@@ -148,13 +154,16 @@ export function installUrlProblems(file: string, text: string): string[] {
 
 export async function checkInstallUrl(root: string): Promise<string[]> {
   const files = [
-    join(root, 'README.md'),
-    join(root, 'packages/plugin/skills/daily/SKILL.md'),
+    ...PUBLISHED_FILES.map((file) => join(root, file)),
     ...(await markdownFiles(join(root, 'docs/site'))),
   ];
   const problems: string[] = [];
   for (const file of files) {
-    problems.push(...installUrlProblems(file.slice(root.length + 1), await readFile(file, 'utf8')));
+    const relative = file.slice(root.length + 1);
+    const expected = PUBLISHED_FILES.includes(relative)
+      ? PUBLISHED_INSTALL_URL
+      : CANONICAL_INSTALL_URL;
+    problems.push(...installUrlProblems(relative, await readFile(file, 'utf8'), expected));
   }
   return problems;
 }

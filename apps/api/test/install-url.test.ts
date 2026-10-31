@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
-import { checkInstallUrl, installUrlProblems } from '../../../scripts/check-docs';
+import {
+  checkInstallUrl,
+  installUrlProblems,
+  PUBLISHED_INSTALL_URL,
+} from '../../../scripts/check-docs';
 
 const CANONICAL = 'curl -fsSL https://api.standwise.dev/install.sh | sh';
 
@@ -16,7 +20,14 @@ describe('install url check', () => {
     ).toBeGreaterThan(0);
   });
 
-  test('the repository uses only the canonical url', async () => {
+  test('files read outside the docs build use the published url', () => {
+    const published = `curl -fsSL ${PUBLISHED_INSTALL_URL} | sh`;
+    expect(installUrlProblems('README.md', published, PUBLISHED_INSTALL_URL)).toEqual([]);
+    expect(installUrlProblems('README.md', CANONICAL, PUBLISHED_INSTALL_URL)).toHaveLength(1);
+    expect(installUrlProblems('a.md', published)).toHaveLength(1);
+  });
+
+  test('the repository uses only the expected urls', async () => {
     expect(await checkInstallUrl(join(import.meta.dir, '../../..'))).toEqual([]);
   });
 });
