@@ -52,3 +52,7 @@ SUPPORT_EMAIL=x@y.z STANDWISE_PUBLIC_URL=https://api-standwise.usefachada.dev bu
 ```
 
 `docs/site/.vitepress/dist/index.html` must exist, asset URLs start with `/assets/`, and the API reference link points at `https://api-standwise.usefachada.dev/reference`.
+
+## Keep Cloudflare script injection off
+
+The generated `_headers` allows only the site's own scripts. Leave **Web Analytics** (the JavaScript beacon) and **Rocket Loader** off for this project, or the browser blocks them. If you turn Web Analytics on later, add `https://static.cloudflareinsights.com` to `script-src` and `connect-src` in `scripts/docs-headers.ts`.

@@ -239,6 +239,8 @@ describe('old docs urls', () => {
       '/docs//evil.example.com',
       '/docs/%2F%2Fevil.example.com',
       '/docs/@evil.example.com',
+      '/docs/\\evil.example.com',
+      '/docs/%5Cevil.example.com',
     ]) {
       const res = await load(path, { host: 'evil.example.com' });
       const location = res.headers.get('location') ?? '';
