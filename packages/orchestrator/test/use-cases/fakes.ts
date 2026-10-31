@@ -45,6 +45,7 @@ export type FakeOptions = {
   codeowners?: Record<string, string | null>;
   checks?: { createError?: unknown };
   snapshots?: Record<string, PullRequestSnapshot[]>;
+  teams?: Record<string, string[]>;
 };
 
 export function fakeLinear() {
@@ -192,7 +193,8 @@ export function fakeDeps(opts: FakeOptions = {}) {
         calls.activityLogins.push(login);
         return [];
       },
-      resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
+      resolveTeamMembers: async (_o, _owner, members) =>
+        members.flatMap((m) => opts.teams?.[m] ?? [m.toLowerCase()]),
       fetchConfigSource: async (_o, owner, options) => {
         calls.config.push(owner);
         calls.configRefs.push(options?.ref);

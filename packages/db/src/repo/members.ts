@@ -201,7 +201,7 @@ export async function findMemberByIdentity(
   provider: Provider,
   externalId: string,
 ): Promise<MemberRow | null> {
-  const [row] = await db
+  const rows = await db
     .select({ member: members })
     .from(memberIdentities)
     .innerJoin(members, eq(members.id, memberIdentities.memberId))
@@ -211,8 +211,9 @@ export async function findMemberByIdentity(
         eq(memberIdentities.provider, provider),
         eq(memberIdentities.externalId, externalId),
       ),
-    );
-  return row?.member ?? null;
+    )
+    .limit(2);
+  return rows.length === 1 ? (rows[0]?.member ?? null) : null;
 }
 
 export async function deleteIdentity(

@@ -12,6 +12,7 @@ import { findUserByEmail, LinearAuthError, LinearRateLimitError } from '@standwi
 import type { Deps, WorkerDeps } from './deps';
 import { type LinearAccess, linearClientFor } from './linear-access';
 import { logError } from './log-error';
+import { resolveTeams } from './teams';
 
 export const LINK_TRACKER_IDENTITIES_JOB = 'link-tracker-identities';
 export const LINK_TRACKER_BATCH = 200;
@@ -22,12 +23,18 @@ type LinkDeps = Pick<WorkerDeps, 'db' | 'encryptionKey' | 'linear' | 'now' | 'en
 
 class LinkStopped extends Error {}
 
-function configLogins(config: StandwiseConfig): Set<string> {
-  const logins = new Set<string>();
-  for (const team of config.teams) {
-    for (const login of [...team.members, ...team.managers]) logins.add(login.toLowerCase());
+export async function configPeople(
+  deps: Pick<Deps, 'github' | 'now'>,
+  installationId: number,
+  owner: string,
+  config: StandwiseConfig,
+): Promise<Set<string>> {
+  const teams = await resolveTeams(deps, installationId, owner, config);
+  const people = new Set<string>();
+  for (const team of teams) {
+    for (const login of [...team.memberLogins, ...team.managers]) people.add(login.toLowerCase());
   }
-  return logins;
+  return people;
 }
 
 async function linkOne(
@@ -39,7 +46,10 @@ async function linkOne(
   githubEmail: string | null,
 ): Promise<void> {
   const email = memberOverrides(config, member.login).linear ?? githubEmail;
-  if (!email) return;
+  if (!email) {
+    await deleteIdentity(deps.db, installationId, member.id, 'linear');
+    return;
+  }
   try {
     const user = await findUserByEmail(access.client, email);
     if (user) await setIdentity(deps.db, installationId, member.id, 'linear', user.id);
@@ -83,11 +93,12 @@ export async function linkTrackerIdentities(
   deps: WorkerDeps,
   installationId: number,
 ): Promise<void> {
-  const config = operationalConfig(await getInstallation(deps.db, installationId));
-  if (!config) return;
+  const installation = await getInstallation(deps.db, installationId);
+  const config = operationalConfig(installation);
+  if (!installation || !config) return;
   const access = await linearClientFor(deps, installationId);
   if (!access) return;
-  const logins = configLogins(config);
+  const logins = await configPeople(deps, installationId, installation.accountLogin, config);
   const candidates = (await listInstallationMembers(deps.db, installationId))
     .filter((m) => logins.has(m.login.toLowerCase()))
     .slice(0, LINK_TRACKER_BATCH);
@@ -110,9 +121,9 @@ export async function loginForLinearUser(
   deps: Pick<Deps, 'db'>,
   installationId: number,
   config: StandwiseConfig,
+  logins: ReadonlySet<string>,
   user: { id: string; email: string | null },
 ): Promise<string | null> {
-  const logins = configLogins(config);
   const email = user.email?.toLowerCase();
   if (email) {
     const matches = Object.entries(config.members)
@@ -124,9 +135,9 @@ export async function loginForLinearUser(
       });
       return null;
     }
-    if (matches[0]) return matches[0];
+    if (matches[0]) return matches[0].toLowerCase();
   }
   const member = await findMemberByIdentity(deps.db, installationId, 'linear', user.id);
   if (!member || !logins.has(member.login.toLowerCase())) return null;
-  return member.login;
+  return member.login.toLowerCase();
 }

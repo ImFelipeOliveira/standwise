@@ -9,6 +9,7 @@ import {
 } from '@standwise/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
+  configPeople,
   LINK_TRACKER_IDENTITIES_JOB,
   linkTrackerIdentities,
   linkTrackerIdentity,
@@ -33,6 +34,8 @@ async function connect(inst = INST) {
     'acme',
   );
 }
+
+const people: ReadonlySet<string> = new Set(['alice', 'bob']);
 
 const overrides = (body: string) => `members:\n${body}`;
 
@@ -99,13 +102,15 @@ describe('linking at login', () => {
     expect(linear.calls.userLookups).toEqual([]);
   });
 
-  test('does nothing without any email', async () => {
+  test('without any email it removes a stale identity and never calls linear', async () => {
     await seedOrg();
     await connect();
     const member = await seedMember();
+    await setIdentity(db, INST, member.id, 'linear', 'lin-old');
     const { deps, linear } = fakeDeps();
     await linkTrackerIdentity(deps, INST, member.id, null);
     expect(linear.calls.userLookups).toEqual([]);
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 });
 
@@ -130,11 +135,28 @@ describe('linkTrackerIdentities', () => {
     expect(Object.fromEntries(ids)).toEqual({ alice: 'lin-alice', bob: 'lin-bob' });
   });
 
+  test('links a person who is in the config only through a github team', async () => {
+    await seedOrg(config('[alice, "@acme/backend"]'));
+    await connect();
+    const alice = await seedMember();
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: 'bob@acme.com' });
+    for (const m of [alice, bob]) await setMemberInstallations(db, m.id, [INST]);
+    const { deps, linear } = fakeDeps({ teams: { '@acme/backend': ['bob'] } });
+    linear.state.users.set('alice@acme.com', 'lin-alice');
+    linear.state.users.set('bob@acme.com', 'lin-bob');
+    await linkTrackerIdentities(deps, INST);
+    expect(Object.fromEntries(await getIdentities(db, INST, 'linear'))).toEqual({
+      alice: 'lin-alice',
+      bob: 'lin-bob',
+    });
+  });
+
   test('stops without throwing on a rate limit', async () => {
     await seedTeam();
     const { deps, linear } = fakeDeps();
     linear.state.graphqlStatus = 429;
     await linkTrackerIdentities(deps, INST);
+    expect(linear.calls.bearer).toHaveLength(1);
     expect(linear.calls.userLookups).toEqual([]);
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
@@ -161,9 +183,9 @@ describe('loginForLinearUser', () => {
     await seedOrg();
     const cfg = config('[alice, bob]', overrides('  bob:\n    linear: Bob@Acme.com'));
     const { deps } = fakeDeps();
-    expect(await loginForLinearUser(deps, INST, cfg, { id: 'x', email: 'bob@acme.com' })).toBe(
-      'bob',
-    );
+    expect(
+      await loginForLinearUser(deps, INST, cfg, people, { id: 'x', email: 'bob@acme.com' }),
+    ).toBe('bob');
   });
 
   test('resolves by stored identity', async () => {
@@ -172,16 +194,16 @@ describe('loginForLinearUser', () => {
     await setMemberInstallations(db, member.id, [INST]);
     await setIdentity(db, INST, member.id, 'linear', 'lin-alice');
     const { deps } = fakeDeps();
-    expect(await loginForLinearUser(deps, INST, config(), { id: 'lin-alice', email: null })).toBe(
-      'Alice',
-    );
+    expect(
+      await loginForLinearUser(deps, INST, config(), people, { id: 'lin-alice', email: null }),
+    ).toBe('alice');
   });
 
   test('returns null for an unknown user', async () => {
     await seedOrg();
     const { deps } = fakeDeps();
     expect(
-      await loginForLinearUser(deps, INST, config(), { id: 'nope', email: 'z@acme.com' }),
+      await loginForLinearUser(deps, INST, config(), people, { id: 'nope', email: 'z@acme.com' }),
     ).toBeNull();
   });
 
@@ -193,7 +215,7 @@ describe('loginForLinearUser', () => {
     const cfg = config('[alice]', overrides('  zed:\n    linear: zed@acme.com'));
     const { deps } = fakeDeps();
     expect(
-      await loginForLinearUser(deps, INST, cfg, { id: 'lin-zed', email: 'zed@acme.com' }),
+      await loginForLinearUser(deps, INST, cfg, people, { id: 'lin-zed', email: 'zed@acme.com' }),
     ).toBeNull();
   });
 
@@ -205,7 +227,7 @@ describe('loginForLinearUser', () => {
     );
     const { deps } = fakeDeps();
     expect(
-      await loginForLinearUser(deps, INST, cfg, { id: 'x', email: 'same@acme.com' }),
+      await loginForLinearUser(deps, INST, cfg, people, { id: 'x', email: 'same@acme.com' }),
     ).toBeNull();
   });
 
@@ -217,11 +239,36 @@ describe('loginForLinearUser', () => {
     await setIdentity(db, INST, member.id, 'linear', 'lin-alice');
     const { deps } = fakeDeps();
     expect(
-      await loginForLinearUser(deps, 12, config(), { id: 'lin-alice', email: null }),
+      await loginForLinearUser(deps, 12, config(), people, { id: 'lin-alice', email: null }),
     ).toBeNull();
-    expect(await loginForLinearUser(deps, INST, config(), { id: 'lin-alice', email: null })).toBe(
-      'Alice',
-    );
+    expect(
+      await loginForLinearUser(deps, INST, config(), people, { id: 'lin-alice', email: null }),
+    ).toBe('alice');
+  });
+
+  test('resolves a person who is in the config only through a github team', async () => {
+    await seedOrg(config('[alice, "@acme/backend"]'));
+    const { deps } = fakeDeps({ teams: { '@acme/backend': ['bob'] } });
+    const cfg = config('[alice, "@acme/backend"]', overrides('  bob:\n    linear: bob@acme.com'));
+    const resolved = await configPeople(deps, INST, 'acme', cfg);
+    expect([...resolved].sort()).toEqual(['alice', 'bob']);
+    expect(
+      await loginForLinearUser(deps, INST, cfg, resolved, { id: 'x', email: 'bob@acme.com' }),
+    ).toBe('bob');
+  });
+
+  test('returns null when two members hold the same linear id', async () => {
+    await seedOrg();
+    const alice = await seedMember();
+    const bob = await upsertMember(db, { githubUserId: 2, login: 'bob', email: null });
+    for (const m of [alice, bob]) {
+      await setMemberInstallations(db, m.id, [INST]);
+      await setIdentity(db, INST, m.id, 'linear', 'lin-dup');
+    }
+    const { deps } = fakeDeps();
+    expect(
+      await loginForLinearUser(deps, INST, config(), people, { id: 'lin-dup', email: null }),
+    ).toBeNull();
   });
 
   test('job name is stable', () => {
