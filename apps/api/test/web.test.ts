@@ -21,6 +21,7 @@ import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { fakeLinear } from '../../../packages/orchestrator/test/use-cases/fakes';
 import { createApp } from '../src/app';
+import { PAGE_CSS } from '../src/web/layout';
 
 const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
@@ -906,6 +907,7 @@ describe('security headers', () => {
     const html = await res.text();
     const style = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
     expect(style).toContain('font-family');
+    expect(style).toBe(PAGE_CSS);
     const hash = new Bun.CryptoHasher('sha256').update(style).digest('base64');
     expect(csp).toContain(`style-src 'sha256-${hash}'`);
     expect(html).toContain('<form method="post" action="/setup/api-keys">');
