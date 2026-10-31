@@ -1,0 +1,43 @@
+language: pt-BR
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - dev
+      - main
+  path_filters:
+    - "!bun.lock"
+    - "!CHANGELOG.md"
+    - "!docs/superpowers/**"
+    - "!packages/db/migrations/meta/**"
+  path_instructions:
+    - path: "**/*.{ts,tsx,css,sh,yml,yaml}"
+      instructions: |
+        Project rules for Standwise:
+        - No comments in code (TS, TSX, CSS, shell, YAML, Dockerfile). Flag any added comment.
+        - Business rules live in use cases in packages/orchestrator/src/use-cases and throw DomainError. Routes, jobs, the CLI and the MCP server must stay thin.
+        - Every database query must be scoped by installation_id (multi-tenant). Flag any query that is not.
+        - Logs only through logError (name, code, message). Never log tokens, emails, daily text, card text or request payloads.
+        - Every user-visible string goes through t(lang, key) with keys in both pt-BR and en; the default language is en.
+        - Anti-surveillance: suggestions, card activity and per-person signals must never reach managers, /v1/org, /v1/manage, outgoing webhooks, the digest or the setup page. No per-person metrics or rankings.
+        - Nothing is sent on a person's behalf without their confirmation.
+        - Server pages (apps/api/src/web) must not use inline style attributes or script tags (strict CSP).
+        - Every package must declare the modules it imports in its own package.json.
+    - path: "apps/api/src/web/**"
+      instructions: |
+        Server-rendered pages with a strict CSP. Styles come only from classes in styles.ts. Check en and pt-BR, dark mode tokens, keyboard focus and 44px touch targets on phones.
+    - path: "packages/adapters/**"
+      instructions: |
+        Adapters for GitHub, Slack and Linear. All external input is untrusted. GraphQL inputs go through variables, every HTTP call has a timeout, and errors never include tokens.
+    - path: "docs/site/**/*.md"
+      instructions: |
+        Documentation exists in en (docs/site) and pt-BR (docs/site/pt-BR). Changes must keep both languages in sync and match the code's behaviour.
+chat:
+  auto_reply: true
