@@ -50,13 +50,13 @@ describe('fetchCodeowners', () => {
   });
 
   test('a 1.5 MB file comes back whole', async () => {
-    const big = `${'* @alice\n'.repeat(170000)}`;
+    const big = '* @alice\n'.repeat(170000);
     const { octokit } = octokitWith({
       'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: big, headers: RAW },
     });
     const text = await fetchCodeowners(octokit, 'acme', 'api', 'main');
-    expect(text).toBe(big);
     expect(big.length).toBeGreaterThan(1_500_000);
+    expect(text).toBe(big);
   });
 
   test('an empty file returns an empty string', async () => {
@@ -64,5 +64,19 @@ describe('fetchCodeowners', () => {
       'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '', headers: RAW },
     });
     expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('');
+  });
+
+  test('a body that is valid JSON comes back as the string', async () => {
+    const { octokit } = octokitWith({
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '{}', headers: RAW },
+    });
+    expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('{}');
+  });
+
+  test('a binary body is decoded as utf8', async () => {
+    const { octokit } = octokitWith({
+      'GET /repos/acme/api/contents/.github/CODEOWNERS': { body: '* @alicé\n', headers: RAW },
+    });
+    expect(await fetchCodeowners(octokit, 'acme', 'api', 'main')).toBe('* @alicé\n');
   });
 });

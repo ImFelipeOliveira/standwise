@@ -206,6 +206,7 @@ describe('listOpenPullRequestSnapshots', () => {
       [],
     );
   });
+
   describe('pagination', () => {
     const reviewPage = (page: number) =>
       JSON.stringify(

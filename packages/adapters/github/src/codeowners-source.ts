@@ -17,8 +17,9 @@ export async function fetchCodeowners(
         path,
         ref,
         headers: { accept: 'application/vnd.github.raw+json' },
+        request: { parseSuccessResponseBody: false },
       });
-      if (typeof response.data === 'string') return response.data;
+      return await new Response(response.data as BodyInit).text();
     } catch (error) {
       if (httpStatus(error) !== 404) throw error;
     }
