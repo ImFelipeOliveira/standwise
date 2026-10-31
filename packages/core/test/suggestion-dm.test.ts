@@ -37,4 +37,18 @@ describe('buildSuggestionDm', () => {
     expect(msg.fallbackText.toLowerCase()).not.toContain('manager');
     expect(msg.fallbackText.toLowerCase()).not.toContain('team');
   });
+
+  test('card_stale names the card and the days in both languages', () => {
+    const card = {
+      kind: 'card' as const,
+      url: 'https://linear.app/acme/issue/ENG-9',
+      title: 'Flaky',
+    };
+    const en = buildSuggestionDm({ lang: 'en', kind: 'card_stale', ref: card, days: 5 });
+    expect(en.fallbackText).toContain('The card Flaky has been idle for over 5 days');
+    expect(en.fallbackText).toContain(card.url);
+    const pt = buildSuggestionDm({ lang: 'pt-BR', kind: 'card_stale', ref: card, days: 7 });
+    expect(pt.fallbackText).toContain('O card Flaky está parado há mais de 7 dias');
+    expect(pt.fallbackText).not.toContain('{');
+  });
 });
