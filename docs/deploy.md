@@ -75,5 +75,5 @@ Change every place that names the interim address:
 4. Change `STANDWISE_DEFAULT_API_URL` in `.github/workflows/release-please.yml` and publish a new release, so new installs use the final domain.
 5. Update the GitHub App callback, webhook and setup URLs to the final domain.
 6. Update the Slack and Linear redirect URLs to the final domain.
-7. Update the install command and API URLs in `README.md` and `packages/plugin/skills/daily/SKILL.md`.
+7. Update the install command and API URLs in `README.md` and `packages/plugin/skills/daily/SKILL.md`. Change `PUBLISHED_INSTALL_URL` in `scripts/check-docs.ts` to match, or `check-docs` fails.
 8. Keep the interim domain pointing at the api. The CLI saves the `apiUrl` it signed in with in the user's credentials, and keeps using it until the person signs in again with `standwise login --api-url <url>`. Removing the old domain breaks every CLI that was installed before.
