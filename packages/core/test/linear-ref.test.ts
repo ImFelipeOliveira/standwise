@@ -32,6 +32,10 @@ describe('parseLinearIssueUrl', () => {
       'https://linear.app/acme/project/BE-123',
       'https://linear.app/acme/issue/BE',
       'https://linear.app/acme/issue/BE-abc',
+      'https://linear.app@evil.com/acme/issue/BE-1',
+      'https://www.linear.app/acme/issue/BE-1',
+      'https://linear.app.evil.com/acme/issue/BE-1',
+      'https://linear.app/../issue/BE-1',
       'not a url',
     ]) {
       expect(parseLinearIssueUrl(u)).toBeNull();
