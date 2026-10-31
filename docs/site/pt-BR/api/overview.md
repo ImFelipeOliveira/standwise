@@ -9,7 +9,7 @@ A API do Standwise permite que os seus sistemas leiam os dados da sua organizaç
 
 - URL base: `https://api.standwise.dev`
 - Documento OpenAPI: `https://api.standwise.dev/openapi.json`
-- Referência interativa, com cada operação, parâmetro, exemplo e erro: <a href="/docs/api" target="_self">referência da API</a> (em inglês)
+- Referência interativa, com cada operação, parâmetro, exemplo e erro: [referência da API](https://api.standwise.dev/reference) (em inglês)
 
 ## O que a API oferece
 
