@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "members_login_lower_idx" ON "members" USING btree (lower("login"));

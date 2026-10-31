@@ -1,0 +1,13 @@
+{
+  "name": "@standwise/github",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@octokit/app": "^16.0.0",
+    "@octokit/core": "^7.0.0",
+    "@standwise/core": "workspace:*"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "id": "a",
+          "identifier": "ENG-1",
+          "url": "https://linear.app/acme/issue/ENG-1",
+          "title": "Done one",
+          "startedAt": "2026-10-28T10:00:00.000Z",
+          "completedAt": "2026-10-30T09:00:00.000Z"
+        },
+        {
+          "id": "b",
+          "identifier": "ENG-2",
+          "url": "https://linear.app/acme/issue/ENG-2",
+          "title": "Started one",
+          "startedAt": "2026-10-29T10:00:00.000Z",
+          "completedAt": null
+        },
+        {
+          "id": "c",
+          "identifier": "ENG-3",
+          "url": "https://linear.app/acme/issue/ENG-3",
+          "title": "Old",
+          "startedAt": "2026-10-01T10:00:00.000Z",
+          "completedAt": null
+        },
+        {
+          "id": "d",
+          "identifier": "ENG-4",
+          "url": "https://linear.app/acme/issue/ENG-4",
+          "title": "Backlog",
+          "startedAt": null,
+          "completedAt": null
+        },
+        { "bad": 1 }
+      ]
+    }
+  }
+}

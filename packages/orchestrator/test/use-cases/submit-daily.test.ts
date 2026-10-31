@@ -1,0 +1,202 @@
+import { describe, expect, spyOn, test } from 'bun:test';
+import {
+  claimDelivery,
+  completeDelivery,
+  getMemberDaily,
+  listDailies,
+  listPendingSuggestions,
+  setMemberInstallations,
+  syncSuggestions,
+} from '@standwise/db';
+import { db, useCleanDb } from '../../../db/test/setup';
+import {
+  blockerRouteId,
+  createMembershipCheck,
+  getToday,
+  listOrgDailies,
+  submitDaily,
+} from '../../src';
+import { config, daily, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
+
+useCleanDb();
+
+async function setup(cfg = config()) {
+  await seedOrg(cfg);
+  const member = await seedMember();
+  await setMemberInstallations(db, member.id, [INST]);
+  const fake = fakeDeps();
+  return { ...fake, member, isMember: createMembershipCheck(fake.deps) };
+}
+
+describe('submitDaily', () => {
+  test('stores how the daily was confirmed without exposing it in organization reads', async () => {
+    const { deps, isMember, member } = await setup();
+    await submitDaily(deps, isMember, member, daily, { confirmation: 'agent' });
+    const [row] = await listDailies(db, INST, '2026-10-28');
+    expect(row?.payload).toEqual({ ...daily, confirmation: 'agent' });
+    const page = await listOrgDailies(deps, INST, {});
+    expect(page.data[0]).not.toHaveProperty('confirmation');
+    await submitDaily(deps, isMember, member, daily);
+    const [plain] = await listDailies(db, INST, '2026-10-28');
+    expect(plain?.payload).toEqual(daily);
+  });
+
+  test('getToday returns the standup date without fetching activity', async () => {
+    const { deps, isMember, member, calls, setNow } = await setup();
+    setNow(new Date('2026-10-31T15:00:00Z'));
+    expect(await getToday(deps, isMember, member, 'ACME')).toEqual({
+      org: 'acme',
+      date: '2026-11-02',
+      teams: ['Alpha'],
+    });
+    expect(calls.activity).toEqual([]);
+  });
+
+  test('replaces the daily of the same day', async () => {
+    const { deps, isMember, member, queue } = await setup();
+    const first = await submitDaily(deps, isMember, member, daily);
+    expect(first).toEqual({ date: '2026-10-28', teams: ['Alpha'], late: false });
+    await submitDaily(deps, isMember, member, { ...daily, today: [{ text: 'changed' }] });
+    const rows = await listDailies(db, INST, '2026-10-28');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.payload.today[0]?.text).toBe('changed');
+    expect(queue.enqueued).toHaveLength(0);
+  });
+
+  test('renamed member submits with the new login on the first request', async () => {
+    const { deps, isMember, member, users, orgMembers } = await setup(config('[alice-new, bob]'));
+    users.set(1, 'alice-new');
+    orgMembers.add('alice-new');
+    const result = await submitDaily(deps, isMember, member, daily);
+    expect(result.teams).toEqual(['Alpha']);
+    const rows = await listDailies(db, INST, '2026-10-28');
+    expect(rows.map((r) => r.memberId)).toEqual([member.id]);
+  });
+
+  test('after the digest is sent the daily is late and enqueued', async () => {
+    const { deps, isMember, member, queue } = await setup();
+    const key = {
+      installationId: INST,
+      teamName: 'Alpha',
+      date: '2026-10-28',
+      kind: 'digest' as const,
+    };
+    const claim = await claimDelivery(db, key);
+    if (claim.status !== 'claimed') throw new Error('not claimed');
+    await completeDelivery(db, key, claim.token, { channel: 'C1', id: '1.1' });
+    const result = await submitDaily(deps, isMember, member, daily);
+    expect(result.late).toBe(true);
+    expect(queue.enqueued).toEqual([
+      {
+        name: 'send-late-daily',
+        data: { installationId: INST, memberId: member.id, date: '2026-10-28' },
+      },
+    ]);
+  });
+
+  test('enqueues one route-blocker job per new blocker only', async () => {
+    const { deps, isMember, member, queue } = await setup();
+    const blocker = { text: 'Need prod access' };
+    const first = { ...daily, blockers: [blocker] };
+    await submitDaily(deps, isMember, member, first);
+    await submitDaily(deps, isMember, member, {
+      ...daily,
+      blockers: [{ text: '  need PROD access ' }, { text: 'Flaky CI' }],
+    });
+    const row = await getMemberDaily(db, INST, member.id, '2026-10-28');
+    const routes = queue.enqueued.filter((j) => j.name === 'route-blocker');
+    expect(routes).toEqual([
+      {
+        name: 'route-blocker',
+        data: {
+          installationId: INST,
+          dailyId: row?.id,
+          blockerIndex: 0,
+          blockerId: blockerRouteId(blocker),
+        },
+      },
+      {
+        name: 'route-blocker',
+        data: {
+          installationId: INST,
+          dailyId: row?.id,
+          blockerIndex: 1,
+          blockerId: blockerRouteId({ text: 'Flaky CI' }),
+        },
+      },
+    ]);
+    expect(blockerRouteId({ text: '  need PROD access ' })).toBe(blockerRouteId(blocker));
+  });
+
+  test('a failing enqueue does not fail the submit and does not log the payload', async () => {
+    const { deps, isMember, member } = await setup();
+    deps.queue.enqueue = async () => {
+      throw Object.assign(new Error('queue down'), { code: 'ECONNREFUSED' });
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const result = await submitDaily(deps, isMember, member, {
+        ...daily,
+        blockers: [{ text: 'Very private blocker' }],
+      });
+      expect(result.date).toBe('2026-10-28');
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('queue down');
+      expect(logged).not.toContain('Very private blocker');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('a submitted blocker with the url of a pending suggestion confirms it', async () => {
+    const { deps, isMember, member } = await setup();
+    const url = 'https://github.com/acme/api/pull/7';
+    await syncSuggestions(
+      db,
+      INST,
+      member.id,
+      [],
+      [
+        {
+          kind: 'pr_no_review',
+          ref: { kind: 'pull_request', url },
+          fingerprint: 'fp-7',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+        {
+          kind: 'ci_failing',
+          ref: { kind: 'pull_request', url: 'https://github.com/acme/api/pull/8' },
+          fingerprint: 'fp-8',
+          since: new Date('2026-10-26T00:00:00Z'),
+        },
+      ],
+    );
+    await submitDaily(deps, isMember, member, {
+      ...daily,
+      blockers: [{ text: 'waiting on review', ref: { kind: 'pull_request', url } }],
+    });
+    const pending = await listPendingSuggestions(db, INST, member.id);
+    expect(pending.map((p) => p.fingerprint)).toEqual(['fp-8']);
+  });
+
+  test('a failing suggestion confirmation does not fail the submit', async () => {
+    const { deps, isMember, member } = await setup();
+    const flaky = flakyDb();
+    const url = 'https://github.com/acme/api/pull/7';
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      flaky.failNextUpdate();
+      const result = await submitDaily({ ...deps, db: flaky.db }, isMember, member, {
+        ...daily,
+        blockers: [{ text: 'Secret blocker', ref: { kind: 'pull_request', url } }],
+      });
+      expect(result.date).toBe('2026-10-28');
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('db down');
+      expect(logged).not.toContain('Secret blocker');
+      expect(logged).not.toContain(url);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

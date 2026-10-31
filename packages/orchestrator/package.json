@@ -1,0 +1,16 @@
+{
+  "name": "@standwise/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@standwise/core": "workspace:*",
+    "@standwise/db": "workspace:*",
+    "@standwise/github": "workspace:*",
+    "@standwise/linear": "workspace:*",
+    "@standwise/queue": "workspace:*",
+    "@standwise/slack": "workspace:*"
+  }
+}

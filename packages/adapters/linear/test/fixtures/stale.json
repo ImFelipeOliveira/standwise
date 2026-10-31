@@ -1,0 +1,23 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "id": "a",
+          "identifier": "ENG-1",
+          "url": "https://linear.app/acme/issue/ENG-1",
+          "title": "Slow",
+          "startedAt": "2026-10-01T10:00:00.000Z"
+        },
+        {
+          "id": "b",
+          "identifier": "ENG-2",
+          "url": "https://linear.app/acme/issue/ENG-2",
+          "title": "No start",
+          "startedAt": null
+        },
+        { "id": "c" }
+      ]
+    }
+  }
+}
