@@ -50,7 +50,7 @@ const DARK = `
     --card-foreground: #E2E8F0;
     --muted: #1E293B;
     --muted-foreground: #94A3B8;
-    --border: #1E293B;
+    --border: #273449;
     --input: #475569;
     --primary: #8B96F2;
     --primary-hover: #A5AEF6;
@@ -84,7 +84,7 @@ const DARK = `
 const BASE = `
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-h1, h2, h3, p, li, td, th, dd, dt, label, legend, pre, code, a, strong, span { overflow-wrap: anywhere; }
+h1, h2, h3, p, li, td, th, label, legend, pre, code, a, strong, span { overflow-wrap: anywhere; }
 h1 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 8px; }
 h2 { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 8px; }
 h3 { font-size: 14px; font-weight: 600; margin: 16px 0 8px; }
@@ -92,7 +92,7 @@ p { margin: 0 0 12px; }
 ul, ol { margin: 0 0 12px; padding-left: 20px; }
 a { color: var(--primary); text-underline-offset: 2px; }
 a:hover { color: var(--primary-hover); }
-code, pre, kbd { font-family: var(--font-mono); font-size: 13px; }
+code, pre { font-family: var(--font-mono); font-size: 13px; }
 code { color: var(--foreground); }
 pre { background: var(--muted); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin: 0 0 12px; overflow-x: auto; white-space: pre-wrap; }
 table { width: 100%; border-collapse: collapse; margin: 0 0 16px; }
@@ -101,14 +101,14 @@ th { color: var(--muted-foreground); font-size: 13px; font-weight: 500; }
 td { color: var(--foreground); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 16px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--primary-foreground); font: inherit; font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer; }
 .btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: var(--primary-foreground); }
-input, select, textarea { min-height: 36px; padding: 6px 10px; border: 1px solid var(--input); border-radius: var(--radius-sm); background: var(--card); color: var(--foreground); font: inherit; max-width: 100%; }
-input[type=checkbox], input[type=radio] { min-height: 0; width: 16px; height: 16px; padding: 0; accent-color: var(--primary); vertical-align: middle; }
+input, select { min-height: 36px; padding: 6px 10px; border: 1px solid var(--input); border-radius: var(--radius-sm); background: var(--card); color: var(--foreground); font: inherit; max-width: 100%; }
+input[type=checkbox] { min-height: 0; width: 16px; height: 16px; padding: 0; accent-color: var(--primary); vertical-align: middle; }
 fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px 12px; margin: 0 0 12px; min-width: 0; }
 legend { padding: 0 4px; color: var(--muted-foreground); font-size: 13px; font-weight: 500; }
 label { color: var(--foreground); }
 label.choice { display: flex; align-items: center; gap: 8px; min-height: 32px; flex-wrap: wrap; }
 label.choice > code { margin-left: auto; color: var(--muted-foreground); font-size: 12px; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .logo { fill: var(--primary); flex: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 `;
@@ -142,17 +142,11 @@ const LAYOUT = `
 const COMPONENTS = `
 .card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; min-width: 0; }
 .card > h2:first-child { font-size: 16px; font-weight: 600; }
-.card-success { border-color: var(--success-border); }
 .card-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
-.card-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
-.card-info { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
-.card-neutral { background: var(--muted); }
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; border: 1px solid transparent; font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
 .badge-neutral { background: var(--neutral-bg); color: var(--neutral-text); }
 .badge-success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
-.badge-warning { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
 .badge-danger { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
-.badge-info { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
 .btn-secondary { background: var(--card); border-color: var(--border); color: var(--foreground); }
 .btn-secondary:hover { background: var(--secondary-hover); border-color: var(--input); color: var(--foreground); }
@@ -167,19 +161,16 @@ const COMPONENTS = `
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
 .alert-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 .alert-info { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
-.alert a:not(.btn), .card-warning a:not(.btn), .card-danger a:not(.btn), .card-info a:not(.btn) { color: inherit; font-weight: 600; }
+.alert a:not(.btn), .card-warning a:not(.btn) { color: inherit; font-weight: 600; }
 .step { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 999px; border: 2px solid transparent; font-size: 13px; font-weight: 600; }
 .step-done { background: var(--success); border-color: var(--success); color: var(--success-foreground); }
 .step-todo { border: 2px dashed var(--step-todo); color: var(--muted-foreground); }
 .step-error { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 .icon { width: 16px; height: 16px; flex: none; }
 .table-scroll { width: 100%; overflow-x: auto; margin: 0 0 16px; }
-.table-scroll > table { margin: 0; min-width: 560px; }
-.table-scroll > .table-fit { min-width: 0; }
+.table-scroll > table { margin: 0; }
 .table-compact th, .table-compact td { padding: 6px 8px; font-size: 13px; }
-.table-compact form { margin: 0; }
-.table-scroll th, .table-scroll .cell-nowrap, .table-scroll .cell-nowrap code { white-space: nowrap; overflow-wrap: normal; }
-.table-log .cell-wrap { min-width: 320px; }
+.table-scroll th { white-space: nowrap; overflow-wrap: normal; }
 .step-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 16px; row-gap: 12px; align-items: start; }
 .step-body { min-width: 0; }
 .step-body > p { margin: 0; }
@@ -206,6 +197,7 @@ const COMPONENTS = `
 .item:first-child { padding-top: 0; }
 .item-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; }
 .item-head > strong, .item-head > code { min-width: 0; }
+.item-head > code { flex: 1 1 12rem; }
 .item-meta { margin: 4px 0 0; }
 .item-head .badge { white-space: normal; }
 .item-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
@@ -228,10 +220,10 @@ const RESPONSIVE = `
   .page { padding: 16px 16px 48px; }
   .grid-2 { grid-template-columns: minmax(0, 1fr); }
   h1 { font-size: 24px; }
-  button, .btn, input, select, textarea { min-height: 44px; }
+  button, .btn, input, select { min-height: 44px; }
   .topbar-link { min-height: 44px; padding: 0 8px; }
   .topbar-actions { margin-left: 0; width: 100%; justify-content: space-between; }
-  input[type=checkbox], input[type=radio] { min-height: 0; width: 20px; height: 20px; }
+  input[type=checkbox] { min-height: 0; width: 20px; height: 20px; }
   label.choice { min-height: 44px; }
   .badge { white-space: normal; }
   .card { padding: 16px; }

@@ -65,7 +65,7 @@ function Header(props: { lang: Language; header?: HeaderProps }) {
             /
           </span>
           <Org lang={props.lang} header={header} />
-          <nav class="topbar-actions">
+          <nav class="topbar-actions" aria-label={t('web.header.nav')}>
             <a href={props.lang === 'pt-BR' ? '/docs/pt-BR/' : '/docs/'} class="topbar-link">
               {t('web.header.docs')}
             </a>
@@ -95,10 +95,10 @@ export function Layout(props: {
         <style>{raw(PAGE_CSS)}</style>
       </head>
       <body>
-        <main class="page">
+        <div class="page">
           <Header lang={props.lang} header={props.header} />
-          {props.children}
-        </main>
+          <main>{props.children}</main>
+        </div>
       </body>
     </html>
   );

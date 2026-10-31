@@ -3,7 +3,7 @@ import type { SetupStatus } from '@standwise/orchestrator';
 import type { Child } from 'hono/jsx';
 import { newConfigFileUrl, newConfigRepoUrl, standwiseYmlTemplate } from './config-template';
 import { reasonText, TEAM_NOTICES, TRACKER_NOTICES, type Translate } from './setup-labels';
-import { Alert, Badge, ButtonLink, Code, Icon, ScrollTable, StepStatus } from './ui';
+import { Alert, Badge, ButtonLink, Card, Code, Icon, ScrollTable, StepStatus } from './ui';
 
 type StepState = 'done' | 'todo' | 'error';
 
@@ -69,6 +69,7 @@ function StepCard(props: {
 }
 
 type StepProps = { t: Translate; status: SetupStatus };
+type NumberedStepProps = StepProps & { index: number };
 
 function GithubStep(props: StepProps) {
   const { t, status } = props;
@@ -132,7 +133,7 @@ function SlackStep(props: StepProps) {
   );
 }
 
-function LinearStep(props: StepProps) {
+function LinearStep(props: NumberedStepProps) {
   const { t, status } = props;
   const { linear } = status;
   const state = linearState(status);
@@ -158,7 +159,7 @@ function LinearStep(props: StepProps) {
     <StepCard
       t={t}
       id="step-linear"
-      index={3}
+      index={props.index}
       state={state}
       title={t('setup.linear.title')}
       badge={badge}
@@ -202,7 +203,7 @@ const noticeText = (t: Translate, notice: Notice) =>
 function TeamCard(props: { t: Translate; team: SetupStatus['teams'][number]; notices: Notice[] }) {
   const { t, team, notices } = props;
   return (
-    <article class={notices.length > 0 ? 'card team-card card-warning' : 'card team-card'}>
+    <Card as="article" class="team-card" tone={notices.length > 0 ? 'warning' : undefined}>
       <h3>{team.name}</h3>
       {team.channel ? (
         <p class="small">
@@ -218,11 +219,11 @@ function TeamCard(props: { t: Translate; team: SetupStatus['teams'][number]; not
           <span>{noticeText(t, notice)}</span>
         </p>
       ))}
-    </article>
+    </Card>
   );
 }
 
-function ConfigStep(props: StepProps & { lang: Language }) {
+function ConfigStep(props: NumberedStepProps & { lang: Language }) {
   const { t, status } = props;
   const { config } = status;
   const template = standwiseYmlTemplate(status.login, t('web.template.teamName'), props.lang);
@@ -245,7 +246,7 @@ function ConfigStep(props: StepProps & { lang: Language }) {
     <StepCard
       t={t}
       id="step-config"
-      index={4}
+      index={props.index}
       state={configured ? 'done' : config.status === 'invalid' ? 'error' : 'todo'}
       title={t('web.setup.configTitle')}
       badge={
@@ -287,7 +288,7 @@ function ConfigStep(props: StepProps & { lang: Language }) {
         <>
           {config.lastValid ? <p class="small">{t('web.setup.configKeepsLastValid')}</p> : null}
           <ScrollTable>
-            <table class="table-compact table-fit">
+            <table class="table-compact">
               <thead>
                 <tr>
                   <th>{t('web.config.path')}</th>
@@ -323,12 +324,23 @@ function ConfigStep(props: StepProps & { lang: Language }) {
 }
 
 export function SetupSteps(props: { t: Translate; lang: Language; status: SetupStatus }) {
+  const { t, status, lang } = props;
+  if (usesLinear(status)) {
+    return (
+      <>
+        <GithubStep t={t} status={status} />
+        <SlackStep t={t} status={status} />
+        <LinearStep t={t} status={status} index={3} />
+        <ConfigStep t={t} status={status} lang={lang} index={4} />
+      </>
+    );
+  }
   return (
     <>
-      <GithubStep t={props.t} status={props.status} />
-      <SlackStep t={props.t} status={props.status} />
-      <LinearStep t={props.t} status={props.status} />
-      <ConfigStep t={props.t} status={props.status} lang={props.lang} />
+      <GithubStep t={t} status={status} />
+      <SlackStep t={t} status={status} />
+      <ConfigStep t={t} status={status} lang={lang} index={3} />
+      <LinearStep t={t} status={status} index={4} />
     </>
   );
 }

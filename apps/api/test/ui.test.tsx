@@ -89,6 +89,7 @@ describe('design tokens', () => {
     expect(tokens['--background']).toBe('#0B1120');
     expect(tokens['--card']).toBe('#111827');
     expect(tokens['--foreground']).toBe('#E2E8F0');
+    expect(tokens['--border']).toBe('#273449');
     const colors = Object.entries(light()).filter(([, value]) => value.startsWith('#'));
     for (const [name] of colors) expect(tokens[name]).toMatch(/^#[0-9A-F]{6}$/);
   });
@@ -140,7 +141,7 @@ describe('component kit', () => {
   });
 
   test('Badge carries its tone', async () => {
-    for (const tone of ['neutral', 'success', 'warning', 'danger', 'info'] as const) {
+    for (const tone of ['neutral', 'success', 'danger'] as const) {
       expect(await render(<Badge tone={tone}>ok</Badge>)).toBe(
         `<span class="badge badge-${tone}">ok</span>`,
       );
@@ -184,6 +185,9 @@ describe('component kit', () => {
     expect(info).not.toContain('alert-body');
     expect(info).not.toContain('alert-action');
     expect(await render(<Alert tone="warning" title="W" />)).toContain('alert-warning');
+    const urgent = await render(<Alert tone="info" role="alert" title="Secret" />);
+    expect(urgent).toContain('class="alert alert-info"');
+    expect(urgent).toContain('role="alert"');
   });
 
   test('StepStatus shows a check, the index or an x, with a screen reader label', async () => {
@@ -236,7 +240,7 @@ describe('component kit', () => {
     for (const selector of inheriting.flatMap((s) => s.split(',').map((x) => x.trim()))) {
       if (/\ba\b/.test(selector)) expect(selector).toContain(':not(.btn)');
     }
-    for (const scope of ['.alert', '.card-warning', '.card-danger', '.card-info']) {
+    for (const scope of ['.alert', '.card-warning']) {
       expect(inheriting.join(',')).toContain(`${scope} a:not(.btn)`);
     }
   });
@@ -253,15 +257,10 @@ describe('component kit', () => {
     for (const selector of [
       '.card',
       '.card-warning',
-      '.card-danger',
-      '.card-success',
-      '.card-info',
       '.badge',
       '.badge-neutral',
       '.badge-success',
-      '.badge-warning',
       '.badge-danger',
-      '.badge-info',
       '.btn',
       '.btn-primary',
       '.btn-secondary',
@@ -282,6 +281,30 @@ describe('component kit', () => {
     ]) {
       expect(PAGE_CSS).toMatch(new RegExp(`${selector.replace('.', '\\.')}[ ,:{>]`));
     }
+  });
+
+  test('unused tone variants and element rules are gone', () => {
+    for (const selector of [
+      '.card-success',
+      '.card-danger',
+      '.card-info',
+      '.card-neutral',
+      '.badge-warning',
+      '.badge-info',
+      '.table-log',
+      '.cell-wrap',
+      '.cell-nowrap',
+      '.table-fit',
+    ]) {
+      expect(PAGE_CSS).not.toContain(selector);
+    }
+    expect(PAGE_CSS).not.toMatch(/\b(kbd|textarea|dd|dt|summary)\b/);
+    expect(PAGE_CSS).not.toContain('type=radio');
+    expect(PAGE_CSS).not.toContain('min-width: 560px');
+  });
+
+  test('a short url keeps its line in an item head and the badge wraps first', () => {
+    expect(PAGE_CSS).toContain('.item-head > code { flex: 1 1 12rem; }');
   });
 });
 
@@ -528,6 +551,37 @@ describe('setup checklist', () => {
     expect(section(await page(status()), 'step-linear')).toContain('Optional');
   });
 
+  test('steps are numbered in display order, so config is 3 unless linear counts', async () => {
+    const pending = { slack: { connected: false }, linear: { connected: false } } as const;
+    const order = (html: string) =>
+      ['step-github', 'step-slack', 'step-linear', 'step-config'].sort(
+        (a, b) => html.indexOf(`id="${a}"`) - html.indexOf(`id="${b}"`),
+      );
+    const number = (html: string, id: string) =>
+      /<span class="step step-todo">(\d+)</.exec(section(html, id))?.[1];
+    const optional = await page(
+      status({ ...pending, config: { status: 'unconfigured', reason: 'no_file' }, teams: [] }),
+    );
+    expect(optional).toContain('1 of 3 steps done');
+    expect(order(optional)).toEqual(['step-github', 'step-slack', 'step-config', 'step-linear']);
+    expect(number(optional, 'step-slack')).toBe('2');
+    expect(number(optional, 'step-config')).toBe('3');
+    expect(number(optional, 'step-linear')).toBe('4');
+    const counted = await page(
+      status({
+        ...pending,
+        trackerNotices: ['linear_not_connected'],
+        teams: [
+          { name: 'Alpha', channel: '#a', remindAt: '09:00', digestAt: '10:00', tracker: 'linear' },
+        ],
+      }),
+    );
+    expect(counted).toContain('2 of 4 steps done');
+    expect(order(counted)).toEqual(['step-github', 'step-slack', 'step-linear', 'step-config']);
+    expect(number(counted, 'step-linear')).toBe('3');
+    expect(section(counted, 'step-config')).toContain('class="step step-done"');
+  });
+
   test('a configured file shows one card per team and an edit link', async () => {
     const card = section(await page(status()), 'step-config');
     expect(card).toContain('step step-done');
@@ -611,7 +665,7 @@ describe('setup checklist', () => {
     const list = webhooks.indexOf('class="item-list"');
     expect(list).toBeGreaterThan(-1);
     expect(webhooks.indexOf(`<code>${url}</code>`)).toBeGreaterThan(list);
-    expect(webhooks.indexOf(url)).toBeLessThan(webhooks.indexOf('class="table-scroll"'));
+    expect(webhooks).not.toContain('class="table-scroll"');
     expect(html).toContain(`<strong class="topbar-org">${owner}</strong>`);
     expect(section(html, 'step-github')).toContain(`<p class="muted">Installed on ${owner}</p>`);
     expect(PAGE_CSS).toMatch(/[ ,]strong[ ,][^{]*\{[^}]*overflow-wrap: anywhere/);
@@ -633,13 +687,14 @@ describe('setup checklist', () => {
     expect(section(empty, 'failed')).toContain('No failed deliveries.');
   });
 
-  test('one-time secrets render first in the main column as an info alert', async () => {
+  test('one-time secrets render first in the main column as an urgent info alert', async () => {
     const html = await page(status(), 'en', {
       newKey: { name: 'ci', key: 'swk_secret' },
       newWebhook: { url: 'https://hooks.example.com/a', secret: 'whsec_x' },
     });
     const main = html.slice(html.indexOf('class="layout-main'), html.indexOf('id="step-github"'));
-    expect(main).toContain('class="alert alert-info"');
+    expect(main.match(/class="alert alert-info" role="alert"/g)?.length).toBe(2);
+    expect(main).not.toContain('role="status"');
     expect(main).toContain('<code class="code">swk_secret</code>');
     expect(main).toContain('<code class="code">whsec_x</code>');
     expect(main).toContain('Copy it now');
@@ -727,6 +782,7 @@ describe('error page', () => {
       <ErrorPage lang="en" code="forbidden" supportEmail="help@example.com" />,
     );
     expect(html).toContain('<header class="topbar">');
+    expect(html.indexOf('<header')).toBeLessThan(html.indexOf('<main>'));
     expect(html).not.toContain('action="/logout"');
     expect(html).not.toContain('/docs/');
   });
@@ -740,6 +796,18 @@ describe('error page', () => {
 });
 
 describe('setup polish', () => {
+  test('the header sits beside main inside the page and its nav is labelled', async () => {
+    const html = await page(status());
+    const body = html.slice(html.indexOf('<body>'));
+    expect(body).toStartWith('<body><div class="page"><header class="topbar">');
+    expect(body.indexOf('</header><main>')).toBeGreaterThan(-1);
+    expect(body).toContain('</main></div></body>');
+    expect(html).toContain('<nav class="topbar-actions" aria-label="Account">');
+    expect(await page(status(), 'pt-BR')).toContain(
+      '<nav class="topbar-actions" aria-label="Conta">',
+    );
+  });
+
   test('the progress badge is success only when every step is done', async () => {
     expect(await page(status())).toContain('<span class="badge badge-success">3 of 3 steps done');
     expect(await page(status({ slack: { connected: false } }))).toContain(
@@ -791,7 +859,7 @@ describe('setup polish', () => {
     expect(keys).toContain('Never');
   });
 
-  test('webhook endpoints render as compact rows; the deliveries log stays a table', async () => {
+  test('webhook endpoints render as compact rows', async () => {
     const webhooks = section(await page(status()), 'webhooks');
     const log = webhooks.indexOf('Latest 20 deliveries');
     const endpoints = webhooks.slice(0, log);
@@ -803,6 +871,66 @@ describe('setup polish', () => {
     expect(endpoints).toContain('class="btn btn-secondary btn-sm">Send test event</button>');
     expect(endpoints).toContain('class="btn btn-danger btn-sm">Disable</button>');
     expect(endpoints).toContain('Last delivery');
-    expect(webhooks.slice(log)).toContain('class="table-scroll"');
+  });
+
+  test('the deliveries log renders as compact rows with every value', async () => {
+    const base = status();
+    if (!base.webhooks.manage) throw new Error('expected webhooks');
+    const html = await page({
+      ...base,
+      webhooks: {
+        ...base.webhooks,
+        deliveries: [
+          ...base.webhooks.deliveries,
+          {
+            id: 'd2',
+            endpointId: 'w1',
+            endpointUrl: 'https://hooks.example.com/b',
+            event: 'digest.sent',
+            status: 'delivered',
+            attempts: 1,
+            lastStatusCode: 200,
+            lastError: null,
+            createdAt: NOW,
+          },
+          {
+            id: 'd3',
+            endpointId: 'w1',
+            endpointUrl: 'https://hooks.example.com/c',
+            event: 'blocker.opened',
+            status: 'pending',
+            attempts: 0,
+            lastStatusCode: null,
+            lastError: null,
+            createdAt: NOW,
+          },
+        ],
+      },
+    });
+    const webhooks = section(html, 'webhooks');
+    const log = webhooks.slice(webhooks.indexOf('Latest 20 deliveries'));
+    expect(log).not.toContain('<table');
+    expect(log).not.toContain('table-scroll');
+    expect(log).toContain('class="item-list"');
+    const rows = log.split('<li class="item">').slice(1);
+    expect(rows.length).toBe(3);
+    const [failed, delivered, pending] = rows as [string, string, string];
+    const head = failed.slice(0, failed.indexOf('</div>'));
+    expect(head).toContain('class="item-head"');
+    expect(head).toContain('10/28/26');
+    expect(head).toContain('<code>daily.submitted</code>');
+    expect(failed).toContain('<span class="badge badge-danger">Failed</span>');
+    expect(failed).toContain('Attempts: 3');
+    expect(failed).toContain('Response: 500');
+    expect(failed).toContain('<code>server error</code>');
+    expect(failed.indexOf('<code>https://hooks.example.com/a</code>')).toBeGreaterThan(
+      failed.indexOf('Attempts: 3'),
+    );
+    expect(delivered).toContain('<span class="badge badge-success">Delivered</span>');
+    expect(delivered).toContain('Response: 200');
+    expect(delivered).toContain('<code>https://hooks.example.com/b</code>');
+    expect(pending).toContain('<span class="badge badge-neutral">Pending</span>');
+    expect(pending).toContain('Attempts: 0');
+    expect(pending).not.toContain('Response');
   });
 });

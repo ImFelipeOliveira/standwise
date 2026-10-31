@@ -306,7 +306,9 @@ describe('setup header', () => {
     const { app } = harness();
     const { cookie } = await seed();
     const html = await (await get(app, cookie, INST)).text();
-    expect(html).toContain('<header class="topbar">');
+    expect(html).toContain('<div class="page"><header class="topbar">');
+    expect(html).toContain('</header><main>');
+    expect(html).toContain('<nav class="topbar-actions" aria-label="Account">');
     expect(html).toContain('acme');
     expect(html).not.toContain('<select');
   });
@@ -367,7 +369,8 @@ describe('setup header', () => {
     });
     expect(forbidden.status).toBe(403);
     const html = await forbidden.text();
-    expect(html).toContain('<header class="topbar">');
+    expect(html).toContain('<div class="page"><header class="topbar">');
+    expect(html).toContain('</header><main>');
     expect(html).toContain('Access denied');
     expect(html).not.toContain('action="/logout"');
     expect(html).not.toContain('/docs/');

@@ -8,7 +8,7 @@ import {
   SCOPE_LABELS,
   type Translate,
 } from './setup-labels';
-import { Alert, Badge, Card, Code, ScrollTable, SubmitButton } from './ui';
+import { Alert, Badge, type BadgeTone, Card, Code, SubmitButton } from './ui';
 
 export type NewApiKey = { name: string; key: string };
 export type NewWebhook = { url: string; secret: string };
@@ -30,7 +30,7 @@ export function SecretAlerts(props: { t: Translate; newKey?: NewApiKey; newWebho
   return (
     <>
       {newKey ? (
-        <Alert tone="info" title={t('web.apiKeys.created', { name: newKey.name })}>
+        <Alert tone="info" role="alert" title={t('web.apiKeys.created', { name: newKey.name })}>
           <p>{t('web.apiKeys.copyNow')}</p>
           <p>{t('web.apiKeys.revokeHint')}</p>
           <p>
@@ -39,7 +39,7 @@ export function SecretAlerts(props: { t: Translate; newKey?: NewApiKey; newWebho
         </Alert>
       ) : null}
       {newWebhook ? (
-        <Alert tone="info" title={t('web.webhooks.created', { url: newWebhook.url })}>
+        <Alert tone="info" role="alert" title={t('web.webhooks.created', { url: newWebhook.url })}>
           <p>{t('web.webhooks.copyNow')}</p>
           <p>{t('web.webhooks.disableHint')}</p>
           <p>
@@ -140,6 +140,12 @@ function EndpointStatus(props: { t: Translate; endpoint: Webhooks['endpoints'][n
   return <Badge tone="neutral">{t('web.webhooks.disabled')}</Badge>;
 }
 
+const DELIVERY_TONES: Record<Webhooks['deliveries'][number]['status'], BadgeTone> = {
+  pending: 'neutral',
+  delivered: 'success',
+  failed: 'danger',
+};
+
 const lastDelivery = (webhooks: Webhooks, endpointId: string) =>
   webhooks.deliveries
     .filter((d) => d.endpointId === endpointId)
@@ -239,38 +245,33 @@ export function WebhooksCard(props: {
       {webhooks.deliveries.length === 0 ? (
         <p class="small">{t('web.webhooks.noDeliveries')}</p>
       ) : (
-        <ScrollTable>
-          <table class="table-compact table-log">
-            <thead>
-              <tr>
-                <th>{t('web.webhooks.createdAt')}</th>
-                <th>{t('web.webhooks.event')}</th>
-                <th>{t('web.webhooks.url')}</th>
-                <th>{t('web.webhooks.status')}</th>
-                <th>{t('web.webhooks.attempts')}</th>
-                <th>{t('web.webhooks.response')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {webhooks.deliveries.map((d) => (
-                <tr>
-                  <td class="cell-nowrap">{formatDate(props.lang, d.createdAt)}</td>
-                  <td class="cell-nowrap">
-                    <code>{d.event}</code>
-                  </td>
-                  <td class="cell-wrap">
-                    <code>{d.endpointUrl}</code>
-                  </td>
-                  <td class="cell-nowrap">{t(DELIVERY_LABELS[d.status])}</td>
-                  <td>{d.attempts}</td>
-                  <td class="cell-wrap">
-                    {d.lastStatusCode ?? ''} {d.lastError ? <code>{d.lastError}</code> : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollTable>
+        <ul class="item-list">
+          {webhooks.deliveries.map((d) => (
+            <li class="item">
+              <div class="item-head">
+                <span class="small muted">{formatDate(props.lang, d.createdAt)}</span>
+                <span>
+                  <code>{d.event}</code>
+                </span>
+              </div>
+              <div class="row small muted item-meta">
+                <Badge tone={DELIVERY_TONES[d.status]}>{t(DELIVERY_LABELS[d.status])}</Badge>
+                <span>
+                  {t('web.webhooks.attempts')}: {d.attempts}
+                </span>
+                {d.lastStatusCode !== null || d.lastError ? (
+                  <span>
+                    {t('web.webhooks.response')}: {d.lastStatusCode ?? ''}{' '}
+                    {d.lastError ? <code>{d.lastError}</code> : null}
+                  </span>
+                ) : null}
+              </div>
+              <p class="small item-meta">
+                <code>{d.endpointUrl}</code>
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

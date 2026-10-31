@@ -1,6 +1,7 @@
 import type { Child } from 'hono/jsx';
 
-export type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeTone = 'neutral' | 'success' | 'danger';
+export type CardTone = 'warning';
 export type ButtonVariant = 'primary' | 'secondary' | 'danger';
 export type IconName = 'check' | 'x' | 'alert' | 'external';
 
@@ -42,7 +43,7 @@ export function Icon(props: { name: IconName }) {
 export function Card(props: {
   children?: Child;
   class?: string;
-  tone?: Tone;
+  tone?: CardTone;
   as?: 'section' | 'article' | 'aside';
   id?: string;
 }) {
@@ -54,7 +55,7 @@ export function Card(props: {
   );
 }
 
-export function Badge(props: { tone: Tone; children?: Child }) {
+export function Badge(props: { tone: BadgeTone; children?: Child }) {
   return <span class={`badge badge-${props.tone}`}>{props.children}</span>;
 }
 
@@ -80,12 +81,16 @@ export function SubmitButton(props: { variant?: ButtonVariant; size?: 'sm'; chil
 export function Alert(props: {
   tone: 'warning' | 'danger' | 'info';
   title: string;
+  role?: 'alert' | 'status';
   children?: Child;
   action?: Child;
 }) {
   const hasBody = props.children !== undefined && props.children !== null;
   return (
-    <div class={`alert alert-${props.tone}`} role={props.tone === 'info' ? 'status' : 'alert'}>
+    <div
+      class={`alert alert-${props.tone}`}
+      role={props.role ?? (props.tone === 'info' ? 'status' : 'alert')}
+    >
       <Icon name="alert" />
       <strong class="alert-title">{props.title}</strong>
       {hasBody ? <div class="alert-body">{props.children}</div> : null}
