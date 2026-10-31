@@ -441,6 +441,7 @@ describe('no inline styles or scripts', () => {
             lang={lang}
             status={value}
             csrf="token"
+            docsUrl="https://docs.standwise.dev"
             newKey={extra.newKey ? { name: 'ci', key: 'swk_secret' } : undefined}
             newWebhook={
               extra.newWebhook
@@ -476,7 +477,16 @@ const page = (
     newKey?: { name: string; key: string };
     newWebhook?: { url: string; secret: string };
   } = {},
-) => render(<SetupPage lang={lang} status={value} csrf="token" {...extra} />);
+) =>
+  render(
+    <SetupPage
+      lang={lang}
+      status={value}
+      csrf="token"
+      docsUrl="https://docs.standwise.dev"
+      {...extra}
+    />,
+  );
 
 const section = (html: string, id: string) => {
   const start = html.indexOf(`id="${id}"`);
@@ -785,6 +795,7 @@ describe('error page', () => {
     expect(html.indexOf('<header')).toBeLessThan(html.indexOf('<main>'));
     expect(html).not.toContain('action="/logout"');
     expect(html).not.toContain('/docs/');
+    expect(html).not.toContain('docs.standwise.dev');
   });
 
   test('the legacy page and button rules are gone', () => {

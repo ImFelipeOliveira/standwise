@@ -199,7 +199,7 @@ describe('org parameter', () => {
 
 describe('docs page', () => {
   test('serves the reference', async () => {
-    const res = await load('/docs/api');
+    const res = await load('/reference');
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
     const html = await res.text();
@@ -208,9 +208,63 @@ describe('docs page', () => {
   });
 });
 
+describe('old docs urls', () => {
+  test('/docs/api and /docs/api/ move permanently to /reference', async () => {
+    for (const path of ['/docs/api', '/docs/api/']) {
+      const res = await load(path);
+      expect(res.status, path).toBe(301);
+      expect(res.headers.get('location'), path).toBe('/reference');
+    }
+  });
+
+  test('/docs, /docs/ and /docs/* move permanently to the docs site', async () => {
+    const cases: [string, string][] = [
+      ['/docs', 'https://docs.sw.test/'],
+      ['/docs/', 'https://docs.sw.test/'],
+      ['/docs/pt-BR', 'https://docs.sw.test/pt-BR'],
+      ['/docs/pt-BR/', 'https://docs.sw.test/pt-BR/'],
+      ['/docs/x', 'https://docs.sw.test/x'],
+      ['/docs/pt-BR/admin/install', 'https://docs.sw.test/pt-BR/admin/install'],
+      ['/docs/assets/app.js?v=1', 'https://docs.sw.test/assets/app.js?v=1'],
+    ];
+    for (const [path, location] of cases) {
+      const res = await load(path);
+      expect(res.status, path).toBe(301);
+      expect(res.headers.get('location'), path).toBe(location);
+    }
+  });
+
+  test('never redirects to a host taken from the request', async () => {
+    for (const path of [
+      '/docs//evil.example.com',
+      '/docs/%2F%2Fevil.example.com',
+      '/docs/@evil.example.com',
+    ]) {
+      const res = await load(path, { host: 'evil.example.com' });
+      const location = res.headers.get('location') ?? '';
+      expect(res.status, path).toBe(301);
+      expect(new URL(location).origin, path).toBe('https://docs.sw.test');
+    }
+  });
+
+  test('the old docs site is no longer served by the api', async () => {
+    const res = await load('/docs/index.html');
+    expect(res.status).toBe(301);
+    expect(await res.text()).not.toContain('<html');
+  });
+});
+
+describe('docs link', () => {
+  test('the openapi overview links to the docs site', async () => {
+    const doc = (await (await load('/openapi.json')).json()) as Doc;
+    expect(doc.info.description).toContain('[Standwise docs](https://docs.sw.test/)');
+    expect(doc.info.description).not.toContain('](/docs/)');
+  });
+});
+
 describe('docs page security', () => {
   test('pins the scalar cdn and sends a content security policy', async () => {
-    const res = await load('/docs/api');
+    const res = await load('/reference');
     const csp = res.headers.get('content-security-policy') ?? '';
     const html = await res.text();
     const cdn = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.74.0';

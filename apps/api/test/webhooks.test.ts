@@ -75,6 +75,7 @@ function harness(source: Source) {
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
+      docsUrl: 'https://docs.sw.test',
       appId: '1',
       webhookSecret: SECRET,
       githubClientId: 'cid',

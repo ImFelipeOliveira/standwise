@@ -9,9 +9,10 @@ import webhooks from '../../../../docs/api/guides/webhooks.md' with { type: 'tex
 
 export const API_VERSION = '1.2.0';
 
-const OVERVIEW = `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.
+const overview = (docsUrl: string) =>
+  `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.
 
-Product documentation, guides and the standwise.yml reference: [Standwise docs](/docs/).`;
+Product documentation, guides and the standwise.yml reference: [Standwise docs](${docsUrl}/).`;
 
 export const GUIDES = [
   authentication,
@@ -23,7 +24,7 @@ export const GUIDES = [
   versioning,
 ].map((guide) => guide.trim());
 
-export type DocumentEnv = { publicUrl: string; supportEmail: string };
+export type DocumentEnv = { publicUrl: string; supportEmail: string; docsUrl: string };
 
 export function apiKeyScheme() {
   return {
@@ -53,7 +54,7 @@ export function publicDocument(app: DocumentSource, env: DocumentEnv) {
       title: 'Standwise API',
       version: API_VERSION,
       contact: { email: env.supportEmail },
-      description: [OVERVIEW, ...GUIDES].join('\n\n'),
+      description: [overview(env.docsUrl), ...GUIDES].join('\n\n'),
     },
     servers: [{ url: env.publicUrl }],
     tags: [

@@ -72,6 +72,7 @@ export function SetupPage(props: {
   lang: Language;
   status: SetupStatus;
   csrf: string;
+  docsUrl: string;
   newKey?: NewApiKey;
   newWebhook?: NewWebhook;
 }) {
@@ -87,6 +88,7 @@ export function SetupPage(props: {
         installations: status.installations,
         currentId: status.installationId,
         csrf: props.csrf,
+        docsUrl: props.docsUrl,
       }}
     >
       <div class="page-head">

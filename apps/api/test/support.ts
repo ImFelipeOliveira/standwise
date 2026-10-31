@@ -14,7 +14,6 @@ export function createTestApp(
   options: {
     getClientIp?: (c: Context) => string;
     request?: FakeRequest;
-    docsDir?: string;
     db?: Deps['db'];
     healthTimeoutMs?: number;
   } = {},
@@ -73,6 +72,7 @@ export function createTestApp(
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
+      docsUrl: 'https://docs.sw.test',
       githubClientId: 'cid',
       githubClientSecret: 'secret',
       sessionSecret: 'sess',
@@ -87,7 +87,6 @@ export function createTestApp(
   return {
     app: createApp(deps, {
       getClientIp: options.getClientIp ?? headerIp,
-      ...(options.docsDir ? { docsDir: options.docsDir } : {}),
       ...(options.healthTimeoutMs ? { healthTimeoutMs: options.healthTimeoutMs } : {}),
     }),
     queue,
