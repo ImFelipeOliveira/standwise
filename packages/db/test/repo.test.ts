@@ -19,9 +19,11 @@ import {
   listFailedTeamDeliveries,
   listOperationalInstallations,
   listPersonDeliveries,
+  markConnectionInvalid,
   markDeliverySent,
   resolveSession,
   revokeSession,
+  rotateConnectionSecret,
   saveConnection,
   setIdentity,
   setInstallationConfig,
@@ -445,7 +447,79 @@ describe('connections', () => {
     expect(await getConnection(db, INST, 'slack', key)).toEqual({
       externalId: 'T1',
       externalName: 'Acme',
+      externalKey: null,
       secret: 'xoxb-secret',
+      invalidatedAt: null,
     });
+  });
+
+  test('stores the external key next to the name', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', '{}', key, 'Acme Inc', 'acme');
+    expect(await getConnection(db, INST, 'linear', key)).toMatchObject({
+      externalId: 'org-1',
+      externalName: 'Acme Inc',
+      externalKey: 'acme',
+    });
+  });
+
+  test('marking a connection invalid keeps it and saving again clears the mark', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok', key, 'Acme', 'acme');
+    await saveConnection(db, INST, 'slack', 'T1', 'xoxb', key, 'Acme');
+    await markConnectionInvalid(db, INST, 'linear');
+    expect((await getConnection(db, INST, 'linear', key))?.invalidatedAt).toBeInstanceOf(Date);
+    expect((await getConnection(db, INST, 'slack', key))?.invalidatedAt).toBeNull();
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok2', key, 'Acme', 'acme');
+    expect((await getConnection(db, INST, 'linear', key))?.invalidatedAt).toBeNull();
+  });
+
+  test('rotating a secret stores the new value encrypted', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    const seen: string[] = [];
+    const result = await rotateConnectionSecret(db, INST, 'linear', key, async (current) => {
+      seen.push(current);
+      return 'new';
+    });
+    expect(seen).toEqual(['old']);
+    expect(result).toBe('new');
+    expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('new');
+    const rows = await db.execute(sql`SELECT secret_ciphertext FROM connections`);
+    expect(rows[0]?.secret_ciphertext).not.toBe('new');
+  });
+
+  test('rotating keeps the current secret when the callback skips', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    expect(await rotateConnectionSecret(db, INST, 'linear', key, async () => null)).toBe('old');
+    expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('old');
+  });
+
+  test('rotating returns null for a missing or invalid connection', async () => {
+    await seed();
+    const rotate = async () => 'new';
+    expect(await rotateConnectionSecret(db, INST, 'linear', key, rotate)).toBeNull();
+    await saveConnection(db, INST, 'linear', 'org-1', 'old', key, 'Acme', 'acme');
+    await markConnectionInvalid(db, INST, 'linear');
+    expect(await rotateConnectionSecret(db, INST, 'linear', key, rotate)).toBeNull();
+    expect((await getConnection(db, INST, 'linear', key))?.secret).toBe('old');
+  });
+
+  test('concurrent rotations run one after the other and see the latest secret', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'v0', key, 'Acme', 'acme');
+    const seen: string[] = [];
+    const bump = async (current: string) => {
+      seen.push(current);
+      await Bun.sleep(20);
+      return current === 'v0' ? 'v1' : null;
+    };
+    const results = await Promise.all([
+      rotateConnectionSecret(db, INST, 'linear', key, bump),
+      rotateConnectionSecret(db, INST, 'linear', key, bump),
+    ]);
+    expect(seen).toEqual(['v0', 'v1']);
+    expect(results).toEqual(['v1', 'v1']);
   });
 });

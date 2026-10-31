@@ -6,7 +6,11 @@ import {
   type WebhookDeliveryStatus,
   type WebhookEventType,
 } from '@standwise/db';
-import { type SetupStatus, WEBHOOK_DISABLE_AFTER_FAILURES } from '@standwise/orchestrator';
+import {
+  type SetupStatus,
+  type TrackerNotice,
+  WEBHOOK_DISABLE_AFTER_FAILURES,
+} from '@standwise/orchestrator';
 import { newConfigFileUrl, newConfigRepoUrl, standwiseYmlTemplate } from './config-template';
 import { Layout } from './layout';
 
@@ -43,6 +47,11 @@ const FAILURE_KIND_LABELS: Record<
   late_daily: 'web.setup.kind.late_daily',
   reminder: 'web.setup.kind.reminder',
   blocker_route: 'web.setup.kind.blocker_route',
+};
+
+const TRACKER_NOTICES: Record<TrackerNotice, MessageKey> = {
+  linear_not_connected: 'setup.tracker.notConnected',
+  jira_coming_soon: 'setup.tracker.jiraComingSoon',
 };
 
 export type NewApiKey = { name: string; key: string };
@@ -134,6 +143,28 @@ export function SetupPage(props: {
           </a>
         ) : (
           <p>{t('web.slack.adminOnly')}</p>
+        )}
+      </section>
+      <section>
+        <h2>{t('setup.linear.title')}</h2>
+        {status.trackerNotices.map((notice) => (
+          <p role="alert">{t(TRACKER_NOTICES[notice])}</p>
+        ))}
+        {status.linear.connected ? (
+          <p>
+            {translate(
+              props.lang,
+              status.linear.invalid ? 'setup.linear.invalid' : 'setup.linear.connected',
+              { workspace: status.linear.workspace },
+            )}
+          </p>
+        ) : null}
+        {status.admin ? (
+          <a class="button" href={`/connect/linear?installation_id=${status.installationId}`}>
+            {t(status.linear.connected ? 'setup.linear.reconnect' : 'setup.linear.connect')}
+          </a>
+        ) : (
+          <p>{t('setup.linear.adminOnly')}</p>
         )}
       </section>
       {status.apiKeys.manage ? (

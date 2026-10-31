@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { LinearFetch } from './client';
+import { LinearAuthError } from './errors';
 
 export type LinearTokens = {
   accessToken: string;
@@ -8,6 +9,10 @@ export type LinearTokens = {
 };
 
 const TOKEN_URL = 'https://api.linear.app/oauth/token';
+
+const AUTH_ERRORS = new Set(['invalid_grant', 'invalid_client', 'unauthorized_client']);
+
+const errorResponse = z.object({ error: z.string() });
 
 const tokenResponse = z.object({
   access_token: z.string().min(1),
@@ -36,7 +41,14 @@ async function requestTokens(body: URLSearchParams, fetchImpl: LinearFetch): Pro
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
   });
-  if (!res.ok) throw new Error(`linear oauth http ${res.status}`);
+  if (!res.ok) {
+    const message = `linear oauth http ${res.status}`;
+    const parsed = errorResponse.safeParse(await res.json().catch(() => null));
+    if (res.status === 401 || (parsed.success && AUTH_ERRORS.has(parsed.data.error))) {
+      throw new LinearAuthError(message);
+    }
+    throw new Error(message);
+  }
   const parsed = tokenResponse.safeParse(await res.json().catch(() => null));
   if (!parsed.success) throw new Error('linear oauth invalid response');
   const { access_token, refresh_token, expires_in } = parsed.data;

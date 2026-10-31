@@ -1,4 +1,5 @@
 export * from './authorize-installation';
+export * from './complete-linear-connect';
 export * from './complete-slack-connect';
 export * from './complete-web-login';
 export * from './decide-suggestion';
@@ -29,6 +30,7 @@ export * from './scan-member-signals';
 export * from './send-digest';
 export * from './send-late-daily';
 export * from './send-reminder';
+export * from './start-linear-connect';
 export * from './start-session';
 export * from './start-slack-connect';
 export * from './start-web-login';

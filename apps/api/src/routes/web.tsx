@@ -1,6 +1,7 @@
 import { negotiateLanguage } from '@standwise/core';
 import { API_KEY_SCOPES, type MemberRow, resolveSession, WEBHOOK_EVENTS } from '@standwise/db';
 import {
+  completeLinearConnect,
   completeSlackConnect,
   completeWebLogin,
   createInstallationApiKey,
@@ -15,6 +16,7 @@ import {
   revokeInstallationApiKey,
   type SetupStatus,
   sendTestEvent,
+  startLinearConnect,
   startSlackConnect,
   startWebLogin,
   verifyCsrf,
@@ -320,6 +322,29 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
   app.get('/oauth/slack/callback', async (c) => {
     const session = await requireSession(c);
     const { installationId: id } = await completeSlackConnect(deps, isMember, session.member, {
+      sessionToken: session.token,
+      code: c.req.query('code'),
+      state: c.req.query('state'),
+      error: c.req.query('error'),
+    });
+    return c.redirect(`/setup?installation_id=${id}`);
+  });
+
+  app.get('/connect/linear', async (c) => {
+    const session = await readSession(c);
+    if (!session) return loginRedirect(c);
+    const result = await resyncOnPending(c, () =>
+      startLinearConnect(deps, isMember, session.member, {
+        sessionToken: session.token,
+        installationId: installationId(c),
+      }),
+    );
+    return result instanceof Response ? result : c.redirect(result.url);
+  });
+
+  app.get('/oauth/linear/callback', async (c) => {
+    const session = await requireSession(c);
+    const { installationId: id } = await completeLinearConnect(deps, isMember, session.member, {
       sessionToken: session.token,
       code: c.req.query('code'),
       state: c.req.query('state'),

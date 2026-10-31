@@ -22,6 +22,8 @@ const schema = z.object({
   SESSION_SECRET: z.string().min(16),
   SLACK_CLIENT_ID: z.string().min(1),
   SLACK_CLIENT_SECRET: z.string().min(1),
+  LINEAR_CLIENT_ID: z.string().min(1),
+  LINEAR_CLIENT_SECRET: z.string().min(1),
 });
 
 export type Env = z.output<typeof schema>;

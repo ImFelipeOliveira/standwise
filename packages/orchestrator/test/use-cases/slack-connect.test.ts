@@ -76,7 +76,9 @@ describe('completeSlackConnect', () => {
     expect(await getConnection(db, INST, 'slack', KEY)).toEqual({
       externalId: 'T1',
       externalName: 'Acme Workspace',
+      externalKey: null,
       secret: 'xoxb-1',
+      invalidatedAt: null,
     });
   });
 

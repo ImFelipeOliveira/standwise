@@ -14,6 +14,8 @@ const base = {
   SESSION_SECRET: 'a-session-secret-of-length',
   SLACK_CLIENT_ID: 'sid',
   SLACK_CLIENT_SECRET: 'ssecret',
+  LINEAR_CLIENT_ID: 'lid',
+  LINEAR_CLIENT_SECRET: 'lsecret',
 };
 
 describe('parseEnv', () => {

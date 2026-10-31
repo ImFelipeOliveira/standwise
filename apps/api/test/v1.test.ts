@@ -119,6 +119,14 @@ function harness(
         throw new Error('unused');
       },
     },
+    linear: {
+      exchangeCode: async () => {
+        throw new Error('unused');
+      },
+      refreshToken: async () => {
+        throw new Error('unused');
+      },
+    },
     chatFor: async () =>
       opts.hasSlack === false
         ? null
@@ -137,6 +145,8 @@ function harness(
       sessionSecret: 'sess',
       slackClientId: 'sid',
       slackClientSecret: 'ssecret',
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
       appId: '1',
       webhookSecret: 'whsec',
     },

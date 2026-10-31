@@ -23,6 +23,7 @@
         "@standwise/core": "workspace:*",
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/orchestrator": "workspace:*",
         "@standwise/queue": "workspace:*",
         "@standwise/slack": "workspace:*",
@@ -48,6 +49,7 @@
       "dependencies": {
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/orchestrator": "workspace:*",
         "@standwise/queue": "workspace:*",
         "zod": "^4.6.7",
@@ -107,6 +109,7 @@
         "@standwise/core": "workspace:*",
         "@standwise/db": "workspace:*",
         "@standwise/github": "workspace:*",
+        "@standwise/linear": "workspace:*",
         "@standwise/queue": "workspace:*",
         "@standwise/slack": "workspace:*",
       },

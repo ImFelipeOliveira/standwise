@@ -13,6 +13,7 @@ import type {
   Octokit,
   resolveTeamMembers,
 } from '@standwise/github';
+import type { exchangeLinearCode, LinearFetch, refreshLinearToken } from '@standwise/linear';
 import type { JobQueue } from '@standwise/queue';
 import type { exchangeSlackCode } from '@standwise/slack';
 import type { ProjectTracker } from './project-tracker';
@@ -40,6 +41,11 @@ export type Deps = {
   slack: {
     exchangeCode: typeof exchangeSlackCode;
   };
+  linear: {
+    exchangeCode: typeof exchangeLinearCode;
+    refreshToken: typeof refreshLinearToken;
+    fetch?: LinearFetch;
+  };
   chatFor: (installationId: number, provider: 'slack') => Promise<ChatChannel | null>;
   tracker: ProjectTracker;
   webhookTransport?: SafeFetchOptions;
@@ -53,10 +59,20 @@ export type Deps = {
     sessionSecret: string;
     slackClientId: string;
     slackClientSecret: string;
+    linearClientId: string;
+    linearClientSecret: string;
   };
 };
 
 export type WorkerDeps = Pick<
   Deps,
-  'db' | 'queue' | 'now' | 'chatFor' | 'github' | 'encryptionKey' | 'webhookTransport' | 'tracker'
->;
+  | 'db'
+  | 'queue'
+  | 'now'
+  | 'chatFor'
+  | 'github'
+  | 'encryptionKey'
+  | 'webhookTransport'
+  | 'tracker'
+  | 'linear'
+> & { env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret'> };

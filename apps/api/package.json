@@ -12,6 +12,7 @@
     "@standwise/core": "workspace:*",
     "@standwise/db": "workspace:*",
     "@standwise/github": "workspace:*",
+    "@standwise/linear": "workspace:*",
     "@standwise/orchestrator": "workspace:*",
     "@standwise/queue": "workspace:*",
     "@standwise/slack": "workspace:*",

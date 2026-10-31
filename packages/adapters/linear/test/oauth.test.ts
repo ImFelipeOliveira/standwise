@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { exchangeLinearCode, linearAuthorizeUrl, refreshLinearToken } from '../src';
+import {
+  exchangeLinearCode,
+  LinearAuthError,
+  linearAuthorizeUrl,
+  refreshLinearToken,
+} from '../src';
 import { fakeFetch } from './helpers';
 
 test('authorize url asks for app actor and read scope', () => {
@@ -71,4 +76,31 @@ test('malformed token response throws', async () => {
   await expect(
     refreshLinearToken({ clientId: 'a', clientSecret: 'b', refreshToken: 'c' }, f.fetch),
   ).rejects.toThrow('linear oauth invalid response');
+});
+
+test('a revoked or invalid grant is an auth error', async () => {
+  const f = fakeFetch({ status: 400, body: '{"error":"invalid_grant"}' });
+  const err = await refreshLinearToken(
+    { clientId: 'a', clientSecret: 'b', refreshToken: 'c' },
+    f.fetch,
+  ).catch((e: Error) => e);
+  expect(err).toBeInstanceOf(LinearAuthError);
+  expect((err as Error).message).toBe('linear oauth http 400');
+});
+
+test('a rejected client is an auth error', async () => {
+  const f = fakeFetch({ status: 401, body: '{"error":"invalid_client"}' });
+  await expect(
+    refreshLinearToken({ clientId: 'a', clientSecret: 'b', refreshToken: 'c' }, f.fetch),
+  ).rejects.toBeInstanceOf(LinearAuthError);
+});
+
+test('other token failures are not auth errors', async () => {
+  const f = fakeFetch({ status: 400, body: '{"error":"invalid_request"}' });
+  const err = await refreshLinearToken(
+    { clientId: 'a', clientSecret: 'b', refreshToken: 'c' },
+    f.fetch,
+  ).catch((e: Error) => e);
+  expect(err).not.toBeInstanceOf(LinearAuthError);
+  expect((err as Error).message).toBe('linear oauth http 400');
 });

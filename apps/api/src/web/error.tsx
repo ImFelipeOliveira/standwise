@@ -8,6 +8,7 @@ const PAGE_CODES = [
   'access_denied',
   'installation_pending',
   'slack_oauth_failed',
+  'linear_oauth_failed',
   'not_found',
   'rate_limited',
 ] as const;

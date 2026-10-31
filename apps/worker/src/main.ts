@@ -12,6 +12,7 @@ import {
   listPullRequestFiles,
   resolveTeamMembers,
 } from '@standwise/github';
+import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
 import {
   createChatFor,
   DELIVER_WEBHOOK_JOB,
@@ -78,6 +79,11 @@ const deps: WorkerDeps = {
   },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
   tracker: nullTracker,
+  linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
+  env: {
+    linearClientId: env.LINEAR_CLIENT_ID,
+    linearClientSecret: env.LINEAR_CLIENT_SECRET,
+  },
 };
 
 await queue.start();
