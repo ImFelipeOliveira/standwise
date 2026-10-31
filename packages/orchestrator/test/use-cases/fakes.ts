@@ -11,7 +11,7 @@ import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
 import type { LinearOrganization, LinearTokens } from '@standwise/linear';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
-import { type Deps, nullTracker } from '../../src';
+import { createTrackerFor, type Deps } from '../../src';
 
 export const INST = 11;
 
@@ -65,20 +65,39 @@ export function fakeLinear() {
     refreshError: null as Error | null,
     graphqlStatus: 200,
     users: new Map<string, string>(),
+    issues: new Map<string, unknown>(),
+    activity: [] as unknown[],
+    stale: [] as unknown[],
   };
   const calls = {
     exchanges: [] as { code: string; redirectUri: string; clientId: string }[],
     refreshes: [] as { refreshToken: string; clientId: string; clientSecret: string }[],
     bearer: [] as string[],
     userLookups: [] as string[],
+    queries: [] as { name: string; variables: Record<string, unknown> }[],
   };
   const fetchImpl = (async (_url: RequestInfo | URL, init?: RequestInit) => {
     calls.bearer.push(new Headers(init?.headers).get('authorization') ?? '');
     if (state.graphqlStatus !== 200) return new Response('', { status: state.graphqlStatus });
     const body = JSON.parse(String(init?.body ?? '{}')) as {
       query?: string;
-      variables?: { email?: string };
+      variables?: { email?: string; identifier?: string };
     };
+    const name = /query (\w+)/.exec(body.query ?? '')?.[1] ?? '';
+    calls.queries.push({ name, variables: { ...body.variables } });
+    if (name === 'Issue') {
+      const issue = state.issues.get(body.variables?.identifier ?? '');
+      if (issue) return Response.json({ data: { issue } });
+      return Response.json({
+        errors: [{ message: 'Entity not found: Issue', extensions: { code: 'INVALID_INPUT' } }],
+      });
+    }
+    if (name === 'CardActivity') {
+      return Response.json({ data: { issues: { nodes: state.activity } } });
+    }
+    if (name === 'StaleInProgress') {
+      return Response.json({ data: { issues: { nodes: state.stale } } });
+    }
     if (body.query?.includes('UserByEmail')) {
       const email = (body.variables?.email ?? '').toLowerCase();
       calls.userLookups.push(email);
@@ -237,7 +256,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
           return 'U9';
         },
       }) as never,
-    tracker: nullTracker,
+    trackerFor: (...args) => createTrackerFor(deps)(...args),
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

@@ -166,6 +166,8 @@ const ptBR = {
   'blockerRouted.reason.codeowners': 'Você recebeu porque você é dono de código alterado no PR.',
   'blockerRouted.reason.card_blocker':
     'Você recebeu porque você é responsável pelo card que bloqueia.',
+  'blockerRouted.reason.card_owner':
+    'Você recebeu porque você é responsável pelo card bloqueado ou o criou.',
   'blockerRouted.reason.manager': 'Você recebeu porque você é gestor do time.',
   'suggestion.pr_no_review':
     'O PR {title} está há mais de {hours}h sem review. Quer mencioná-lo como impedimento?',
@@ -355,6 +357,8 @@ const en = {
   'blockerRouted.reason.codeowners': 'You got this because you own code changed in the PR.',
   'blockerRouted.reason.card_blocker':
     'You got this because you are responsible for the blocking card.',
+  'blockerRouted.reason.card_owner':
+    'You got this because you are responsible for or created the blocked card.',
   'blockerRouted.reason.manager': 'You got this because you manage the team.',
   'suggestion.pr_no_review':
     'The PR {title} has had no review for over {hours}h. Want to mention it as a blocker?',

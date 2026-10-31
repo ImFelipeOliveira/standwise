@@ -13,7 +13,7 @@ import {
   resolveTeamMembers,
 } from '@standwise/github';
 import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
-import { createChatFor, type Deps, nullTracker } from '@standwise/orchestrator';
+import { createChatFor, createTrackerFor, type Deps } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
 import { exchangeSlackCode } from '@standwise/slack';
 import { createApp } from './app';
@@ -62,7 +62,7 @@ const deps: Deps = {
   slack: { exchangeCode: exchangeSlackCode },
   linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
-  tracker: nullTracker,
+  trackerFor: (...args) => createTrackerFor(deps)(...args),
   env: {
     publicUrl: env.PUBLIC_URL,
     supportEmail: env.SUPPORT_EMAIL,

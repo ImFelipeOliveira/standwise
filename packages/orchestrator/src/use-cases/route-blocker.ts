@@ -6,6 +6,7 @@ import {
   ownersForFiles,
   parseCodeowners,
   parsePullRequestUrl,
+  type Ref,
   type ResolvedTeam,
   type StandwiseConfig,
   teamsForMember,
@@ -24,6 +25,7 @@ import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { blockerRouteId } from '../events';
 import { logError } from '../log-error';
+import type { CardOwners } from '../project-tracker';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
 
@@ -121,6 +123,31 @@ async function lookupPullRequestTarget(
   return owners.length > 0 ? { reason: 'codeowners', logins: owners } : null;
 }
 
+async function cardTarget(
+  deps: WorkerDeps,
+  ctx: RouteContext,
+  ref: Ref,
+): Promise<RouteTarget | null> {
+  let owners: CardOwners | null;
+  try {
+    const tracker = await deps.trackerFor(ctx.installationId, ctx.owner, ctx.config, ctx.firstTeam);
+    owners = await tracker.cardOwners(ref);
+  } catch (error) {
+    logError('blocker route tracker lookup failed', error, {
+      installationId: String(ctx.installationId),
+    });
+    return null;
+  }
+  if (!owners) return null;
+  const blockers = cleanLogins(owners.blockers, [ctx.author]);
+  if (blockers.length > 0) return { reason: 'card_blocker', logins: blockers };
+  for (const login of [owners.assignee, owners.creator]) {
+    const logins = cleanLogins(login ? [login] : [], [ctx.author]);
+    if (logins.length > 0) return { reason: 'card_owner', logins };
+  }
+  return null;
+}
+
 export async function resolveRouteTarget(
   deps: WorkerDeps,
   ctx: RouteContext,
@@ -134,9 +161,8 @@ export async function resolveRouteTarget(
     }
   }
   if (ref?.kind === 'card') {
-    const assignee = await deps.tracker.blockingAssignee(ctx.installationId, ref);
-    const logins = cleanLogins(assignee ? [assignee] : [], [ctx.author]);
-    if (logins.length > 0) return { reason: 'card_blocker', logins };
+    const found = await cardTarget(deps, ctx, ref);
+    if (found) return found;
   }
   return managerTarget(ctx);
 }

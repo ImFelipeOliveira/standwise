@@ -67,7 +67,7 @@ function harness(source: Source) {
       },
     },
     chatFor: async () => null,
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

@@ -15,10 +15,10 @@ import {
 import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
 import {
   createChatFor,
+  createTrackerFor,
   DELIVER_WEBHOOK_JOB,
   LINK_TRACKER_IDENTITIES_JOB,
   LOAD_CONFIG_JOB,
-  nullTracker,
   PRUNE_DATA_JOB,
   RESOLVE_CHECK_SUITE_JOB,
   ROUTE_BLOCKER_JOB,
@@ -80,7 +80,7 @@ const deps: WorkerDeps = {
       }),
   },
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
-  tracker: nullTracker,
+  trackerFor: (...args) => createTrackerFor(deps)(...args),
   linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
   env: {
     linearClientId: env.LINEAR_CLIENT_ID,

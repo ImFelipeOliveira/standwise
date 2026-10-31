@@ -136,7 +136,7 @@ function harness(
               return opts.slackUser === undefined ? 'U9' : opts.slackUser;
             },
           } as never),
-    tracker: nullTracker,
+    trackerFor: async () => nullTracker,
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',

@@ -6,6 +6,7 @@ export * from './events';
 export * from './github-installations';
 export * from './identity';
 export * from './linear-access';
+export * from './linear-tracker';
 export * from './log-error';
 export * from './membership';
 export * from './project-tracker';

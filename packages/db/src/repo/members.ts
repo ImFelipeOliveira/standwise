@@ -244,3 +244,24 @@ export async function listInstallationMembers(
     .where(eq(memberInstallations.installationId, installationId))
     .orderBy(members.login);
 }
+
+export async function getIdentityByLogin(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+  login: string,
+): Promise<string | null> {
+  const rows = await db
+    .select({ externalId: memberIdentities.externalId })
+    .from(memberIdentities)
+    .innerJoin(members, eq(members.id, memberIdentities.memberId))
+    .where(
+      and(
+        eq(memberIdentities.installationId, installationId),
+        eq(memberIdentities.provider, provider),
+        eq(sql`lower(${members.login})`, login.toLowerCase()),
+      ),
+    )
+    .limit(2);
+  return rows.length === 1 ? (rows[0]?.externalId ?? null) : null;
+}

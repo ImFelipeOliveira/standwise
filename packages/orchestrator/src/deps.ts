@@ -16,7 +16,7 @@ import type {
 import type { exchangeLinearCode, LinearFetch, refreshLinearToken } from '@standwise/linear';
 import type { JobQueue } from '@standwise/queue';
 import type { exchangeSlackCode } from '@standwise/slack';
-import type { ProjectTracker } from './project-tracker';
+import type { TrackerFor } from './linear-tracker';
 import type { SafeFetchOptions } from './safe-fetch';
 
 export type Deps = {
@@ -47,7 +47,7 @@ export type Deps = {
     fetch?: LinearFetch;
   };
   chatFor: (installationId: number, provider: 'slack') => Promise<ChatChannel | null>;
-  tracker: ProjectTracker;
+  trackerFor: TrackerFor;
   webhookTransport?: SafeFetchOptions;
   env: {
     publicUrl: string;
@@ -73,6 +73,6 @@ export type WorkerDeps = Pick<
   | 'github'
   | 'encryptionKey'
   | 'webhookTransport'
-  | 'tracker'
+  | 'trackerFor'
   | 'linear'
 > & { env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret'> };
