@@ -174,13 +174,13 @@ describe('getSetupStatus linear', () => {
     expect((await status(tracker('linear'))).trackerNotices).toEqual(['linear_not_connected']);
   });
 
-  test('warns when a team uses linear and the connection is invalid', async () => {
+  test('an invalid connection shows its own reconnect state, not the not-connected notice', async () => {
     const result = await status(tracker('linear'), async () => {
       await saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
       await markConnectionInvalid(db, INST, 'linear');
     });
     expect(result.linear).toMatchObject({ connected: true, invalid: true });
-    expect(result.trackerNotices).toEqual(['linear_not_connected']);
+    expect(result.trackerNotices).toEqual([]);
   });
 
   test('a connection without a url key is shown as invalid', async () => {
@@ -188,7 +188,7 @@ describe('getSetupStatus linear', () => {
       saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear'),
     );
     expect(result.linear).toMatchObject({ connected: true, invalid: true });
-    expect(result.trackerNotices).toEqual(['linear_not_connected']);
+    expect(result.trackerNotices).toEqual([]);
   });
 
   test('says jira is coming soon when a team uses jira', async () => {

@@ -52,9 +52,7 @@ function trackerNotices(
 ): TrackerNotice[] {
   const providers = new Set(config?.teams.map((team) => team.tracker?.provider) ?? []);
   const notices: TrackerNotice[] = [];
-  if (providers.has('linear') && (!linear.connected || linear.invalid)) {
-    notices.push('linear_not_connected');
-  }
+  if (providers.has('linear') && !linear.connected) notices.push('linear_not_connected');
   if (providers.has('jira')) notices.push('jira_coming_soon');
   return notices;
 }
