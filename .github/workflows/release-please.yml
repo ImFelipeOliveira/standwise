@@ -48,6 +48,8 @@ jobs:
         run: echo "::warning::CLI not present, no binaries attached"
       - name: Build CLI binaries
         if: hashFiles('apps/cli/src/main.ts') != ''
+        env:
+          STANDWISE_DEFAULT_API_URL: https://standwise.usefachada.dev
         run: bun run build:cli
       - name: Upload CLI binaries
         if: hashFiles('apps/cli/src/main.ts') != ''

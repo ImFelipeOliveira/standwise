@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { CLI_COMPILE_FLAGS } from './cli-compile-flags';
+import { CLI_COMPILE_FLAGS, cliDefineFlags } from './cli-compile-flags';
 
 const targets = [
   'bun-darwin-arm64',
@@ -9,6 +9,8 @@ const targets = [
   'bun-linux-arm64',
   'bun-windows-x64',
 ];
+
+const defineFlags = cliDefineFlags(process.env);
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist', { recursive: true });
@@ -22,6 +24,7 @@ for (const target of targets) {
       'bun',
       'build',
       ...CLI_COMPILE_FLAGS,
+      ...defineFlags,
       `--target=${target}`,
       'apps/cli/src/main.ts',
       '--outfile',
