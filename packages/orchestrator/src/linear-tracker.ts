@@ -1,6 +1,5 @@
 import {
   type ActivityItem,
-  type CardSnapshot,
   parseLinearIssueUrl,
   type Ref,
   type StandwiseConfig,
@@ -18,7 +17,12 @@ import {
 import type { Deps } from './deps';
 import { type LinearAccess, type LinearAccessDeps, linearClientFor } from './linear-access';
 import { logError } from './log-error';
-import { type CardOwners, nullTracker, type ProjectTracker } from './project-tracker';
+import {
+  type CardOwners,
+  nullTracker,
+  type ProjectTracker,
+  type StaleCards,
+} from './project-tracker';
 import { configPeople, loginForLinearUser } from './tracker-identity';
 
 export type TrackerDeps = LinearAccessDeps & Pick<Deps, 'github'>;
@@ -89,9 +93,9 @@ class LinearTracker implements ProjectTracker {
     );
   }
 
-  async listStaleInProgress(login: string): Promise<CardSnapshot[]> {
+  async listStaleInProgress(login: string): Promise<StaleCards> {
     const userId = await this.linearUserId(login);
-    if (!userId) return [];
+    if (!userId) return { cards: [], truncated: false };
     return this.guard(() =>
       listStaleInProgress(this.access.client, { userId, teamKey: this.teamKey }),
     );

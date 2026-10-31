@@ -1,4 +1,4 @@
-export { listCardActivity, listStaleInProgress } from './activity';
+export { listCardActivity, listStaleInProgress, STALE_PAGE_SIZE } from './activity';
 export {
   createLinearClient,
   LINEAR_GRAPHQL_URL,

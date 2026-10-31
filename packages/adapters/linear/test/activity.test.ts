@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createLinearClient, listCardActivity, listStaleInProgress } from '../src';
+import { createLinearClient, listCardActivity, listStaleInProgress, STALE_PAGE_SIZE } from '../src';
 import { fakeFetch, fixture } from './helpers';
 
 const since = new Date('2026-10-29T00:00:00.000Z');
@@ -50,19 +50,22 @@ test('activity inputs go through variables with first 50', async () => {
 
 test('stale list drops issues without startedAt and malformed nodes', async () => {
   const f = fakeFetch({ body: fixture('stale.json') });
-  const cards = await listStaleInProgress(createLinearClient('t', f.fetch), {
+  const stale = await listStaleInProgress(createLinearClient('t', f.fetch), {
     userId: 'u1',
     teamKey: 'ENG',
   });
-  expect(cards).toEqual([
-    {
-      id: 'a',
-      identifier: 'ENG-1',
-      url: 'https://linear.app/acme/issue/ENG-1',
-      title: 'Slow',
-      startedAt: new Date('2026-10-01T10:00:00.000Z'),
-    },
-  ]);
+  expect(stale).toEqual({
+    cards: [
+      {
+        id: 'a',
+        identifier: 'ENG-1',
+        url: 'https://linear.app/acme/issue/ENG-1',
+        title: 'Slow',
+        startedAt: new Date('2026-10-01T10:00:00.000Z'),
+      },
+    ],
+    truncated: false,
+  });
   const sent = JSON.parse(f.calls[0]?.body ?? '');
   expect(sent.variables).toEqual({ userId: 'u1', teamKey: 'ENG' });
   expect(sent.query).toContain('"started"');
@@ -76,4 +79,22 @@ test('every request goes to api.linear.app only', async () => {
   await listStaleInProgress(client, { userId: 'u', teamKey: 'ENG' });
   expect(f.calls.length).toBe(2);
   for (const c of f.calls) expect(c.url.host).toBe('api.linear.app');
+});
+
+test('a full stale page is flagged as truncated, even with dropped nodes', async () => {
+  expect(STALE_PAGE_SIZE).toBe(50);
+  const nodes = Array.from({ length: STALE_PAGE_SIZE }, (_, i) => ({
+    id: `c${i}`,
+    identifier: `ENG-${i}`,
+    url: `https://linear.app/acme/issue/ENG-${i}`,
+    title: 'Card',
+    startedAt: i === 0 ? null : '2026-10-01T10:00:00.000Z',
+  }));
+  const f = fakeFetch({ body: JSON.stringify({ data: { issues: { nodes } } }) });
+  const stale = await listStaleInProgress(createLinearClient('t', f.fetch), {
+    userId: 'u1',
+    teamKey: 'ENG',
+  });
+  expect(stale.truncated).toBe(true);
+  expect(stale.cards).toHaveLength(STALE_PAGE_SIZE - 1);
 });

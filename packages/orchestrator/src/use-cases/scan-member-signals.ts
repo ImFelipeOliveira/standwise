@@ -1,5 +1,4 @@
 import {
-  type CardSnapshot,
   detectCardSignals,
   detectPullRequestSignals,
   type SignalKind,
@@ -18,6 +17,7 @@ import {
 import { GitHubRateLimitError } from '@standwise/github';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
+import type { StaleCards } from '../project-tracker';
 import { resolveTeams } from '../teams';
 import { CI_FAILING_HOURS, notifySuggestions } from './notify-suggestions';
 
@@ -163,16 +163,21 @@ async function syncPullRequestSignals(
 }
 
 async function syncCardSignals(deps: WorkerDeps, ctx: ScanContext): Promise<SuggestionRow[]> {
-  let cards: CardSnapshot[] | null;
+  const extra = { installationId: String(ctx.installationId) };
+  let stale: StaleCards | null;
   try {
     const tracker = await deps.trackerFor(ctx.installationId, ctx.owner, ctx.config, ctx.team);
-    cards = tracker.connected ? await tracker.listStaleInProgress(ctx.login) : null;
+    stale = tracker.connected ? await tracker.listStaleInProgress(ctx.login) : null;
   } catch (error) {
-    logError('signal scan tracker lookup failed', error);
+    logError('signal scan tracker lookup failed', error, extra);
     throw error;
   }
-  if (!cards) return [];
-  const signals = detectCardSignals(cards, deps.now(), ctx.team.signals.cardStaleDays);
+  if (!stale) return [];
+  if (stale.truncated) {
+    logError('signal scan card page truncated', new Error('card_page_truncated'), extra);
+    return [];
+  }
+  const signals = detectCardSignals(stale.cards, deps.now(), ctx.team.signals.cardStaleDays);
   const { created } = await syncSuggestions(
     deps.db,
     ctx.installationId,

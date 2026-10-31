@@ -16,6 +16,10 @@ const ACTIVITY_QUERY = `query CardActivity($userId: ID!, $teamKey: String!, $sin
   }
 }`;
 
+export const STALE_PAGE_SIZE = 50;
+
+export type StaleCards = { cards: CardSnapshot[]; truncated: boolean };
+
 const STALE_QUERY = `query StaleInProgress($userId: ID!, $teamKey: String!) {
   issues(
     filter: {
@@ -23,7 +27,7 @@ const STALE_QUERY = `query StaleInProgress($userId: ID!, $teamKey: String!) {
       team: { key: { eq: $teamKey } }
       state: { type: { eq: "started" } }
     }
-    first: 50
+    first: ${STALE_PAGE_SIZE}
   ) {
     nodes { id identifier url title startedAt }
   }
@@ -85,17 +89,18 @@ export async function listCardActivity(
 export async function listStaleInProgress(
   client: LinearClient,
   input: { userId: string; teamKey: string },
-): Promise<CardSnapshot[]> {
+): Promise<StaleCards> {
   const data = await client.query<unknown>(STALE_QUERY, {
     userId: input.userId,
     teamKey: input.teamKey,
   });
+  const nodes = nodesOf(data);
   const cards: CardSnapshot[] = [];
-  for (const raw of nodesOf(data)) {
+  for (const raw of nodes) {
     const parsed = staleNode.safeParse(raw);
     if (!parsed.success || !parsed.data.startedAt) continue;
     const { id, identifier, url, title, startedAt } = parsed.data;
     cards.push({ id, identifier, url, title, startedAt });
   }
-  return cards;
+  return { cards, truncated: nodes.length >= STALE_PAGE_SIZE };
 }

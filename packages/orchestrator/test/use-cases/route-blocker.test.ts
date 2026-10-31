@@ -377,7 +377,7 @@ describe('resolveRouteTarget', () => {
           creator: null,
         }),
         listActivity: async () => [],
-        listStaleInProgress: async () => [],
+        listStaleInProgress: async () => ({ cards: [], truncated: false }),
       };
     };
     expect(await target(fake, cardBlocker())).toEqual({

@@ -475,10 +475,36 @@ describe('scanMemberSignals', () => {
       spy.mockRestore();
       expect(String(error)).toContain('linear http 500');
       expect(logged).toContain('linear http 500');
+      expect(logged).toContain(`"installationId":"${INST}"`);
       expect(logged).not.toContain('Flaky deploy');
       expect(await states(s.alice.id)).toEqual([
         { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
         { fingerprint: FP, state: 'resolved', notified: false },
+      ]);
+    });
+
+    test('a full page of cards skips the card sync and never resolves pending cards', async () => {
+      const s = await setup({ linear: true });
+      s.linear.state.stale = [staleCard()];
+      await s.scan();
+      s.linear.state.stale = Array.from({ length: 50 }, (_, i) => ({
+        ...staleCard(),
+        id: `other-${i}`,
+        identifier: `ENG-${100 + i}`,
+        url: `https://linear.app/acme/issue/ENG-${100 + i}`,
+      }));
+      const spy = quiet();
+      let logged = '';
+      try {
+        await s.scan();
+        logged = JSON.stringify(spy.mock.calls);
+      } finally {
+        spy.mockRestore();
+      }
+      expect(logged).toContain('signal scan card page truncated');
+      expect(logged).toContain(`"installationId":"${INST}"`);
+      expect(await states(s.alice.id)).toEqual([
+        { fingerprint: cardFp(ago(6 * 24)), state: 'pending', notified: false },
       ]);
     });
 

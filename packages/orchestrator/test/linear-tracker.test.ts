@@ -102,7 +102,7 @@ describe('trackerFor', () => {
     expect(fake.linear.calls.bearer).toEqual([]);
   });
 
-  test('a refresh failure that is not auth gives the null tracker without throwing', async () => {
+  test('a refresh failure that is not auth on an expired token gives the null tracker', async () => {
     const fake = await setup(trackerConfig(), false);
     await saveConnection(
       db,
@@ -112,7 +112,7 @@ describe('trackerFor', () => {
       JSON.stringify({
         accessToken: 'lin_at_1',
         refreshToken: 'lin_rt_1',
-        expiresAt: '2026-10-28T15:01:00.000Z',
+        expiresAt: '2026-10-28T14:59:00.000Z',
       }),
       KEY,
       'Acme',
@@ -136,7 +136,7 @@ describe('trackerFor', () => {
     expect(nullTracker.connected).toBe(false);
     expect(await nullTracker.cardOwners(card())).toBeNull();
     expect(await nullTracker.listActivity('alice', new Date())).toEqual([]);
-    expect(await nullTracker.listStaleInProgress('alice')).toEqual([]);
+    expect(await nullTracker.listStaleInProgress('alice')).toEqual({ cards: [], truncated: false });
   });
 });
 
@@ -278,7 +278,7 @@ describe('listActivity and listStaleInProgress', () => {
     const fake = await setup();
     const tracker = await fake.build();
     expect(await tracker.listActivity('alice', since)).toEqual([]);
-    expect(await tracker.listStaleInProgress('alice')).toEqual([]);
+    expect(await tracker.listStaleInProgress('alice')).toEqual({ cards: [], truncated: false });
     expect(fake.linear.calls.bearer).toEqual([]);
   });
 
@@ -314,15 +314,18 @@ describe('listActivity and listStaleInProgress', () => {
         at: new Date('2026-10-27T09:00:00.000Z'),
       },
     ]);
-    expect(await tracker.listStaleInProgress('alice')).toEqual([
-      {
-        id: 'b',
-        identifier: 'ENG-2',
-        url: 'https://linear.app/acme/issue/ENG-2',
-        title: 'Old',
-        startedAt: new Date('2026-10-01T10:00:00.000Z'),
-      },
-    ]);
+    expect(await tracker.listStaleInProgress('alice')).toEqual({
+      cards: [
+        {
+          id: 'b',
+          identifier: 'ENG-2',
+          url: 'https://linear.app/acme/issue/ENG-2',
+          title: 'Old',
+          startedAt: new Date('2026-10-01T10:00:00.000Z'),
+        },
+      ],
+      truncated: false,
+    });
     expect(fake.linear.calls.queries).toEqual([
       {
         name: 'CardActivity',
