@@ -35,25 +35,30 @@ export const HEALTH_TIMEOUT_MS = 2000;
 export type PublicOptions = { getClientIp: GetClientIp; healthTimeoutMs?: number };
 
 function createDatabaseProbe(deps: Deps, timeoutMs: number): () => Promise<boolean> {
-  let pending: Promise<boolean> | undefined;
-  const run = () =>
-    Promise.resolve()
-      .then(() => deps.db.execute(sql`select 1`))
-      .then(
-        () => true,
-        () => false,
-      )
-      .finally(() => {
-        pending = undefined;
-      });
+  let pending: { query: Promise<boolean>; startedAt: number } | undefined;
+  const run = () => {
+    const entry = {
+      startedAt: Date.now(),
+      query: Promise.resolve()
+        .then(() => deps.db.execute(sql`select 1`))
+        .then(
+          () => true,
+          () => false,
+        )
+        .finally(() => {
+          if (pending === entry) pending = undefined;
+        }),
+    };
+    return entry;
+  };
   return async () => {
-    pending ??= run();
+    if (!pending || Date.now() - pending.startedAt > 5 * timeoutMs) pending = run();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<boolean>((resolve) => {
       timer = setTimeout(() => resolve(false), timeoutMs);
     });
     try {
-      return await Promise.race([pending, timeout]);
+      return await Promise.race([pending.query, timeout]);
     } finally {
       clearTimeout(timer);
     }

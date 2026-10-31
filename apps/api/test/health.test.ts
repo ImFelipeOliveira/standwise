@@ -69,6 +69,30 @@ describe('health', () => {
     expect(calls).toBe(1);
   });
 
+  test('a query hung past five timeouts is dropped and a fresh one runs', async () => {
+    let calls = 0;
+    const stuck = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'execute') {
+          return (query: Parameters<Deps['db']['execute']>[0]) => {
+            calls++;
+            if (calls === 1) return new Promise(() => {});
+            return target.execute(query);
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Deps['db'];
+    const { app } = createTestApp({ db: stuck, healthTimeoutMs: 20 });
+    expect((await app.request('/health')).status).toBe(503);
+    expect((await app.request('/health')).status).toBe(503);
+    expect(calls).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const res = await app.request('/health');
+    expect(res.status).toBe(200);
+    expect(calls).toBe(2);
+  });
+
   test('concurrent probes share one query and all report a healthy database', async () => {
     let calls = 0;
     let release: () => void = () => {};
