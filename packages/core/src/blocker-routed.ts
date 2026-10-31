@@ -1,9 +1,16 @@
 import type { Language } from './config';
 import type { Item } from './daily';
-import { formatDate, t } from './i18n';
+import { formatDate, type MessageKey, t } from './i18n';
 import { type Inline, type Message, type Person, personInline, toPlainText } from './message';
 
 export type BlockerRouteReason = 'pr_reviewers' | 'codeowners' | 'card_blocker' | 'manager';
+
+const REASON_KEYS: Record<BlockerRouteReason, MessageKey> = {
+  pr_reviewers: 'blockerRouted.reason.pr_reviewers',
+  codeowners: 'blockerRouted.reason.codeowners',
+  card_blocker: 'blockerRouted.reason.card_blocker',
+  manager: 'blockerRouted.reason.manager',
+};
 
 export function buildBlockerRouted(input: {
   lang: Language;
@@ -33,5 +40,6 @@ export function buildBlockerRouted(input: {
       content: [{ link: { text: blocker.ref.title ?? blocker.ref.url, url: blocker.ref.url } }],
     });
   }
+  blocks.push({ type: 'paragraph', content: [t(lang, REASON_KEYS[input.reason])] });
   return { fallbackText: toPlainText(blocks), blocks };
 }

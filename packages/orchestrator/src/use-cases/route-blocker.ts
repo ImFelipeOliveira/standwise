@@ -17,8 +17,8 @@ import {
   failDelivery,
   getDailyById,
   getInstallation,
-  listBlockerRoutes,
   operationalConfig,
+  reserveBlockerRoute,
 } from '@standwise/db';
 import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
@@ -167,9 +167,14 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
   const firstTeam = teamsForMember(author, teams)[0];
   if (!firstTeam) return;
   const blockerId = blockerRouteId(blocker);
-  const routed = await listBlockerRoutes(deps.db, job.installationId, daily.date, job.dailyId);
-  const previous = routed.get(blockerId);
-  if (!previous && routed.size >= MAX_ROUTED_BLOCKERS_PER_DAILY) {
+  const reservation = await reserveBlockerRoute(deps.db, {
+    installationId: job.installationId,
+    date: daily.date,
+    dailyId: job.dailyId,
+    blockerId,
+    limit: MAX_ROUTED_BLOCKERS_PER_DAILY,
+  });
+  if (reservation.status === 'capped') {
     console.error('blocker route cap reached', {
       installationId: String(job.installationId),
       dailyId: job.dailyId,
@@ -194,6 +199,7 @@ export async function routeBlocker(deps: WorkerDeps, job: RouteBlockerJob): Prom
     author,
   ]);
   if (target.reason !== 'manager' && !target.logins.some((l) => ids.has(l))) target = fallback;
+  const previous = reservation.recipients;
   if (previous) {
     target = { ...target, logins: target.logins.filter((l) => previous.has(l)) };
     if (target.logins.length === 0) return;

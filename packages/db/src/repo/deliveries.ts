@@ -169,33 +169,58 @@ export async function listPersonDeliveries(
     );
 }
 
-export async function listBlockerRoutes(
+const ROUTE_RESERVATION = '+';
+
+export type BlockerRouteReservation =
+  | { status: 'capped' }
+  | { status: 'reserved'; recipients: Set<string> | null };
+
+export async function reserveBlockerRoute(
   db: Db,
-  installationId: number,
-  date: string,
-  dailyId: string,
-): Promise<Map<string, Set<string>>> {
-  const rows = await db
-    .select({
-      id: sql<string>`split_part(${deliveries.subject}, ':', 2)`,
-      recipient: sql<string>`split_part(${deliveries.subject}, ':', 3)`,
-    })
-    .from(deliveries)
-    .where(
-      and(
-        eq(deliveries.installationId, installationId),
-        eq(deliveries.date, date),
-        eq(deliveries.kind, 'blocker_route'),
-        sql`split_part(${deliveries.subject}, ':', 1) = ${dailyId}`,
-      ),
+  k: { installationId: number; date: string; dailyId: string; blockerId: string; limit: number },
+): Promise<BlockerRouteReservation> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`${k.installationId}:${k.dailyId}`}))`,
     );
-  const routes = new Map<string, Set<string>>();
-  for (const row of rows) {
-    const recipients = routes.get(row.id) ?? new Set<string>();
-    recipients.add(row.recipient);
-    routes.set(row.id, recipients);
-  }
-  return routes;
+    const rows = await tx
+      .select({
+        id: sql<string>`split_part(${deliveries.subject}, ':', 2)`,
+        recipient: sql<string>`split_part(${deliveries.subject}, ':', 3)`,
+      })
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.installationId, k.installationId),
+          eq(deliveries.date, k.date),
+          eq(deliveries.kind, 'blocker_route'),
+          sql`split_part(${deliveries.subject}, ':', 1) = ${k.dailyId}`,
+        ),
+      );
+    const ids = new Set(rows.map((r) => r.id));
+    if (ids.has(k.blockerId)) {
+      const recipients = new Set(
+        rows
+          .filter((r) => r.id === k.blockerId && r.recipient !== ROUTE_RESERVATION)
+          .map((r) => r.recipient),
+      );
+      return { status: 'reserved', recipients: recipients.size > 0 ? recipients : null };
+    }
+    if (ids.size >= k.limit) return { status: 'capped' };
+    await tx
+      .insert(deliveries)
+      .values({
+        installationId: k.installationId,
+        teamName: '',
+        date: k.date,
+        kind: 'blocker_route',
+        subject: `${k.dailyId}:${k.blockerId}:${ROUTE_RESERVATION}`,
+        status: 'sent',
+        attempts: 1,
+      })
+      .onConflictDoNothing();
+    return { status: 'reserved', recipients: null };
+  });
 }
 
 export const ADMIN_VISIBLE_DELIVERY_KINDS = [

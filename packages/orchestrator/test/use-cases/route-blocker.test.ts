@@ -14,6 +14,7 @@ import {
   upsertMember,
 } from '@standwise/db';
 import type { PullRequestDetail } from '@standwise/github';
+import { deliveries } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   blockerRouteId,
@@ -400,6 +401,27 @@ describe('routeBlocker', () => {
     expect(logged).not.toContain('Blocker 10');
   });
 
+  test('concurrent route jobs for one daily still route at most 10 blockers', async () => {
+    const fake = await setup();
+    const blockers: Item[] = Array.from({ length: 12 }, (_, i) => ({ text: `Parallel ${i}` }));
+    const dailyId = await seedDaily(blockers);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    await Promise.all(
+      blockers.map((blocker, i) =>
+        routeBlocker(fake.deps, {
+          installationId: INST,
+          dailyId,
+          blockerIndex: i,
+          blockerId: blockerRouteId(blocker),
+        }),
+      ),
+    );
+    spy.mockRestore();
+    expect(fake.directs).toHaveLength(10);
+    const rows = (await db.select().from(deliveries)).filter((r) => r.kind === 'blocker_route');
+    expect(new Set(rows.map((r) => r.subject.split(':')[1])).size).toBe(10);
+  });
+
   test('a job whose blocker was removed does nothing', async () => {
     const fake = await setup();
     const dailyId = await seedDaily([{ text: 'Other' }]);
@@ -543,4 +565,35 @@ describe('buildBlockerRouted', () => {
       expect(msg.fallbackText).toContain(lang === 'pt-BR' ? '28/10/2026' : DATE);
     },
   );
+
+  const reasons = {
+    en: {
+      pr_reviewers: 'you are a requested reviewer on the PR',
+      codeowners: 'you own code changed in the PR',
+      card_blocker: 'you are responsible for the blocking card',
+      manager: 'you manage the team',
+    },
+    'pt-BR': {
+      pr_reviewers: 'você é revisor solicitado no PR',
+      codeowners: 'você é dono de código alterado no PR',
+      card_blocker: 'você é responsável pelo card que bloqueia',
+      manager: 'você é gestor do time',
+    },
+  } as const;
+  for (const lang of ['en', 'pt-BR'] as const) {
+    for (const reason of ['pr_reviewers', 'codeowners', 'card_blocker', 'manager'] as const) {
+      test(`${lang} explains why the person got a ${reason} DM`, () => {
+        const msg = buildBlockerRouted({
+          lang,
+          author: { login: 'bob' },
+          blocker: { text: 'Need prod access' },
+          reason,
+          date: DATE,
+        });
+        expect(msg.fallbackText).toContain(reasons[lang][reason]);
+        const others = Object.entries(reasons[lang]).filter(([key]) => key !== reason);
+        for (const [, text] of others) expect(msg.fallbackText).not.toContain(text);
+      });
+    }
+  }
 });
