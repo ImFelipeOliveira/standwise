@@ -43,7 +43,12 @@ ${extra}`);
 }
 
 function harness(
-  opts: { hasConfigRepo?: boolean; slackFails?: boolean; githubInstallations?: number[] } = {},
+  opts: {
+    hasConfigRepo?: boolean;
+    slackFails?: boolean;
+    githubInstallations?: number[];
+    ipFails?: boolean;
+  } = {},
 ) {
   const slackCalls: { code: string; redirectUri: string }[] = [];
   const webCodes: string[] = [];
@@ -136,7 +141,12 @@ function harness(
     },
   };
   return {
-    app: createApp(deps, { getClientIp: () => '192.0.2.1' }),
+    app: createApp(deps, {
+      getClientIp: () => {
+        if (opts.ipFails) throw new Error('connection address is unavailable');
+        return '192.0.2.1';
+      },
+    }),
     linear,
     slackCalls,
     webCodes,
@@ -351,10 +361,14 @@ describe('setup header', () => {
 
   test('error pages keep the simple header', async () => {
     const { app } = harness();
-    const res = await app.request('/setup?installation_id=1&resynced=1', {
-      headers: { 'accept-language': 'en' },
+    const { cookie } = await seed();
+    const forbidden = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
+      headers: { cookie, 'accept-language': 'en' },
     });
-    const html = await res.text();
+    expect(forbidden.status).toBe(403);
+    const html = await forbidden.text();
+    expect(html).toContain('<header class="topbar">');
+    expect(html).toContain('Access denied');
     expect(html).not.toContain('action="/logout"');
     expect(html).not.toContain('/docs/');
   });
@@ -548,7 +562,20 @@ describe('setup page', () => {
     expect(html).toContain('Only an admin can connect or reconnect Slack.');
   });
 
-  test('a member who is not an admin sees the admin note when slack is connected', async () => {
+  test('a member who is not an admin sees the admin note while slack is not connected', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed();
+    const html = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(html).not.toContain('/connect/slack');
+    expect(html).toContain('Só um admin pode conectar ou reconectar o Slack.');
+  });
+
+  test('a member who is not an admin sees no admin note once slack is connected', async () => {
     const { app, admins } = harness();
     admins.delete('alice');
     const { cookie } = await seed(async (id) => {
@@ -561,7 +588,7 @@ describe('setup page', () => {
     ).text();
     expect(html).toContain('Acme Workspace');
     expect(html).not.toContain('/connect/slack');
-    expect(html).toContain('Só um admin pode conectar ou reconectar o Slack.');
+    expect(html).not.toContain('Só um admin pode conectar ou reconectar o Slack.');
   });
 
   test('setup shows the access warning while keeping the configuration', async () => {
@@ -863,7 +890,25 @@ describe('linear connection', () => {
     ).text();
     expect(html).toContain('Acme Linear');
     expect(html).not.toContain('/connect/linear');
-    expect(html).toContain('Only an admin can connect or reconnect Linear.');
+    expect(html).not.toContain('Only an admin can connect or reconnect Linear.');
+  });
+
+  test('a member who is not an admin sees the linear admin note until it works', async () => {
+    const { app, admins } = harness();
+    admins.delete('alice');
+    const { cookie } = await seed();
+    const todo = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(todo).not.toContain('/connect/linear');
+    expect(todo).toContain('Only an admin can connect or reconnect Linear.');
+    await saveConnection(db, INST, 'linear', 'org-1', '{}', KEY, 'Acme Linear', 'acme');
+    await markConnectionInvalid(db, INST, 'linear');
+    const broken = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(broken).toContain('Linear stopped working');
+    expect(broken).toContain('Only an admin can connect or reconnect Linear.');
   });
 
   test('an invalid connection asks to reconnect', async () => {
@@ -1199,6 +1244,51 @@ describe('web rate limit', () => {
 
 describe('browser error pages', () => {
   useCleanDb();
+
+  test('forbidden renders the danger card with the sign in button and the support line', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const res = await app.request(`/setup?installation_id=${FOREIGN}&resynced=1`, {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(403);
+    const html = await res.text();
+    expect(html).toContain('class="card error-card"');
+    expect(html).toContain('class="status-icon status-icon-danger"');
+    expect(html).toContain('<a class="btn btn-primary" href="/auth/github/login">');
+    expect(html).toContain('Questions?');
+    expect(html).toContain('<a href="mailto:help@sw.test">help@sw.test</a>');
+  });
+
+  test('the pending page renders the warning card with the refresh button', async () => {
+    const { app } = harness({ githubInstallations: [INST, 777] });
+    await seed();
+    const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=777&resynced=1');
+    const login = await callback(app, state, loginCookie);
+    const cookie = /sw_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
+    const res = await app.request('/setup?installation_id=777&resynced=1', {
+      headers: { cookie, 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(409);
+    const html = (await res.text()).replaceAll('&amp;', '&');
+    expect(html).toContain('class="status-icon status-icon-warning"');
+    expect(html).toContain(
+      '<a class="btn btn-primary" href="/setup?installation_id=777&resynced=1">Refresh the page</a>',
+    );
+  });
+
+  test('an unexpected error renders the 500 page without a session', async () => {
+    const { app } = harness({ ipFails: true });
+    const res = await app.request(`/setup?installation_id=${INST}`, {
+      headers: { 'accept-language': 'en' },
+    });
+    expect(res.status).toBe(500);
+    const html = await res.text();
+    expect(html).toContain('Something went wrong');
+    expect(html).toContain('class="status-icon status-icon-neutral"');
+    expect(html).toContain('help@sw.test');
+    expect(html).not.toContain('action="/logout"');
+  });
 
   test('forbidden renders a localized html page in english and pt-BR', async () => {
     const { app } = harness();

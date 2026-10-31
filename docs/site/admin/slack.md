@@ -6,7 +6,7 @@ Standwise posts each team's digest to a Slack channel. One Slack workspace is co
 
 Only an organization admin can connect or reconnect Slack: a GitHub organization admin, or the account owner for a personal account. Standwise checks the role with GitHub when the connection starts and again when Slack sends the admin back. Other members see the connection on the setup page read-only.
 
-On the setup page, click **Connect Slack** and approve the app. The page then shows "Connected to workspace" and the workspace name.
+On the setup page, click **Connect Slack** and approve the app. The Slack step then shows "Connected to" and the workspace name.
 
 To connect again, for example after the app was removed from Slack or to move the digests to another workspace, click **Reconnect Slack** on the setup page. It goes through the same approval and replaces the previous connection.
 

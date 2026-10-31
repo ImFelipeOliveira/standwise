@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Language } from '@standwise/core';
+import { type Language, type MessageKey, t } from '@standwise/core';
 import type { SetupStatus } from '@standwise/orchestrator';
 import { ErrorPage } from '../src/web/error';
 import { PAGE_CSS } from '../src/web/layout';
@@ -435,7 +435,9 @@ describe('no inline styles or scripts', () => {
     for (const code of ERROR_CODES) {
       test(`error page ${code}, ${lang}`, async () => {
         for (const action of [undefined, { kind: 'signIn' as const, href: '/auth/github' }]) {
-          const html = await render(<ErrorPage lang={lang} code={code} action={action} />);
+          const html = await render(
+            <ErrorPage lang={lang} code={code} action={action} supportEmail="help@example.com" />,
+          );
           expect(html).not.toContain('style="');
           expect(html).not.toContain('<script');
         }
@@ -606,9 +608,10 @@ describe('setup checklist', () => {
       },
     });
     const webhooks = section(html, 'webhooks');
-    const scroll = webhooks.indexOf('class="table-scroll"');
-    expect(scroll).toBeGreaterThan(-1);
-    expect(webhooks.indexOf(url)).toBeGreaterThan(scroll);
+    const list = webhooks.indexOf('class="item-list"');
+    expect(list).toBeGreaterThan(-1);
+    expect(webhooks.indexOf(`<code>${url}</code>`)).toBeGreaterThan(list);
+    expect(webhooks.indexOf(url)).toBeLessThan(webhooks.indexOf('class="table-scroll"'));
     expect(html).toContain(`<strong class="topbar-org">${owner}</strong>`);
     expect(section(html, 'step-github')).toContain(`<p class="muted">Installed on ${owner}</p>`);
     expect(PAGE_CSS).toMatch(/[ ,]strong[ ,][^{]*\{[^}]*overflow-wrap: anywhere/);
@@ -624,7 +627,8 @@ describe('setup checklist', () => {
     );
     expect(order.every((i) => i > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(section(html, 'failed')).toContain('class="table-scroll"');
+    expect(section(html, 'failed')).toContain('class="item-list"');
+    expect(section(html, 'failed')).not.toContain('<table');
     const empty = await page(status({ teamFailures: [], personFailures: [] }));
     expect(section(empty, 'failed')).toContain('No failed deliveries.');
   });
@@ -658,5 +662,147 @@ describe('setup checklist', () => {
     expect(pt).toContain('Editar no GitHub');
     expect(pt).toContain('lembrete 09:00 · consolidado 10:00');
     expect(pt).toContain('Opcional');
+  });
+});
+
+const ERROR_TONES: Record<string, 'danger' | 'warning' | 'neutral'> = {
+  unauthorized: 'neutral',
+  forbidden: 'danger',
+  invalid_state: 'danger',
+  access_denied: 'danger',
+  installation_pending: 'warning',
+  slack_oauth_failed: 'danger',
+  linear_oauth_failed: 'danger',
+  not_found: 'neutral',
+  rate_limited: 'warning',
+  generic: 'neutral',
+  something_else: 'neutral',
+};
+
+describe('error page', () => {
+  for (const [code, tone] of Object.entries(ERROR_TONES)) {
+    test(`${code} renders the ${tone} icon, its title and the support line`, async () => {
+      const html = await render(
+        <ErrorPage lang="en" code={code} supportEmail="help@example.com" />,
+      );
+      const prefix = code === 'something_else' ? 'generic' : code;
+      expect(html).toContain('class="card error-card"');
+      expect(html).toContain(`class="status-icon status-icon-${tone}"`);
+      expect(html).toContain(`<h1>${t('en', `web.error.${prefix}.title` as MessageKey)}</h1>`);
+      expect(html).toContain(t('en', `web.error.${prefix}.body` as MessageKey));
+      expect(html).toContain('Questions?');
+      expect(html).toContain('<a href="mailto:help@example.com">help@example.com</a>');
+      expect(html).not.toContain('class="button"');
+    });
+  }
+
+  test('the sign in and refresh actions render as primary buttons', async () => {
+    const signIn = await render(
+      <ErrorPage
+        lang="en"
+        code="unauthorized"
+        supportEmail="help@example.com"
+        action={{ kind: 'signIn', href: '/auth/github/login' }}
+      />,
+    );
+    expect(signIn).toContain(
+      '<a class="btn btn-primary" href="/auth/github/login">Sign in with GitHub</a>',
+    );
+    const refresh = await render(
+      <ErrorPage
+        lang="pt-BR"
+        code="installation_pending"
+        supportEmail="help@example.com"
+        action={{ kind: 'refresh', href: '/setup?installation_id=1' }}
+      />,
+    );
+    expect(refresh).toContain(
+      '<a class="btn btn-primary" href="/setup?installation_id=1">Atualizar a página</a>',
+    );
+    expect(refresh).toContain('Dúvidas?');
+  });
+
+  test('the error page keeps the simple header without docs or sign out', async () => {
+    const html = await render(
+      <ErrorPage lang="en" code="forbidden" supportEmail="help@example.com" />,
+    );
+    expect(html).toContain('<header class="topbar">');
+    expect(html).not.toContain('action="/logout"');
+    expect(html).not.toContain('/docs/');
+  });
+
+  test('the legacy page and button rules are gone', () => {
+    expect(PAGE_CSS).not.toContain('section:not([class])');
+    expect(PAGE_CSS).not.toMatch(/\.button\b/);
+    expect(PAGE_CSS).toMatch(/\.status-icon \{/);
+    expect(PAGE_CSS).toMatch(/\.error-card \{/);
+  });
+});
+
+describe('setup polish', () => {
+  test('the progress badge is success only when every step is done', async () => {
+    expect(await page(status())).toContain('<span class="badge badge-success">3 of 3 steps done');
+    expect(await page(status({ slack: { connected: false } }))).toContain(
+      '<span class="badge badge-neutral">2 of 3 steps done',
+    );
+  });
+
+  test('a team notice inside its card is a status, not an alert', async () => {
+    const html = await page(
+      status({ teamNotices: [{ team: 'Beta', reference: '@acme/gone', kind: 'missing' }] }),
+    );
+    const beta = teamCard(html, 'Beta');
+    expect(beta).toContain('role="status"');
+    expect(beta).not.toContain('role="alert"');
+  });
+
+  test('api keys render as compact rows with the revoke form', async () => {
+    const base = status();
+    if (!base.apiKeys.manage) throw new Error('expected keys');
+    const html = await page({
+      ...base,
+      apiKeys: {
+        manage: true,
+        keys: [
+          ...base.apiKeys.keys,
+          {
+            id: 'k2',
+            name: 'old',
+            prefix: 'efgh',
+            scopes: ['teams:read', 'dailies:read'],
+            createdAt: NOW,
+            lastUsedAt: NOW,
+            revokedAt: NOW,
+          },
+        ],
+      },
+    });
+    const keys = section(html, 'api-keys');
+    expect(keys).not.toContain('<table');
+    expect(keys).toContain('class="item-list"');
+    expect(keys.match(/<li class="item">/g)?.length).toBe(2);
+    expect(keys).toContain('<code>swk_abcd</code>');
+    expect(keys).toContain('<span class="badge badge-neutral">Revoked</span>');
+    expect(keys).toContain('<form method="post" action="/setup/api-keys/k1/revoke">');
+    expect(keys).not.toContain('/setup/api-keys/k2/revoke');
+    expect(keys).toContain('<input type="hidden" name="csrf" value="token"/>');
+    expect(keys).toContain('<input type="hidden" name="installation_id" value="11"/>');
+    expect(keys).toContain('class="btn btn-danger btn-sm">Revoke</button>');
+    expect(keys).toContain('Never');
+  });
+
+  test('webhook endpoints render as compact rows; the deliveries log stays a table', async () => {
+    const webhooks = section(await page(status()), 'webhooks');
+    const log = webhooks.indexOf('Latest 20 deliveries');
+    const endpoints = webhooks.slice(0, log);
+    expect(endpoints).not.toContain('<table');
+    expect(endpoints).toContain('class="item-list"');
+    expect(endpoints).toContain('<span class="badge badge-success">Active</span>');
+    expect(endpoints).toContain('<form method="post" action="/setup/webhooks/w1/test">');
+    expect(endpoints).toContain('<form method="post" action="/setup/webhooks/w1/disable">');
+    expect(endpoints).toContain('class="btn btn-secondary btn-sm">Send test event</button>');
+    expect(endpoints).toContain('class="btn btn-danger btn-sm">Disable</button>');
+    expect(endpoints).toContain('Last delivery');
+    expect(webhooks.slice(log)).toContain('class="table-scroll"');
   });
 });
