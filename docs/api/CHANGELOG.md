@@ -4,6 +4,7 @@ Breaking changes are announced here at least 90 days before they take effect. Se
 
 ## Unreleased
 
+- The interactive API reference moved from `/docs/api` to `/reference`. `/docs/api` answers with a permanent redirect. The documentation site moved to its own domain (`DOCS_URL`); `/docs` and `/docs/*` on the api redirect there. Deploy requirement: the api accepts `DOCS_URL` (https, no trailing slash, default `https://docs.standwise.dev`).
 - Linear integration. The draft `activity` can include `card_started` and `card_done` items for your own Linear cards (`repo` is the Linear team key, `url` the card link), and `suggestions` can have `kind: "card_stale"`. Both are additive: clients must ignore kinds they do not know. Blocker `ref` accepts a Linear card URL.
 - `standwise.yml`: `tracker: { provider: linear, team: <KEY> }`, `members.<login>.linear` (an email) and `signals.card_stale_days` (default 5) now take effect.
 - Deploy requirement: the api and the worker need `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` and fail to start without them.

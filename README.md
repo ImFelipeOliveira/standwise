@@ -19,8 +19,8 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
-  <a href="docs/site/index.md">Documentation</a> ·
-  <a href="docs/site/admin/configuration.md">Configuration</a> ·
+  <a href="https://docs-standwise.usefachada.dev/">Documentation</a> ·
+  <a href="https://docs-standwise.usefachada.dev/admin/configuration">Configuration</a> ·
   <a href="#roadmap">Roadmap</a>
 </p>
 
@@ -104,7 +104,7 @@ A day with `remind_at: "09:30"` and `digest_at: "10:00"`:
 | 10:00 | Standwise posts the team digest to `#daily-backend`: blockers first, then each person's yesterday and today, then who did not send.                                                                           |
 | 10:40 | Bob sends a late daily. It is posted as a reply in the digest thread.                                                                                                                                         |
 
-The full walkthrough is in [How it works](docs/site/how-it-works.md).
+The full walkthrough is in [How it works](https://docs-standwise.usefachada.dev/how-it-works).
 
 ## Quick start
 
@@ -116,7 +116,7 @@ You need to own the GitHub organization (or personal account).
 2. Open the setup page that GitHub sends you to, sign in, and click **Connect Slack**.
 3. Create `standwise.yml` at the root of your `.github` repository, from the template on the setup page.
 
-Step by step: [Install](docs/site/admin/install.md).
+Step by step: [Install](https://docs-standwise.usefachada.dev/admin/install).
 
 ### For members
 
@@ -134,8 +134,8 @@ Then pick how you write your daily:
 | Client                                     | Setup                                                                                                               |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | **Claude Code**                            | `/plugin marketplace add ImFelipeOliveira/standwise`, then `/plugin install standwise@standwise`, then run `/daily` |
-| **Cursor, Codex, Claude Desktop, VS Code** | Add the MCP server (`standwise mcp`): [MCP guide](docs/site/members/mcp.md)                                         |
-| **Terminal**                               | `standwise draft` and `standwise submit`: [CLI reference](docs/site/members/cli.md)                                 |
+| **Cursor, Codex, Claude Desktop, VS Code** | Add the MCP server (`standwise mcp`): [MCP guide](https://docs-standwise.usefachada.dev/members/mcp)                |
+| **Terminal**                               | `standwise draft` and `standwise submit`: [CLI reference](https://docs-standwise.usefachada.dev/members/cli)        |
 
 ## Configuration
 
@@ -154,7 +154,7 @@ teams:
       channel: "#daily-backend"
 ```
 
-Every key is documented in the [configuration reference](docs/site/admin/configuration.md).
+Every key is documented in the [configuration reference](https://docs-standwise.usefachada.dev/admin/configuration).
 
 ## Privacy principles
 
@@ -164,7 +164,7 @@ Every key is documented in the [configuration reference](docs/site/admin/configu
 - **No AI model processes your data on the Standwise servers.** The writing happens in your own agent.
 - **Secrets are encrypted at rest** with AES-256-GCM.
 
-Details: [Privacy](docs/site/privacy.md).
+Details: [Privacy](https://docs-standwise.usefachada.dev/privacy).
 
 ## Architecture
 
@@ -172,7 +172,7 @@ A Bun + TypeScript monorepo. Business rules live in use cases; HTTP routes, jobs
 
 ```text
 apps/
-├── api/            Hono HTTP API, GitHub and Slack webhooks, setup pages, /docs
+├── api/            Hono HTTP API, GitHub and Slack webhooks, setup pages, /reference
 ├── worker/         pg-boss jobs: tick, digests, late dailies, webhook delivery
 └── cli/            standwise CLI and MCP server (compiled to a single binary)
 packages/
@@ -185,7 +185,7 @@ packages/
     ├── github/     GitHub App: activity, config, teams, OAuth
     └── slack/      Slack: OAuth, digests, threads, direct messages
 docs/
-├── site/           VitePress documentation (en and pt-BR)
+├── site/           VitePress documentation (en and pt-BR), hosted on Cloudflare Pages
 └── api/            OpenAPI guides and changelog
 ```
 
@@ -193,11 +193,11 @@ Dependency direction: `apps → orchestrator → core`, with `db`, `queue` and t
 
 ## Self-hosting
 
-Standwise ships as one Docker image containing the api and the worker. `APP` (`api` or `worker`) selects the default command. The image also builds the documentation site, so `SUPPORT_EMAIL` is required at build time:
+Standwise ships as one Docker image containing the api and the worker. `APP` (`api` or `worker`) selects the default command. The documentation site is not part of the image: it is a static site on Cloudflare Pages, see [docs/cloudflare-pages.md](docs/cloudflare-pages.md).
 
 ```sh
-docker build --build-arg APP=api --build-arg SUPPORT_EMAIL=you@example.com -t standwise-api .
-docker build --build-arg APP=worker --build-arg SUPPORT_EMAIL=you@example.com -t standwise-worker .
+docker build --build-arg APP=api -t standwise-api .
+docker build --build-arg APP=worker -t standwise-worker .
 ```
 
 - The api runs the migrations on startup, so run a single api replica. Both services need Postgres.
@@ -216,7 +216,7 @@ bun run lint                # Biome, CI-enforced
 bun run typecheck           # tsc, CI-enforced
 ```
 
-Documentation site:
+Documentation site, served at the root of its own domain (`https://docs-standwise.usefachada.dev` for now). `STANDWISE_PUBLIC_URL` sets the api address shown in the examples and the API reference link:
 
 ```sh
 SUPPORT_EMAIL=you@example.com bun run docs:dev
