@@ -141,8 +141,30 @@ members:
       { name: 'link-tracker-identities', data: { installationId: INST } },
     ]);
     expect(options).toEqual([
-      { name: 'link-tracker-identities', opts: { singletonKey: `link-tracker:${INST}` } },
+      {
+        name: 'link-tracker-identities',
+        opts: { singletonKey: `link-tracker:${INST}`, policy: 'stately' },
+      },
     ]);
+  });
+
+  test('a relink enqueued while one is active is kept', async () => {
+    await seedOrg();
+    await connectLinear();
+    const fake = fakeDeps({ source: { found: true, source: LINEAR_TEAM } });
+    let runs = 0;
+    await fake.deps.queue.work(
+      'link-tracker-identities',
+      async () => {
+        runs++;
+        if (runs === 1) await loadInstallationConfig(fake.deps, INST, 'acme');
+      },
+      { policies: ['stately'] },
+    );
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    await loadInstallationConfig(fake.deps, INST, 'acme');
+    await fake.queue.drain();
+    expect(runs).toBe(2);
   });
 
   test('no linear team, no connection or an invalid connection enqueues nothing', async () => {

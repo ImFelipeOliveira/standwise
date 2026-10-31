@@ -1,12 +1,12 @@
 import { memberOverrides, type StandwiseConfig } from '@standwise/core';
 import {
-  deleteIdentity,
   findMemberByIdentity,
+  getConnectionExternalId,
   getInstallation,
   getMemberById,
   listInstallationMembers,
   operationalConfig,
-  setIdentity,
+  writeIdentityIfConnected,
 } from '@standwise/db';
 import { findUserByEmail, LinearAuthError, LinearRateLimitError } from '@standwise/linear';
 import type { Deps, WorkerDeps } from './deps';
@@ -21,7 +21,34 @@ export type LinkTrackerIdentitiesJob = { installationId: number };
 
 type LinkDeps = Pick<WorkerDeps, 'db' | 'encryptionKey' | 'linear' | 'now' | 'env'>;
 
-class LinkStopped extends Error {}
+type StopReason = 'auth' | 'rate_limited' | 'workspace_changed';
+
+class LinkStopped extends Error {
+  constructor(
+    readonly reason: StopReason,
+    options?: ErrorOptions,
+  ) {
+    super(`tracker identity linking stopped: ${reason}`, options);
+    this.name = 'LinkStopped';
+  }
+}
+
+export async function enqueueLinkTrackerIdentities(
+  deps: Pick<Deps, 'queue'>,
+  installationId: number,
+): Promise<void> {
+  await deps.queue
+    .enqueue(
+      LINK_TRACKER_IDENTITIES_JOB,
+      { installationId },
+      { singletonKey: `link-tracker:${installationId}`, policy: 'stately' },
+    )
+    .catch((error: unknown) => {
+      logError('link tracker identities enqueue failed', error, {
+        installationId: String(installationId),
+      });
+    });
+}
 
 export async function configPeople(
   deps: Pick<Deps, 'github' | 'now'>,
@@ -46,25 +73,32 @@ async function linkOne(
   githubEmail: string | null,
 ): Promise<void> {
   const email = memberOverrides(config, member.login).linear ?? githubEmail;
-  if (!email) {
-    await deleteIdentity(deps.db, installationId, member.id, 'linear');
-    return;
-  }
-  try {
-    const user = await findUserByEmail(access.client, email);
-    if (user) await setIdentity(deps.db, installationId, member.id, 'linear', user.id);
-    else await deleteIdentity(deps.db, installationId, member.id, 'linear');
-  } catch (error) {
-    if (error instanceof LinearAuthError) {
-      await access.invalidate();
-      throw new LinkStopped('auth', { cause: error });
+  let externalId: string | null = null;
+  if (email) {
+    try {
+      externalId = (await findUserByEmail(access.client, email))?.id ?? null;
+    } catch (error) {
+      if (error instanceof LinearAuthError) {
+        await access.invalidate();
+        throw new LinkStopped('auth', { cause: error });
+      }
+      if (error instanceof LinearRateLimitError) {
+        throw new LinkStopped('rate_limited', { cause: error });
+      }
+      throw error;
     }
-    if (error instanceof LinearRateLimitError) {
-      throw new LinkStopped('rate_limited', { cause: error });
-    }
-    throw error;
   }
+  const written = await writeIdentityIfConnected(deps.db, {
+    installationId,
+    memberId: member.id,
+    provider: 'linear',
+    connectionExternalId: access.organization.id,
+    externalId,
+  });
+  if (!written) throw new LinkStopped('workspace_changed');
 }
+
+const causeOf = (error: unknown) => (error instanceof LinkStopped ? (error.cause ?? error) : error);
 
 export async function linkTrackerIdentity(
   deps: Deps,
@@ -81,11 +115,9 @@ export async function linkTrackerIdentity(
     if (!access) return;
     await linkOne(deps, access, installationId, config, member, githubEmail);
   } catch (error) {
-    logError(
-      'tracker identity link failed',
-      error instanceof LinkStopped ? (error.cause ?? error) : error,
-      { installationId: String(installationId) },
-    );
+    logError('tracker identity link failed', causeOf(error), {
+      installationId: String(installationId),
+    });
   }
 }
 
@@ -102,17 +134,23 @@ export async function linkTrackerIdentities(
   const candidates = (await listInstallationMembers(deps.db, installationId))
     .filter((m) => logins.has(m.login.toLowerCase()))
     .slice(0, LINK_TRACKER_BATCH);
+  const extra = { installationId: String(installationId) };
   for (const member of candidates) {
+    const current = await getConnectionExternalId(deps.db, installationId, 'linear');
+    if (current !== access.organization.id) {
+      logError('tracker identity linking stopped', new LinkStopped('workspace_changed'), extra);
+      return;
+    }
     try {
       await linkOne(deps, access, installationId, config, member, member.email);
     } catch (error) {
-      if (error instanceof LinkStopped) {
-        logError('tracker identity linking stopped', error.cause ?? error, {
-          installationId: String(installationId),
-        });
-        return;
+      if (!(error instanceof LinkStopped)) {
+        logError('tracker identity link failed', error, extra);
+        continue;
       }
-      logError('tracker identity link failed', error, { installationId: String(installationId) });
+      logError('tracker identity linking stopped', causeOf(error), extra);
+      if (error.reason === 'rate_limited') throw causeOf(error);
+      return;
     }
   }
 }

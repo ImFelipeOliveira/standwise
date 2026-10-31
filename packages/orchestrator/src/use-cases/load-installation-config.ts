@@ -6,9 +6,8 @@ import {
   setInstallationConfig,
 } from '@standwise/db';
 import type { Deps } from '../deps';
-import { logError } from '../log-error';
 import { invalidateResolvedTeams } from '../teams';
-import { LINK_TRACKER_IDENTITIES_JOB } from '../tracker-identity';
+import { enqueueLinkTrackerIdentities } from '../tracker-identity';
 
 export type ConfigStatus = 'configured' | 'invalid' | 'unconfigured';
 
@@ -71,17 +70,7 @@ async function relinkTrackerIdentities(
   if (!config.teams.some((team) => team.tracker?.provider === 'linear')) return;
   const connection = await getConnectionInfo(deps.db, installationId, 'linear');
   if (!connection || connection.invalidatedAt) return;
-  await deps.queue
-    .enqueue(
-      LINK_TRACKER_IDENTITIES_JOB,
-      { installationId },
-      { singletonKey: `link-tracker:${installationId}` },
-    )
-    .catch((error: unknown) => {
-      logError('link tracker identities enqueue failed', error, {
-        installationId: String(installationId),
-      });
-    });
+  await enqueueLinkTrackerIdentities(deps, installationId);
 }
 
 async function storeConfig(

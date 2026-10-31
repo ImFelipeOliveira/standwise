@@ -1,9 +1,4 @@
-import {
-  deleteIdentities,
-  getConnectionExternalId,
-  type MemberRow,
-  saveConnection,
-} from '@standwise/db';
+import { type MemberRow, saveConnection } from '@standwise/db';
 import {
   createLinearClient,
   getOrganization,
@@ -13,7 +8,7 @@ import {
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { hashSessionToken, verifyState } from '../state-token';
-import { LINK_TRACKER_IDENTITIES_JOB } from '../tracker-identity';
+import { enqueueLinkTrackerIdentities } from '../tracker-identity';
 import { DomainError } from './errors';
 import type { MembershipCheck } from './org-context';
 import { requireAdmin } from './require-admin';
@@ -58,10 +53,6 @@ export async function completeLinearConnect(
     logError('linear connect failed', error, { installationId: String(installation.id) });
     throw new DomainError('linear_oauth_failed', 'Linear authorization failed');
   });
-  const previousOrganizationId = await getConnectionExternalId(deps.db, installation.id, 'linear');
-  if (previousOrganizationId !== null && previousOrganizationId !== organization.id) {
-    await deleteIdentities(deps.db, installation.id, 'linear');
-  }
   await saveConnection(
     deps.db,
     installation.id,
@@ -72,16 +63,6 @@ export async function completeLinearConnect(
     organization.name,
     organization.urlKey,
   );
-  await deps.queue
-    .enqueue(
-      LINK_TRACKER_IDENTITIES_JOB,
-      { installationId: installation.id },
-      { singletonKey: `link-tracker:${installation.id}` },
-    )
-    .catch((error: unknown) => {
-      logError('link tracker identities enqueue failed', error, {
-        installationId: String(installation.id),
-      });
-    });
+  await enqueueLinkTrackerIdentities(deps, installation.id);
   return { installationId: installation.id };
 }

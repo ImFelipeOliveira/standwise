@@ -31,10 +31,12 @@ import {
   setIdentity,
   setInstallationConfig,
   setMemberInstallations,
+  updateConnectionDetails,
   updateMemberLogin,
   upsertDaily,
   upsertInstallation,
   upsertMember,
+  writeIdentityIfConnected,
 } from '../src';
 import { db, useCleanDb } from './setup';
 
@@ -565,6 +567,48 @@ describe('connections', () => {
     const current = await getConnectionSnapshot(db, INST, 'linear', key);
     await markConnectionInvalid(db, INST, 'linear', current?.ciphertext);
     expect((await getConnection(db, INST, 'linear', key))?.invalidatedAt).toBeInstanceOf(Date);
+  });
+
+  test('saving another workspace clears that provider identities, the same one keeps them', async () => {
+    const member = await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok', key, 'Acme', 'acme');
+    await setIdentity(db, INST, member.id, 'linear', 'lin-ana');
+    await setIdentity(db, INST, member.id, 'slack', 'U1');
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok2', key, 'Acme', 'acme');
+    expect((await getIdentities(db, INST, 'linear')).get('ana')).toBe('lin-ana');
+    await saveConnection(db, INST, 'linear', 'org-2', 'tok3', key, 'Beta', 'beta');
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
+    expect((await getIdentities(db, INST, 'slack')).get('ana')).toBe('U1');
+  });
+
+  test('an identity is written or removed only while the expected workspace is connected', async () => {
+    const member = await seed();
+    const write = (connectionExternalId: string, externalId: string | null) =>
+      writeIdentityIfConnected(db, {
+        installationId: INST,
+        memberId: member.id,
+        provider: 'linear',
+        connectionExternalId,
+        externalId,
+      });
+    expect(await write('org-1', 'lin-ana')).toBe(false);
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok', key, 'Acme', 'acme');
+    expect(await write('org-1', 'lin-ana')).toBe(true);
+    expect((await getIdentities(db, INST, 'linear')).get('ana')).toBe('lin-ana');
+    expect(await write('org-old', null)).toBe(false);
+    expect((await getIdentities(db, INST, 'linear')).get('ana')).toBe('lin-ana');
+    expect(await write('org-1', null)).toBe(true);
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
+  });
+
+  test('connection details are updated only for the same workspace', async () => {
+    await seed();
+    await saveConnection(db, INST, 'linear', 'org-1', 'tok', key, 'Acme', 'acme');
+    const details = { externalName: 'Acme 2', externalKey: 'acme-2' };
+    expect(await updateConnectionDetails(db, INST, 'linear', 'org-2', details)).toBe(false);
+    expect(await getConnectionInfo(db, INST, 'linear')).toMatchObject({ externalKey: 'acme' });
+    expect(await updateConnectionDetails(db, INST, 'linear', 'org-1', details)).toBe(true);
+    expect(await getConnectionInfo(db, INST, 'linear')).toMatchObject(details);
   });
 
   test('connection info is read without the secret', async () => {

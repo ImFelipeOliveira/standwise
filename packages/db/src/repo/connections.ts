@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { decryptSecret, encryptSecret } from '../crypto';
-import { connections, type Provider } from '../schema';
+import { connections, memberIdentities, type Provider } from '../schema';
 
 export type StoredConnection = {
   externalId: string;
@@ -32,13 +32,92 @@ export async function saveConnection(
     secretCiphertext,
     invalidatedAt: null,
   };
-  await db
-    .insert(connections)
-    .values({ installationId, provider, ...values })
-    .onConflictDoUpdate({
-      target: [connections.installationId, connections.provider],
-      set: values,
-    });
+  await db.transaction(async (tx) => {
+    const [previous] = await tx
+      .select({ externalId: connections.externalId })
+      .from(connections)
+      .where(byProvider(installationId, provider))
+      .for('update');
+    await tx
+      .insert(connections)
+      .values({ installationId, provider, ...values })
+      .onConflictDoUpdate({
+        target: [connections.installationId, connections.provider],
+        set: values,
+      });
+    if (previous && previous.externalId !== externalId) {
+      await tx
+        .delete(memberIdentities)
+        .where(
+          and(
+            eq(memberIdentities.installationId, installationId),
+            eq(memberIdentities.provider, provider),
+          ),
+        );
+    }
+  });
+}
+
+export async function writeIdentityIfConnected(
+  db: Db,
+  input: {
+    installationId: number;
+    memberId: string;
+    provider: Provider;
+    connectionExternalId: string;
+    externalId: string | null;
+  },
+): Promise<boolean> {
+  const { installationId, memberId, provider, connectionExternalId, externalId } = input;
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({ externalId: connections.externalId })
+      .from(connections)
+      .where(
+        and(byProvider(installationId, provider), eq(connections.externalId, connectionExternalId)),
+      )
+      .for('share');
+    if (!current) return false;
+    if (externalId === null) {
+      await tx
+        .delete(memberIdentities)
+        .where(
+          and(
+            eq(memberIdentities.installationId, installationId),
+            eq(memberIdentities.memberId, memberId),
+            eq(memberIdentities.provider, provider),
+          ),
+        );
+      return true;
+    }
+    await tx
+      .insert(memberIdentities)
+      .values({ installationId, memberId, provider, externalId })
+      .onConflictDoUpdate({
+        target: [
+          memberIdentities.installationId,
+          memberIdentities.memberId,
+          memberIdentities.provider,
+        ],
+        set: { externalId },
+      });
+    return true;
+  });
+}
+
+export async function updateConnectionDetails(
+  db: Db,
+  installationId: number,
+  provider: Provider,
+  externalId: string,
+  details: { externalName: string; externalKey: string },
+): Promise<boolean> {
+  const updated = await db
+    .update(connections)
+    .set(details)
+    .where(and(byProvider(installationId, provider), eq(connections.externalId, externalId)))
+    .returning({ externalId: connections.externalId });
+  return updated.length > 0;
 }
 
 export type ConnectionSnapshot = StoredConnection & { ciphertext: string };

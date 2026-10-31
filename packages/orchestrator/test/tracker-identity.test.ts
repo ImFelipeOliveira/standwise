@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
   getConnection,
   getIdentities,
@@ -7,6 +7,7 @@ import {
   setMemberInstallations,
   upsertMember,
 } from '@standwise/db';
+import { LinearRateLimitError } from '@standwise/linear';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   configPeople,
@@ -102,6 +103,31 @@ describe('linking at login', () => {
     expect(linear.calls.userLookups).toEqual([]);
   });
 
+  test('a workspace change during a login lookup writes nothing', async () => {
+    await seedOrg();
+    await connect();
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const { deps, linear } = fakeDeps();
+    linear.state.users.set('alice@acme.com', 'lin-alice');
+    const original = deps.linear.fetch;
+    if (!original) throw new Error('expected a fetch');
+    deps.linear = {
+      ...deps.linear,
+      fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
+        await saveConnection(db, INST, 'linear', 'org-2', '{}', KEY, 'Other', 'other');
+        return original(url, init);
+      }) as typeof fetch,
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await linkTrackerIdentity(deps, INST, member.id, 'alice@acme.com');
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
+  });
+
   test('without any email it removes a stale identity and never calls linear', async () => {
     await seedOrg();
     await connect();
@@ -151,23 +177,67 @@ describe('linkTrackerIdentities', () => {
     });
   });
 
-  test('stops without throwing on a rate limit', async () => {
+  test('a rate limit stops the run and makes the job throw so it is retried', async () => {
     await seedTeam();
     const { deps, linear } = fakeDeps();
     linear.state.graphqlStatus = 429;
-    await linkTrackerIdentities(deps, INST);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(linkTrackerIdentities(deps, INST)).rejects.toBeInstanceOf(LinearRateLimitError);
+    } finally {
+      spy.mockRestore();
+    }
     expect(linear.calls.bearer).toHaveLength(1);
     expect(linear.calls.userLookups).toEqual([]);
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 
-  test('stops and invalidates on an auth error', async () => {
+  test('stops and invalidates on an auth error without throwing', async () => {
     await seedTeam();
     const { deps, linear } = fakeDeps();
     linear.state.graphqlStatus = 401;
-    await linkTrackerIdentities(deps, INST);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await linkTrackerIdentities(deps, INST);
+    } finally {
+      spy.mockRestore();
+    }
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeTruthy();
     expect(linear.calls.bearer).toHaveLength(1);
+  });
+
+  function reconnectOnLookup(deps: ReturnType<typeof fakeDeps>['deps'], lookup: number) {
+    const original = deps.linear.fetch;
+    if (!original) throw new Error('expected a fetch');
+    let lookups = 0;
+    deps.linear = {
+      ...deps.linear,
+      fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
+        if (String(init?.body ?? '').includes('UserByEmail')) {
+          lookups++;
+          if (lookups === lookup) {
+            await saveConnection(db, INST, 'linear', 'org-2', '{}', KEY, 'Other', 'other');
+          }
+        }
+        return original(url, init);
+      }) as typeof fetch,
+    };
+  }
+
+  test('a workspace change mid-run stops writes from the old workspace', async () => {
+    await seedTeam();
+    const { deps, linear } = fakeDeps();
+    linear.state.users.set('alice@acme.com', 'lin-alice');
+    linear.state.users.set('bob@acme.com', 'lin-bob');
+    reconnectOnLookup(deps, 1);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await linkTrackerIdentities(deps, INST);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(linear.calls.userLookups).toEqual(['alice@acme.com']);
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 
   test('does nothing when the installation has no config or no connection', async () => {

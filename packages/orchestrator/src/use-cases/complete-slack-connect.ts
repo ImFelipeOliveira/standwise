@@ -1,9 +1,4 @@
-import {
-  deleteIdentities,
-  getConnectionExternalId,
-  type MemberRow,
-  saveConnection,
-} from '@standwise/db';
+import { type MemberRow, saveConnection } from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import type { Deps } from '../deps';
 import { hashSessionToken, verifyState } from '../state-token';
@@ -45,10 +40,6 @@ export async function completeSlackConnect(
       }
       throw error;
     });
-  const previousTeamId = await getConnectionExternalId(deps.db, installation.id, 'slack');
-  if (previousTeamId !== null && previousTeamId !== teamId) {
-    await deleteIdentities(deps.db, installation.id, 'slack');
-  }
   await saveConnection(
     deps.db,
     installation.id,

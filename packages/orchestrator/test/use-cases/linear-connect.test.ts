@@ -118,9 +118,21 @@ describe('completeLinearConnect', () => {
 
   test('enqueues tracker identity linking after a successful connect', async () => {
     const h = await setup();
+    const options: unknown[] = [];
+    const enqueue = h.deps.queue.enqueue.bind(h.deps.queue);
+    h.deps.queue.enqueue = async (name, data, opts) => {
+      options.push({ name, opts });
+      return enqueue(name, data, opts);
+    };
     await connect(h);
     expect(h.queue.enqueued).toEqual([
       { name: 'link-tracker-identities', data: { installationId: INST } },
+    ]);
+    expect(options).toEqual([
+      {
+        name: 'link-tracker-identities',
+        opts: { singletonKey: `link-tracker:${INST}`, policy: 'stately' },
+      },
     ]);
   });
 
