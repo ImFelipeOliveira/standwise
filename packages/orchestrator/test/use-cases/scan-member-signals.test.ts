@@ -6,6 +6,7 @@ import {
   getDelivery,
   listPendingSuggestions,
   markConnectionInvalid,
+  markDeliverySent,
   saveConnection,
   setIdentity,
   setMemberInstallations,
@@ -399,6 +400,25 @@ describe('scanMemberSignals', () => {
     expect(s.calls.snapshots).toHaveLength(githubCalls);
     expect(s.linear.calls.queries).toHaveLength(linearCalls);
     expect(githubCalls).toBe(1);
+  });
+
+  test('a sent marker skips before resolving teams with a cold cache', async () => {
+    const s = await setup();
+    await markDeliverySent(db, {
+      installationId: INST,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'signal_scan',
+      subject: 'alice',
+    });
+    let resolved = 0;
+    s.deps.github.resolveTeamMembers = async () => {
+      resolved++;
+      return ['alice'];
+    };
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    expect(resolved).toBe(0);
+    expect(s.calls.snapshots).toEqual([]);
   });
 
   describe('card_stale', () => {

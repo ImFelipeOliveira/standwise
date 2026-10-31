@@ -77,13 +77,6 @@ export async function scanMemberSignals(
 
   const memberId = (await getInstallationMemberIds(deps.db, installation.id, [login])).get(login);
   if (!memberId) return;
-  const teams = teamsForMember(
-    login,
-    await resolveTeams(deps, installation.id, installation.accountLogin, config),
-  );
-  const first = teams[0];
-  if (!first) return;
-
   if (job.date) {
     const marker = await getDelivery(deps.db, {
       installationId: installation.id,
@@ -94,6 +87,13 @@ export async function scanMemberSignals(
     });
     if (marker?.status === 'sent') return;
   }
+
+  const teams = teamsForMember(
+    login,
+    await resolveTeams(deps, installation.id, installation.accountLogin, config),
+  );
+  const first = teams[0];
+  if (!first) return;
 
   const ctx: ScanContext = {
     installationId: installation.id,

@@ -107,6 +107,21 @@ describe('normalizeRefUrl', () => {
     expect(newRoutedBlockers([a], [b])).toEqual([]);
   });
 
+  test('other hosts keep the query so distinct issues stay distinct', () => {
+    expect(normalizeRefUrl('https://acme.atlassian.net/jira?selectedIssue=ABC-1')).not.toBe(
+      normalizeRefUrl('https://acme.atlassian.net/jira?selectedIssue=ABC-2'),
+    );
+    expect(normalizeRefUrl('https://acme.atlassian.net/jira?selectedIssue=ABC-1#x')).toBe(
+      'https://acme.atlassian.net/jira?selectedIssue=ABC-1',
+    );
+  });
+
+  test('github drops the query', () => {
+    expect(normalizeRefUrl('https://github.com/acme/api/pull/7?diff=split')).toBe(
+      'https://github.com/acme/api/pull/7',
+    );
+  });
+
   test('other hosts keep path case', () => {
     expect(normalizeRefUrl('https://Example.com/Foo/Bar/')).toBe('https://example.com/Foo/Bar');
   });

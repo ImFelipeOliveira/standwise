@@ -61,10 +61,10 @@ export function normalizeRefUrl(url: string): string {
     const parsed = new URL(trimmed);
     const host = parsed.host.toLowerCase();
     const rawPath = parsed.pathname.replace(/\/+$/, '');
-    const path = CASE_INSENSITIVE_PATH_HOSTS.has(parsed.hostname.toLowerCase())
-      ? rawPath.toLowerCase()
-      : rawPath;
-    return `${parsed.protocol}//${host}${path}`;
+    if (CASE_INSENSITIVE_PATH_HOSTS.has(parsed.hostname.toLowerCase())) {
+      return `${parsed.protocol}//${host}${rawPath.toLowerCase()}`;
+    }
+    return `${parsed.protocol}//${host}${rawPath}${parsed.search}`;
   } catch {
     return trimmed;
   }
