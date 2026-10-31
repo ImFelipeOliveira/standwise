@@ -365,7 +365,7 @@ describe('handleGitHubEvent signal scans', () => {
     let resolves = 0;
     deps.github.resolveTeamMembers = async (_o, _owner, members) => {
       resolves++;
-      return members;
+      return { logins: members, missingTeams: [], truncatedTeams: [] };
     };
     deps.github.installationOctokit = async () => {
       throw new Error('no github in the webhook');

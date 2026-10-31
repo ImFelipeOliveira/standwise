@@ -39,7 +39,11 @@ export function createTestApp(
         };
       },
       listActivity: async () => [],
-      resolveTeamMembers: async (_o, _owner, members) => members,
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members,
+        missingTeams: [],
+        truncatedTeams: [],
+      }),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],

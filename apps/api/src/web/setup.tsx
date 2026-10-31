@@ -54,6 +54,11 @@ const TRACKER_NOTICES: Record<TrackerNotice, MessageKey> = {
   jira_coming_soon: 'setup.tracker.jiraComingSoon',
 };
 
+const TEAM_NOTICES: Record<SetupStatus['teamNotices'][number]['kind'], MessageKey> = {
+  missing: 'setup.teams.missing',
+  truncated: 'setup.teams.truncated',
+};
+
 export type NewApiKey = { name: string; key: string };
 export type NewWebhook = { url: string; secret: string };
 
@@ -145,6 +150,18 @@ export function SetupPage(props: {
           <p>{t('web.slack.adminOnly')}</p>
         )}
       </section>
+      {status.teamNotices.length > 0 ? (
+        <section>
+          {status.teamNotices.map((notice) => (
+            <p role="alert">
+              {translate(props.lang, TEAM_NOTICES[notice.kind], {
+                team: notice.team,
+                reference: notice.reference,
+              })}
+            </p>
+          ))}
+        </section>
+      ) : null}
       <section>
         <h2>{t('setup.linear.title')}</h2>
         {status.trackerNotices.map((notice) => (

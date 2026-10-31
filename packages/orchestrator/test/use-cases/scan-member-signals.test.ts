@@ -438,7 +438,7 @@ describe('scanMemberSignals', () => {
     let resolved = 0;
     s.deps.github.resolveTeamMembers = async () => {
       resolved++;
-      return ['alice'];
+      return { logins: ['alice'], missingTeams: [], truncatedTeams: [] };
     };
     await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
     expect(resolved).toBe(0);

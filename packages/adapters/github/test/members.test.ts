@@ -7,15 +7,16 @@ describe('resolveTeamMembers', () => {
     const { octokit } = octokitWith({
       'GET /orgs/acme/teams/backend/members': { body: fixture('team-backend.json') },
     });
-    expect(await resolveTeamMembers(octokit, 'acme', ['Alice', '@acme/backend'])).toEqual([
-      'alice',
-      'bob',
-    ]);
+    expect(await resolveTeamMembers(octokit, 'acme', ['Alice', '@acme/backend'])).toEqual({
+      logins: ['alice', 'bob'],
+      missingTeams: [],
+      truncatedTeams: [],
+    });
   });
 
   test('keeps plain logins without calling the API', async () => {
     const { octokit, calls } = octokitWith({});
-    expect(await resolveTeamMembers(octokit, 'acme', ['Bob', 'bob'])).toEqual(['bob']);
+    expect((await resolveTeamMembers(octokit, 'acme', ['Bob', 'bob'])).logins).toEqual(['bob']);
     expect(calls).toHaveLength(0);
   });
 
@@ -26,7 +27,11 @@ describe('resolveTeamMembers', () => {
         body: JSON.stringify(url.searchParams.get('page') === '2' ? [{ login: 'Last' }] : first),
       }),
     });
-    const logins = await resolveTeamMembers(octokit, 'acme', ['@acme/big']);
+    const { logins, missingTeams, truncatedTeams } = await resolveTeamMembers(octokit, 'acme', [
+      '@acme/big',
+    ]);
+    expect(missingTeams).toEqual([]);
+    expect(truncatedTeams).toEqual([]);
     expect(logins).toHaveLength(101);
     expect(logins).toContain('last');
     expect(logins).toContain('user99');
@@ -48,13 +53,19 @@ describe('resolveTeamMembers', () => {
         ),
       }),
     });
-    const logins = await resolveTeamMembers(octokit, 'acme', ['@acme/huge']);
+    const result = await resolveTeamMembers(octokit, 'acme', ['@acme/huge']);
     expect(calls).toHaveLength(50);
-    expect(logins).toHaveLength(5000);
+    expect(result.logins).toHaveLength(5000);
+    expect(result.truncatedTeams).toEqual(['@acme/huge']);
+    expect(result.missingTeams).toEqual([]);
   });
 
-  test('a missing team resolves to no members', async () => {
+  test('a missing team is reported and the other entries still resolve', async () => {
     const { octokit } = octokitWith({});
-    expect(await resolveTeamMembers(octokit, 'acme', ['@acme/gone', 'Bob'])).toEqual(['bob']);
+    expect(await resolveTeamMembers(octokit, 'acme', ['@acme/gone', 'Bob'])).toEqual({
+      logins: ['bob'],
+      missingTeams: ['@acme/gone'],
+      truncatedTeams: [],
+    });
   });
 });

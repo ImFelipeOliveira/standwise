@@ -13,6 +13,7 @@ import {
 } from '@standwise/db';
 import type { Deps } from '../deps';
 import { statusOf } from '../membership';
+import { type TeamNotice, teamResolutionNotices } from '../teams';
 import { authorizeInstallation } from './authorize-installation';
 import { isInstallationAdmin } from './is-installation-admin';
 import type { MembershipCheck } from './org-context';
@@ -37,6 +38,7 @@ export type SetupStatus = {
     | { connected: false }
     | { connected: true; workspace: string; urlKey: string; invalid: boolean };
   trackerNotices: TrackerNotice[];
+  teamNotices: TeamNotice[];
   teamFailures: TeamFailure[];
   personFailures: PersonFailureGroup[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
@@ -121,6 +123,10 @@ export async function getSetupStatus(
         invalid: linearConnection.invalidatedAt !== null || !linearConnection.externalKey,
       }
     : { connected: false };
+  const operational = operationalConfig(installation);
+  const teamNotices = operational
+    ? await teamResolutionNotices(deps, installation.id, installation.accountLogin, operational)
+    : [];
   return {
     installationId: installation.id,
     owner: installation.accountLogin,
@@ -133,7 +139,8 @@ export async function getSetupStatus(
       ? { connected: true, workspace: connection.externalName ?? connection.externalId }
       : { connected: false },
     linear,
-    trackerNotices: trackerNotices(operationalConfig(installation), linear),
+    trackerNotices: trackerNotices(operational, linear),
+    teamNotices,
     teamFailures,
     personFailures,
     apiKeys,

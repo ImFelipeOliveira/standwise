@@ -182,6 +182,10 @@ const ptBR = {
   'setup.linear.invalid':
     'A conexão com o workspace {workspace} parou de funcionar. Reconecte o Linear.',
   'setup.linear.adminOnly': 'Só um admin pode conectar ou reconectar o Linear.',
+  'setup.teams.missing':
+    'Time {team}: o time {reference} do GitHub não foi encontrado, ou o Standwise não consegue vê-lo. Confira o nome e se o app tem a permissão Members na organização.',
+  'setup.teams.truncated':
+    'Time {team}: o time {reference} do GitHub é grande demais; só os primeiros 5.000 membros são usados.',
   'setup.tracker.jiraComingSoon': 'A integração com o Jira ainda não está disponível.',
   'setup.tracker.notConnected':
     'Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação.',
@@ -373,6 +377,10 @@ const en = {
   'setup.linear.invalid':
     'The connection to the {workspace} workspace stopped working. Reconnect Linear.',
   'setup.linear.adminOnly': 'Only an admin can connect or reconnect Linear.',
+  'setup.teams.missing':
+    'Team {team}: the GitHub team {reference} was not found, or Standwise cannot see it. Check the name, and that the app has the Members permission on the organization.',
+  'setup.teams.truncated':
+    'Team {team}: the GitHub team {reference} is too large; only the first 5,000 members are used.',
   'setup.tracker.jiraComingSoon': 'The Jira integration is not available yet.',
   'setup.tracker.notConnected':
     'This team uses Linear, but Linear is not connected to this installation yet.',

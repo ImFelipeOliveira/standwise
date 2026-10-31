@@ -104,7 +104,11 @@ function harness(
         activityCalls.push(since);
         return [];
       },
-      resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members.map((m) => m.toLowerCase()),
+        missingTeams: [],
+        truncatedTeams: [],
+      }),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],

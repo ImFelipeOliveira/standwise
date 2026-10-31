@@ -79,7 +79,7 @@ async function expandOwners(
     const team = /^@([^/]+)\/(.+)$/.exec(entry);
     if (!team) logins.push(entry.replace(/^@/, ''));
     else if ((team[1] as string).toLowerCase() === owner.toLowerCase()) {
-      logins.push(...(await deps.github.resolveTeamMembers(octokit, owner, [entry])));
+      logins.push(...(await deps.github.resolveTeamMembers(octokit, owner, [entry])).logins);
     }
   }
   return logins;

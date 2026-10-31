@@ -26,7 +26,7 @@ const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
 const FOREIGN = 12;
 
-function config(extra = ''): StandwiseConfig {
+function config(extra = '', members = '[alice, bob]'): StandwiseConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -34,7 +34,7 @@ teams:
     remind_at: "09:00"
     digest_at: "10:00"
     managers: [alice]
-    members: [alice, bob]
+    members: ${members}
     chat: { provider: slack, channel: "#alpha" }
 ${extra}`);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
@@ -90,7 +90,11 @@ function harness(
         installationIds: opts.githubInstallations ?? [INST],
       }),
       listActivity: async () => [],
-      resolveTeamMembers: async (_o, _owner, members) => members,
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members,
+        missingTeams: members.filter((m) => m.startsWith('@gone/')),
+        truncatedTeams: members.filter((m) => m.startsWith('@huge/')),
+      }),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],
@@ -788,6 +792,49 @@ describe('linear connection', () => {
     ).text();
     expect(html).toContain('A integração com o Jira ainda não está disponível.');
     expect(html).not.toContain('Linear ainda não está conectado');
+  });
+});
+
+describe('setup github team notices', () => {
+  useCleanDb();
+
+  const withTeams = async (id: number) => {
+    await setInstallationConfig(db, id, {
+      status: 'configured',
+      config: config('', '[alice, "@gone/ops", "@huge/all"]'),
+    });
+  };
+
+  const page = async (setup: (id: number) => Promise<void>, lang?: string) => {
+    const { app } = harness();
+    const { cookie } = await seed(setup);
+    return (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: lang ? { cookie, 'accept-language': lang } : { cookie },
+      })
+    ).text();
+  };
+
+  test('shows a notice for a missing and a truncated team in english', async () => {
+    const html = await page(withTeams);
+    expect(html).toContain(
+      'Team Alpha: the GitHub team @gone/ops was not found, or Standwise cannot see it.',
+    );
+    expect(html).toContain(
+      'Team Alpha: the GitHub team @huge/all is too large; only the first 5,000 members are used.',
+    );
+  });
+
+  test('shows the notices in pt-BR', async () => {
+    const html = await page(withTeams, 'pt-BR');
+    expect(html).toContain('Time Alpha: o time @gone/ops do GitHub não foi encontrado');
+    expect(html).toContain('Time Alpha: o time @huge/all do GitHub é grande demais');
+  });
+
+  test('shows no notice when every team resolves', async () => {
+    const html = await page(async () => {});
+    expect(html).not.toContain('was not found, or Standwise cannot see it');
+    expect(html).not.toContain('is too large');
   });
 });
 

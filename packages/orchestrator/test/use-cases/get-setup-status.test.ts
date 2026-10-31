@@ -195,3 +195,38 @@ describe('getSetupStatus linear', () => {
     expect((await status(tracker('jira'))).trackerNotices).toEqual(['jira_coming_soon']);
   });
 });
+
+describe('getSetupStatus team notices', () => {
+  async function notices(members: string, teams?: Record<string, string[]>) {
+    await seedOrg(config(members));
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps({ teams });
+    const original = fake.deps.github.resolveTeamMembers;
+    fake.deps.github.resolveTeamMembers = async (octokit, owner, list) => {
+      const result = await original(octokit, owner, list);
+      return {
+        ...result,
+        truncatedTeams: list.filter((m) => m === '@acme/huge'),
+        missingTeams: result.missingTeams,
+      };
+    };
+    return (await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST))
+      .teamNotices;
+  }
+
+  test('reports missing and truncated references per team, without members', async () => {
+    const result = await notices('[alice, "@acme/gone", "@acme/huge"]', {
+      '@acme/huge': ['bob'],
+    });
+    expect(result).toEqual([
+      { team: 'Alpha', reference: '@acme/gone', kind: 'missing' },
+      { team: 'Alpha', reference: '@acme/huge', kind: 'truncated' },
+    ]);
+    expect(JSON.stringify(result)).not.toContain('bob');
+  });
+
+  test('has no notices when everything resolves', async () => {
+    expect(await notices('[alice, "@acme/ok"]', { '@acme/ok': ['bob'] })).toEqual([]);
+  });
+});

@@ -154,8 +154,11 @@ async function setup(
   const fake = fakeDeps(opts);
   const chat = fakeChat();
   fake.deps.chatFor = async () => chat.chat;
-  fake.deps.github.resolveTeamMembers = async (_o, _owner, members) =>
-    members.flatMap((m) => (m === '@acme/backend' ? ['dave', 'bob'] : [m.toLowerCase()]));
+  fake.deps.github.resolveTeamMembers = async (_o, _owner, members) => ({
+    logins: members.flatMap((m) => (m === '@acme/backend' ? ['dave', 'bob'] : [m.toLowerCase()])),
+    missingTeams: [],
+    truncatedTeams: [],
+  });
   return { ...fake, ...chat, cfg };
 }
 

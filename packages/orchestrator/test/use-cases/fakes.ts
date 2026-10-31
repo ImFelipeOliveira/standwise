@@ -212,8 +212,17 @@ export function fakeDeps(opts: FakeOptions = {}) {
         calls.activityLogins.push(login);
         return [];
       },
-      resolveTeamMembers: async (_o, _owner, members) =>
-        members.flatMap((m) => opts.teams?.[m] ?? [m.toLowerCase()]),
+      resolveTeamMembers: async (_o, _owner, members) => {
+        const logins: string[] = [];
+        const missingTeams: string[] = [];
+        for (const m of members) {
+          const known = opts.teams?.[m];
+          if (known) logins.push(...known);
+          else if (/^@[^/]+\/.+$/.test(m)) missingTeams.push(m);
+          else logins.push(m.toLowerCase());
+        }
+        return { logins, missingTeams, truncatedTeams: [] };
+      },
       fetchConfigSource: async (_o, owner, options) => {
         calls.config.push(owner);
         calls.configRefs.push(options?.ref);
