@@ -17,13 +17,13 @@ Run exactly one api replica. Installations that are waiting for a GitHub App app
 
 ## Build variables
 
-Railway passes service variables to the Docker build as build arguments. Set these on each app service:
+Railway passes service variables to the Docker build as build arguments. Set this on each app service:
 
 | Variable | Value |
 | --- | --- |
 | `APP` | `api` on the api service, `worker` on the worker service |
-| `SUPPORT_EMAIL` | `support@standwise.dev`. The docs site is built into the image and the build fails without it |
-| `STANDWISE_PUBLIC_URL` | The api's public URL, shown in the docs examples (install command, base URL, `curl` calls). It must use `https` and have no trailing slash, or the build fails. When it is not set, the docs show `https://api.standwise.dev`. Set it on the api and worker services, like `SUPPORT_EMAIL` |
+
+The image no longer builds the documentation site. If the api and worker services still have the `STANDWISE_PUBLIC_URL` variable from earlier versions, delete it: only the Cloudflare Pages build reads it now. Keep `SUPPORT_EMAIL` as a runtime variable on the api.
 
 ## Runtime variables
 
@@ -36,7 +36,8 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 | `DATABASE_URL` | Reference the Postgres service |
 | `PORT` | Set by Railway |
 | `PUBLIC_URL` | Public address of the api, for example `https://api.standwise.dev` |
-| `SUPPORT_EMAIL` | Shown in the docs and the OpenAPI document |
+| `SUPPORT_EMAIL` | Shown in the setup and error pages and the OpenAPI document |
+| `DOCS_URL` | Address of the documentation site, `https` with no trailing slash, for example `https://docs-standwise.usefachada.dev`. Defaults to `https://docs.standwise.dev`. The setup header links to it, and the api redirects `/docs` and `/docs/*` to it with a 301 |
 | `TRUST_PROXY` | `true` behind Railway |
 | `TRUSTED_PROXY_HOPS` | `1` behind Railway |
 | `STANDWISE_ENCRYPTION_KEY` | 32 random bytes, base64: `openssl rand -base64 32`. Keep it identical on api and worker |
@@ -53,15 +54,27 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 
 `TEST_DATABASE_URL` is only for the test suite.
 
+## Documentation site (Cloudflare Pages)
+
+The documentation site is a static VitePress build hosted on Cloudflare Pages, on its own domain. The api does not serve it: it keeps the API reference at `/reference`, `/openapi.json`, setup, OAuth, webhooks and `/install.sh`, and answers the old URLs with permanent redirects:
+
+| Old URL | Redirects to |
+| --- | --- |
+| `/docs/api` | `/reference` |
+| `/docs`, `/docs/`, `/docs/<path>` | `<DOCS_URL>/<path>`, keeping the query string |
+
+The Pages project settings, variables and custom domain are in [cloudflare-pages.md](cloudflare-pages.md). Set `DOCS_URL` on the api to the Pages custom domain.
+
 ## Deploying without the final domain
 
-You can deploy before the final domain exists, with an interim domain of your own (for example `api-standwise.usefachada.dev`) or the address Railway generates (`*.up.railway.app`). The interim domain points at the api service, which also serves setup, OAuth, webhooks, `/docs` and `/install.sh`. Set `PUBLIC_URL` to that address, for example `https://api-standwise.usefachada.dev`, and point everything below at it:
+You can deploy before the final domain exists, with an interim domain of your own (for example `api-standwise.usefachada.dev`) or the address Railway generates (`*.up.railway.app`). The interim domain points at the api service, which also serves setup, OAuth, webhooks, the API reference at `/reference` and `/install.sh`. The documentation site has its own interim domain on Cloudflare Pages, `docs-standwise.usefachada.dev`. Set `PUBLIC_URL` to that address, for example `https://api-standwise.usefachada.dev`, and point everything below at it:
 
 - **GitHub App:** the callback URL, the webhook URL and the setup URL. See [github-app.md](github-app.md).
 - **Slack app:** the redirect URLs.
 - **Linear app:** the redirect URL. See [linear-app.md](linear-app.md).
-- **`SUPPORT_EMAIL`:** set it to an address you read, on both the build variable and the runtime variable.
-- **`STANDWISE_PUBLIC_URL`:** set the build variable to the interim address, so the docs built into the image show it.
+- **`SUPPORT_EMAIL`:** set it to an address you read, on the api runtime variable and on the Cloudflare Pages project.
+- **`STANDWISE_PUBLIC_URL`:** set it on the Cloudflare Pages project to the interim api address, so the docs examples and the API reference link show it.
+- **`DOCS_URL`:** set it on the api to `https://docs-standwise.usefachada.dev`.
 - **README.md and `packages/plugin/skills/daily/SKILL.md`:** they are read on GitHub and in the plugin, not built, so they name the interim address directly.
 - **CLI:** the released binary points at `https://api.standwise.dev` unless the release is built with `STANDWISE_DEFAULT_API_URL`. The release workflow sets it to the interim address. Without a release build, people run `standwise login --api-url <url>` or set `STANDWISE_API_URL`.
 
@@ -70,10 +83,11 @@ You can deploy before the final domain exists, with an interim domain of your ow
 Change every place that names the interim address:
 
 1. Add the final domain to the api service and set `PUBLIC_URL` to it.
-2. Update `SUPPORT_EMAIL`, on the build variable and the runtime variable, if the support address changes.
-3. Set the `STANDWISE_PUBLIC_URL` build variable to the final domain on the api and worker services, so the docs show it.
+2. Update `SUPPORT_EMAIL`, on the api and on the Cloudflare Pages project, if the support address changes.
+3. Set `STANDWISE_PUBLIC_URL` on the Cloudflare Pages project to the final api domain and redeploy the site, so the docs show it.
 4. Change `STANDWISE_DEFAULT_API_URL` in `.github/workflows/release-please.yml` and publish a new release, so new installs use the final domain.
 5. Update the GitHub App callback, webhook and setup URLs to the final domain.
 6. Update the Slack and Linear redirect URLs to the final domain.
 7. Update the install command and API URLs in `README.md` and `packages/plugin/skills/daily/SKILL.md`. Change `PUBLISHED_INSTALL_URL` in `scripts/check-docs.ts` to match, or `check-docs` fails.
-8. Keep the interim domain pointing at the api. The CLI saves the `apiUrl` it signed in with in the user's credentials, and keeps using it until the person signs in again with `standwise login --api-url <url>`. Removing the old domain breaks every CLI that was installed before.
+8. Add `docs.standwise.dev` as a custom domain of the Cloudflare Pages project, set `DOCS_URL` on the api to `https://docs.standwise.dev` and update the docs links in `README.md`. Keep `docs-standwise.usefachada.dev` on the Pages project so old links keep working.
+9. Keep the interim domain pointing at the api. The CLI saves the `apiUrl` it signed in with in the user's credentials, and keeps using it until the person signs in again with `standwise login --api-url <url>`. Removing the old domain breaks every CLI that was installed before.

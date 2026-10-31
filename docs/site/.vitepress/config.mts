@@ -1,4 +1,5 @@
 import { type DefaultTheme, defineConfigWithTheme } from 'vitepress';
+import { writeSiteHeaders } from '../../../scripts/docs-headers';
 import { publicUrlPlugin, resolvePublicUrl } from '../../../scripts/docs-public-url';
 
 const supportEmail = process.env.SUPPORT_EMAIL?.trim();
@@ -10,7 +11,7 @@ const publicUrl = resolvePublicUrl(process.env.STANDWISE_PUBLIC_URL?.trim());
 
 type ThemeConfig = DefaultTheme.Config & { supportEmail: string };
 
-const API_REFERENCE = { link: '/api/', target: '_self' };
+const API_REFERENCE = { link: `${publicUrl}/reference`, target: '_self' };
 
 function sidebar(prefix: string, labels: Record<string, string>): DefaultTheme.SidebarItem[] {
   return [
@@ -103,16 +104,19 @@ const ptBR = {
 
 export default defineConfigWithTheme<ThemeConfig>({
   title: 'Standwise',
-  base: '/docs/',
+  base: '/',
   srcExclude: ['README.md'],
   lastUpdated: false,
   ignoreDeadLinks: false,
+  buildEnd: async (siteConfig) => {
+    await writeSiteHeaders(siteConfig.outDir);
+  },
   markdown: {
     config: (md) => {
       publicUrlPlugin(publicUrl)(md);
     },
   },
-  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/docs/logo.svg' }]],
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
   locales: {
     root: {
       label: 'English',

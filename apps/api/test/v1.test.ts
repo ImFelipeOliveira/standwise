@@ -145,6 +145,7 @@ function harness(
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
+      docsUrl: 'https://docs.sw.test',
       githubClientId: 'cid',
       githubClientSecret: 'secret',
       sessionSecret: 'sess',

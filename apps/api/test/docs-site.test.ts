@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -9,20 +8,22 @@ import {
   checkIncludes,
   checkOverview,
   checkParity,
+  checkRootLinks,
   yamlBlocks,
 } from '../../../scripts/check-docs';
-import { createTestApp } from './support';
+import { inlineScriptHashes } from '../../../scripts/docs-headers';
 
 const ROOT = join(import.meta.dir, '../../..');
 const SITE = join(ROOT, 'docs/site');
 const SUPPORT = 'help@sw.test';
+const PUBLIC_URL = 'https://api-standwise.usefachada.dev';
 const temp = await mkdtemp(join(tmpdir(), 'standwise-docs-'));
 const outDir = join(temp, 'dist');
 
 function buildSite(supportEmail: string, out: string) {
   return Bun.spawnSync(['bun', 'run', 'docs:build', '--outDir', out], {
     cwd: ROOT,
-    env: { ...process.env, SUPPORT_EMAIL: supportEmail },
+    env: { ...process.env, SUPPORT_EMAIL: supportEmail, STANDWISE_PUBLIC_URL: PUBLIC_URL },
     stdout: 'pipe',
     stderr: 'pipe',
   });
@@ -39,17 +40,6 @@ async function htmlFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true });
   return entries.filter((entry) => entry.endsWith('.html')).sort();
 }
-
-function inlineScriptHashes(html: string): string[] {
-  return [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(
-    (match) =>
-      `'sha256-${createHash('sha256')
-        .update(match[1] ?? '')
-        .digest('base64')}'`,
-  );
-}
-
-const app = () => createTestApp({ docsDir: outDir }).app;
 
 describe('site build', () => {
   test('builds without errors or dead links', () => {
@@ -84,115 +74,84 @@ describe('site build', () => {
       const sources = [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map(
         (m) => m[1] ?? '',
       );
-      for (const source of sources) expect(source.startsWith('/docs/')).toBe(true);
+      for (const source of sources) {
+        expect(source.startsWith('/'), source).toBe(true);
+        expect(source.startsWith('//'), source).toBe(false);
+        expect(source.startsWith('/docs/'), source).toBe(false);
+      }
     }
   });
-});
 
-describe('served site', () => {
-  test('serves the english overview at /docs/', async () => {
-    const res = await app().request('/docs/');
-    expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toContain('text/html');
-    const html = await res.text();
-    expect(html).toContain('<title>Standwise');
+  test('the site lives at the root of its own domain', async () => {
+    const html = await readFile(join(outDir, 'index.html'), 'utf8');
     expect(html).toContain('<html lang="en"');
+    expect(html).toMatch(/(?:src|href)="\/assets\//);
+    expect(html).not.toContain('/docs/');
+    expect(html).toContain('href="/logo.svg"');
+    const pt = await readFile(join(outDir, 'pt-BR/index.html'), 'utf8');
+    expect(pt).toContain('<html lang="pt-BR"');
   });
 
-  test('serves the portuguese overview at /docs/pt-BR/', async () => {
-    const res = await app().request('/docs/pt-BR/');
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain('<html lang="pt-BR"');
-  });
-
-  test('redirects /docs/pt-BR to /docs/pt-BR/ permanently', async () => {
-    const res = await app().request('/docs/pt-BR');
-    expect(res.status).toBe(301);
-    expect(res.headers.get('location')).toBe('/docs/pt-BR/');
-  });
-
-  test('pages are not sniffed and revalidated on every visit', async () => {
-    for (const path of ['/docs/', '/docs/pt-BR/', '/docs/admin/configuration']) {
-      const res = await app().request(path);
-      expect(res.status).toBe(200);
-      expect(res.headers.get('x-content-type-options')).toBe('nosniff');
-      expect(res.headers.get('cache-control')).toBe('no-cache');
+  test('no page links back to the old /docs/ base', async () => {
+    for (const page of await htmlFiles(outDir)) {
+      const html = await readFile(join(outDir, page), 'utf8');
+      expect(html, page).not.toMatch(/(?:src|href)="\/docs\//);
     }
   });
 
-  test('hashed assets are not sniffed and cached for a year', async () => {
-    const [asset] = (await readdir(join(outDir, 'assets'))).filter((f) => f.endsWith('.js'));
-    const res = await app().request(`/docs/assets/${asset}`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
-    expect(res.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
-  });
-
-  test('serves pages with and without the html extension', async () => {
-    expect((await app().request('/docs/privacy.html')).status).toBe(200);
-    expect((await app().request('/docs/admin/configuration')).status).toBe(200);
-  });
-
-  test('serves assets with their content type', async () => {
-    const res = await app().request('/docs/logo.svg');
-    expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toContain('image/svg+xml');
-  });
-
-  test('redirects /docs to the site and /docs/api/ to the reference', async () => {
-    const root = await app().request('/docs');
-    expect(root.status).toBe(302);
-    expect(root.headers.get('location')).toBe('/docs/');
-    const reference = await app().request('/docs/api/');
-    expect(reference.status).toBe(301);
-    expect(reference.headers.get('location')).toBe('/docs/api');
-  });
-
-  test('keeps the api reference on scalar, linking back to the site', async () => {
-    const res = await app().request('/docs/api');
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain('/openapi.json');
-    const doc = (await (await app().request('/openapi.json')).json()) as {
-      info: { description: string };
-    };
-    expect(doc.info.description).toContain('](/docs/)');
-  });
-
-  test('answers unknown pages and traversal attempts with 404', async () => {
-    for (const path of [
-      '/docs/nope.html',
-      '/docs/%2e%2e/package.json',
-      '/docs/..%2fpackage.json',
+  test('the api reference points at the public api url in both languages', async () => {
+    for (const page of [
+      'index.html',
+      'pt-BR/index.html',
+      'api/overview.html',
+      'pt-BR/api/overview.html',
     ]) {
-      const res = await app().request(path);
-      expect(res.status).toBe(404);
-      expect(await res.text()).not.toContain('"name": "standwise"');
+      const html = await readFile(join(outDir, page), 'utf8');
+      expect(html, page).toContain(`href="${PUBLIC_URL}/reference"`);
+      expect(html, page).not.toContain('https://api.standwise.dev/reference');
     }
   });
 
-  test('sends a self-only content security policy that allows the inline scripts', async () => {
-    for (const path of ['/docs/', '/docs/pt-BR/admin/configuration.html']) {
-      const res = await app().request(path);
-      const csp = res.headers.get('content-security-policy') ?? '';
-      const html = await res.text();
-      expect(csp).toContain("default-src 'none'");
-      expect(csp).toContain("connect-src 'self'");
-      expect(csp).toContain("frame-ancestors 'none'");
-      expect(csp).not.toMatch(/https?:/);
-      const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1] ?? '';
-      expect(scriptSrc).toContain("'self'");
-      expect(scriptSrc).not.toContain('unsafe-inline');
-      const hashes = inlineScriptHashes(html);
-      expect(hashes.length).toBeGreaterThan(0);
-      for (const hash of hashes) expect(scriptSrc).toContain(hash);
-    }
-  });
-
-  test('does not serve the site when it was not built', async () => {
-    const res = await createTestApp({ docsDir: join(temp, 'missing') }).app.request('/docs/');
-    expect(res.status).toBe(404);
+  test('ships cloudflare pages headers and redirects', async () => {
+    const headers = await readFile(join(outDir, '_headers'), 'utf8');
+    const rules = parseHeaders(headers);
+    const all = rules.get('/*') ?? new Map<string, string>();
+    expect(all.get('strict-transport-security')).toContain('max-age=');
+    expect(all.get('x-content-type-options')).toBe('nosniff');
+    const csp = all.get('content-security-policy') ?? '';
+    expect(csp).toContain("default-src 'none'");
+    const index = await readFile(join(outDir, 'index.html'), 'utf8');
+    const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1] ?? '';
+    expect(scriptSrc).not.toContain('unsafe-inline');
+    for (const hash of inlineScriptHashes(index)) expect(scriptSrc).toContain(hash);
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("base-uri 'none'");
+    expect(rules.get('/assets/*')?.get('cache-control')).toBe(
+      'public, max-age=31536000, immutable',
+    );
+    const redirects = await readFile(join(outDir, '_redirects'), 'utf8');
+    expect(redirects.trim().split('\n')).toContain('/pt-BR /pt-BR/ 301');
   });
 });
+
+function parseHeaders(text: string): Map<string, Map<string, string>> {
+  const rules = new Map<string, Map<string, string>>();
+  let current: Map<string, string> | undefined;
+  for (const line of text.split('\n')) {
+    if (line.trim() === '' || line.trimStart().startsWith('#')) continue;
+    if (!/^\s/.test(line)) {
+      expect(line.startsWith('/'), line).toBe(true);
+      current = new Map();
+      rules.set(line.trim(), current);
+      continue;
+    }
+    expect(current, line).toBeDefined();
+    const match = /^\s+([A-Za-z0-9-]+):\s*(\S.*)$/.exec(line);
+    expect(match, line).not.toBeNull();
+    current?.set((match?.[1] ?? '').toLowerCase(), (match?.[2] ?? '').trim());
+  }
+  return rules;
+}
 
 async function fixture(files: Record<string, string>): Promise<string> {
   const dir = await mkdtemp(join(temp, 'site-'));
@@ -281,6 +240,18 @@ describe('check-docs', () => {
       'guide.md': '## Guide\n',
     });
     expect(await checkIncludes(dir)).toEqual(['api/overview.md: include not found ../missing.md']);
+  });
+
+  test('links under the old /docs/ base fail', async () => {
+    const dir = await fixture({
+      'index.md': '[ok](/admin/install)\n',
+      'faq.md': '[old](/docs/admin/install)\n',
+      'pt-BR/api/overview.md': '<a href="/docs/api">x</a>\n',
+    });
+    expect(await checkRootLinks(dir)).toEqual([
+      'faq.md: link under /docs/, the site is served at the root',
+      'pt-BR/api/overview.md: link under /docs/, the site is served at the root',
+    ]);
   });
 
   test('the real site passes every check', async () => {

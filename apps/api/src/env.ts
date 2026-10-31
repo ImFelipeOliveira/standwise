@@ -5,6 +5,10 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   PUBLIC_URL: z.url().transform((url) => url.replace(/\/+$/, '')),
   SUPPORT_EMAIL: z.string().min(1),
+  DOCS_URL: z
+    .url({ protocol: /^https$/ })
+    .refine((url) => !url.endsWith('/'), 'must not end with a slash')
+    .default('https://docs.standwise.dev'),
   TRUST_PROXY: z
     .enum(['true', 'false'])
     .default('false')

@@ -52,6 +52,7 @@ export type Deps = {
   env: {
     publicUrl: string;
     supportEmail: string;
+    docsUrl: string;
     appId: string;
     webhookSecret: string;
     githubClientId: string;

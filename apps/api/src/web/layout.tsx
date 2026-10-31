@@ -21,6 +21,7 @@ export type HeaderProps = {
   installations: { id: number; owner: string }[];
   currentId: number;
   csrf: string;
+  docsUrl: string;
 };
 
 function Org(props: { lang: Language; header: HeaderProps }) {
@@ -66,7 +67,10 @@ function Header(props: { lang: Language; header?: HeaderProps }) {
           </span>
           <Org lang={props.lang} header={header} />
           <nav class="topbar-actions" aria-label={t('web.header.nav')}>
-            <a href={props.lang === 'pt-BR' ? '/docs/pt-BR/' : '/docs/'} class="topbar-link">
+            <a
+              href={`${header.docsUrl}/${props.lang === 'pt-BR' ? 'pt-BR/' : ''}`}
+              class="topbar-link"
+            >
               {t('web.header.docs')}
             </a>
             <form method="post" action="/logout">

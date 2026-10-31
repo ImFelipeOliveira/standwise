@@ -121,7 +121,19 @@ export async function checkDocs(siteDir: string): Promise<string[]> {
     ...(await checkOverview(siteDir)),
     ...(await checkConfigExamples(siteDir)),
     ...(await checkIncludes(siteDir)),
+    ...(await checkRootLinks(siteDir)),
   ];
+}
+
+export async function checkRootLinks(siteDir: string): Promise<string[]> {
+  const problems: string[] = [];
+  for (const page of await listPages(siteDir)) {
+    const text = (await readPage(siteDir, page)) ?? '';
+    if (/\]\(\/docs\/|(?:href|src)="\/docs\//.test(text)) {
+      problems.push(`${page}: link under /docs/, the site is served at the root`);
+    }
+  }
+  return problems;
 }
 
 const CANONICAL_INSTALL_URL = 'https://api.standwise.dev/install.sh';

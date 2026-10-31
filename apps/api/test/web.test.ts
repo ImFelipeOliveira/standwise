@@ -129,6 +129,7 @@ function harness(
     env: {
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
+      docsUrl: 'https://docs.sw.test',
       appId: '1',
       webhookSecret: 'whsec',
       githubClientId: 'cid',
@@ -352,11 +353,11 @@ describe('setup header', () => {
     const { app } = harness();
     const { cookie } = await seed();
     const en = await (await get(app, cookie, INST)).text();
-    expect(en).toContain('<a href="/docs/"');
+    expect(en).toContain('<a href="https://docs.sw.test/"');
     expect(en).toContain('Docs');
     expect(en).toContain('Sign out');
     const pt = await (await get(app, cookie, INST, 'pt-BR')).text();
-    expect(pt).toContain('<a href="/docs/pt-BR/"');
+    expect(pt).toContain('<a href="https://docs.sw.test/pt-BR/"');
     expect(pt).toContain('Docs');
     expect(pt).toContain('Sair');
   });
@@ -373,7 +374,7 @@ describe('setup header', () => {
     expect(html).toContain('</header><main>');
     expect(html).toContain('Access denied');
     expect(html).not.toContain('action="/logout"');
-    expect(html).not.toContain('/docs/');
+    expect(html).not.toContain('docs.sw.test');
   });
 });
 

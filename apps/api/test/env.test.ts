@@ -32,4 +32,24 @@ describe('parseEnv', () => {
   test('rejects a PUBLIC_URL that is not a url', () => {
     expect(() => parseEnv({ ...base, PUBLIC_URL: 'api.standwise.dev' })).toThrow();
   });
+
+  test('defaults DOCS_URL to the docs domain', () => {
+    expect(parseEnv(base).DOCS_URL).toBe('https://docs.standwise.dev');
+  });
+
+  test('accepts an https DOCS_URL without a trailing slash', () => {
+    const DOCS_URL = 'https://docs-standwise.usefachada.dev';
+    expect(parseEnv({ ...base, DOCS_URL }).DOCS_URL).toBe(DOCS_URL);
+  });
+
+  test('rejects a DOCS_URL that is not https, ends with a slash or is not a url', () => {
+    for (const DOCS_URL of [
+      'http://docs.standwise.dev',
+      'https://docs.standwise.dev/',
+      'docs.standwise.dev',
+      'javascript:alert(1)',
+    ]) {
+      expect(() => parseEnv({ ...base, DOCS_URL }), DOCS_URL).toThrow();
+    }
+  });
 });

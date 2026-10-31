@@ -120,6 +120,7 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
       lang={negotiateLanguage(c.req.header('accept-language'))}
       status={status}
       csrf={csrfToken(deps.env.sessionSecret, session.token)}
+      docsUrl={deps.env.docsUrl}
       newKey={flash?.kind === 'apiKey' ? flash : undefined}
       newWebhook={flash?.kind === 'webhook' ? flash : undefined}
     />

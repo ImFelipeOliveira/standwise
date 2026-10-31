@@ -9,7 +9,7 @@ The Standwise API lets your systems read your organization's data and receive ev
 
 - Base URL: `https://api.standwise.dev`
 - OpenAPI document: `https://api.standwise.dev/openapi.json`
-- Interactive reference, with every operation, parameter, example and error: <a href="/docs/api" target="_self">API reference</a>
+- Interactive reference, with every operation, parameter, example and error: [API reference](https://api.standwise.dev/reference)
 
 ## What the API offers
 
