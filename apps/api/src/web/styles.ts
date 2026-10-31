@@ -120,7 +120,7 @@ const LAYOUT = `
 .topbar-sep { color: var(--muted-foreground); font-weight: 400; }
 .topbar-org { font-size: 15px; }
 .topbar-switch { display: flex; align-items: center; gap: 8px; margin: 0; }
-.topbar-switch select { font-size: 14px; font-weight: 500; }
+.topbar-switch select, .topbar-switch .btn { font-size: 14px; font-weight: 500; }
 .topbar-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 14px; font-weight: 500; }
 .topbar-actions form { margin: 0; }
 .topbar-link { display: inline-flex; align-items: center; min-height: 36px; padding: 0 4px; color: var(--muted-foreground); text-decoration: none; }
