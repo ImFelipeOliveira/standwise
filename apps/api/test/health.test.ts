@@ -69,6 +69,50 @@ describe('health', () => {
     expect(calls).toBe(1);
   });
 
+  test('concurrent probes share one query and all report a healthy database', async () => {
+    let calls = 0;
+    let release: () => void = () => {};
+    const slow = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'execute') {
+          return () => {
+            calls++;
+            return new Promise<void>((resolve) => {
+              release = resolve;
+            });
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Deps['db'];
+    const { app } = createTestApp({ db: slow, healthTimeoutMs: 1000 });
+    const probes = [app.request('/health'), app.request('/health'), app.request('/health')];
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    release();
+    const statuses = (await Promise.all(probes)).map((r) => r.status);
+    expect(statuses).toEqual([200, 200, 200]);
+    expect(calls).toBe(1);
+  });
+
+  test('a synchronous driver throw reports 503 and does not block later probes', async () => {
+    let calls = 0;
+    const flaky = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'execute') {
+          return (query: Parameters<Deps['db']['execute']>[0]) => {
+            calls++;
+            if (calls === 1) throw new Error('boom');
+            return target.execute(query);
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Deps['db'];
+    const { app } = createTestApp({ db: flaky });
+    expect((await app.request('/health')).status).toBe(503);
+    expect((await app.request('/health')).status).toBe(200);
+  });
+
   test('documents the 503 response', async () => {
     const { app } = createTestApp();
     const doc = (await (await app.request('/openapi.json')).json()) as {

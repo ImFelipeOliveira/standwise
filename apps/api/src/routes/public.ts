@@ -35,23 +35,25 @@ export const HEALTH_TIMEOUT_MS = 2000;
 export type PublicOptions = { getClientIp: GetClientIp; healthTimeoutMs?: number };
 
 function createDatabaseProbe(deps: Deps, timeoutMs: number): () => Promise<boolean> {
-  let inFlight = false;
+  let pending: Promise<boolean> | undefined;
+  const run = () =>
+    Promise.resolve()
+      .then(() => deps.db.execute(sql`select 1`))
+      .then(
+        () => true,
+        () => false,
+      )
+      .finally(() => {
+        pending = undefined;
+      });
   return async () => {
-    if (inFlight) return false;
-    inFlight = true;
+    pending ??= run();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<boolean>((resolve) => {
       timer = setTimeout(() => resolve(false), timeoutMs);
     });
-    const query = deps.db.execute(sql`select 1`).then(
-      () => true,
-      () => false,
-    );
-    void query.finally(() => {
-      inFlight = false;
-    });
     try {
-      return await Promise.race([query, timeout]);
+      return await Promise.race([pending, timeout]);
     } finally {
       clearTimeout(timer);
     }
