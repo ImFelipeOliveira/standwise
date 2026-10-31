@@ -263,3 +263,52 @@ describe('getSetupStatus installations', () => {
     ]);
   });
 });
+
+describe('getSetupStatus teams and config file', () => {
+  async function load(
+    cfg: Parameters<typeof seedOrg>[0],
+    options: Parameters<typeof fakeDeps>[0] = {},
+  ) {
+    await seedOrg(cfg);
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps(options);
+    return getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+  }
+
+  test('lists the teams of the operational config in config order', async () => {
+    const status = await load(
+      config(
+        '[alice, bob]',
+        `    tracker: { provider: linear, team: ENG }
+  - name: Beta
+    timezone: America/Sao_Paulo
+    remind_at: "08:30"
+    digest_at: "11:00"
+    managers: [alice]
+    members: [alice]
+    chat: { provider: slack, channel: "#beta" }`,
+      ),
+    );
+    expect(status.teams).toEqual([
+      { name: 'Alpha', channel: '#alpha', remindAt: '09:00', digestAt: '10:00', tracker: 'linear' },
+      { name: 'Beta', channel: '#beta', remindAt: '08:30', digestAt: '11:00', tracker: null },
+    ]);
+  });
+
+  test('links the file on the default branch of the config repo', async () => {
+    const status = await load(config());
+    expect(status.configFileUrl).toBe('https://github.com/acme/.github/blob/trunk/standwise.yml');
+  });
+
+  test('has no teams and no file link without a config', async () => {
+    const status = await load(null);
+    expect(status.teams).toEqual([]);
+    expect(status.configFileUrl).toBeNull();
+  });
+
+  test('has no file link when the config repo is missing', async () => {
+    const status = await load(config(), { configRepo: 'missing' });
+    expect(status.configFileUrl).toBeNull();
+  });
+});

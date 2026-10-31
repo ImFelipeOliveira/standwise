@@ -44,10 +44,11 @@ export function Card(props: {
   class?: string;
   tone?: Tone;
   as?: 'section' | 'article' | 'aside';
+  id?: string;
 }) {
   const Tag = props.as ?? 'section';
   return (
-    <Tag class={classes('card', props.tone && `card-${props.tone}`, props.class)}>
+    <Tag class={classes('card', props.tone && `card-${props.tone}`, props.class)} id={props.id}>
       {props.children}
     </Tag>
   );

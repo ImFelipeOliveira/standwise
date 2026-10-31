@@ -441,7 +441,9 @@ describe('setup page', () => {
 
   test('setup prefilled link', async () => {
     const { app } = harness();
-    const { cookie } = await seed();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, { status: 'unconfigured', reason: 'no_file' });
+    });
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = (await res.text()).replaceAll('&amp;', '&');
     expect(html).toContain(
@@ -452,7 +454,9 @@ describe('setup page', () => {
 
   test('setup links to repo creation when .github is missing', async () => {
     const { app } = harness({ hasConfigRepo: false });
-    const { cookie } = await seed();
+    const { cookie } = await seed(async (id) => {
+      await setInstallationConfig(db, id, { status: 'unconfigured', reason: 'no_repo' });
+    });
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = await res.text();
     expect(html).toContain('https://github.com/new?name=.github');
@@ -568,9 +572,31 @@ describe('setup page', () => {
     const html = await (
       await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
     ).text();
-    expect(html).toContain('Configured.');
+    expect(html).toContain('>Configured<');
     expect(html).toContain('Standwise has no access to the .github repository.');
     expect(html).toContain('Standwise keeps using the current configuration.');
+  });
+
+  test('a configured install shows its teams, the edit link and the progress', async () => {
+    const { app } = harness();
+    const { cookie } = await seed();
+    const en = await (
+      await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
+    ).text();
+    expect(en).toContain('2 of 3 steps done');
+    expect(en).toContain('<h3>Alpha</h3>');
+    expect(en).toContain('#alpha');
+    expect(en).toContain('reminder 09:00 · digest 10:00');
+    expect(en).toContain('href="https://github.com/acme/.github/blob/trunk/standwise.yml"');
+    expect(en).toContain('Edit on GitHub');
+    expect(en).not.toContain('filename=standwise.yml');
+    const pt = await (
+      await app.request(`/setup?installation_id=${INST}`, {
+        headers: { cookie, 'accept-language': 'pt-BR' },
+      })
+    ).text();
+    expect(pt).toContain('2 de 3 etapas concluídas');
+    expect(pt).toContain('Editar no GitHub');
   });
 
   test('the admin sees reconnect when slack is connected', async () => {

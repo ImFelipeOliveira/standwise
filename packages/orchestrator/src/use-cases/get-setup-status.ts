@@ -43,12 +43,42 @@ export type SetupStatus = {
     | { connected: true; workspace: string; urlKey: string; invalid: boolean };
   trackerNotices: TrackerNotice[];
   teamNotices: TeamNotice[];
+  teams: SetupTeam[];
+  configFileUrl: string | null;
   teamFailures: TeamFailure[];
   personFailures: PersonFailureGroup[];
   apiKeys: { manage: false } | { manage: true; keys: ApiKeySummary[] };
   webhooks: { manage: false } | ({ manage: true } & WebhookOverview);
   supportEmail: string;
 };
+
+export type SetupTeam = {
+  name: string;
+  channel: string | null;
+  remindAt: string;
+  digestAt: string;
+  tracker: 'linear' | 'jira' | null;
+};
+
+function setupTeams(config: StandwiseConfig | null): SetupTeam[] {
+  return (config?.teams ?? []).map((team) => ({
+    name: team.name,
+    channel: team.chat.channel || null,
+    remindAt: team.remindAt,
+    digestAt: team.digestAt,
+    tracker: team.tracker?.provider ?? null,
+  }));
+}
+
+function configFileUrl(
+  owner: string,
+  configRepo: SetupStatus['configRepo'],
+  config: SetupStatus['config'],
+): string | null {
+  if (!configRepo.exists || config.status === 'unconfigured') return null;
+  const branch = configRepo.defaultBranch.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${encodeURIComponent(owner)}/.github/blob/${branch}/standwise.yml`;
+}
 
 export type TrackerNotice = 'linear_not_connected' | 'jira_coming_soon';
 
@@ -175,6 +205,8 @@ export async function getSetupStatus(
     linear,
     trackerNotices: trackerNotices(operational, linear),
     teamNotices,
+    teams: setupTeams(operational),
+    configFileUrl: configFileUrl(installation.accountLogin, configRepo, config),
     teamFailures,
     personFailures,
     apiKeys,

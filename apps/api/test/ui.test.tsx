@@ -301,6 +301,11 @@ function status(overrides: Partial<SetupStatus> = {}): SetupStatus {
     linear: { connected: true, workspace: 'Acme', urlKey: 'acme', invalid: false },
     trackerNotices: [],
     teamNotices: [],
+    teams: [
+      { name: 'Alpha', channel: '#alpha', remindAt: '09:00', digestAt: '10:00', tracker: null },
+      { name: 'Beta', channel: '#beta', remindAt: '08:30', digestAt: '11:00', tracker: null },
+    ],
+    configFileUrl: 'https://github.com/acme/.github/blob/main/standwise.yml',
     teamFailures: [{ kind: 'digest', team: 'Alpha', date: '2026-10-28', at: NOW, error: 'boom' }],
     personFailures: [{ kind: 'reminder', error: 'nope', count: 2, lastAt: NOW }],
     apiKeys: {
@@ -437,4 +442,221 @@ describe('no inline styles or scripts', () => {
       });
     }
   }
+});
+
+const page = (
+  value: SetupStatus,
+  lang: Language = 'en',
+  extra: {
+    newKey?: { name: string; key: string };
+    newWebhook?: { url: string; secret: string };
+  } = {},
+) => render(<SetupPage lang={lang} status={value} csrf="token" {...extra} />);
+
+const section = (html: string, id: string) => {
+  const start = html.indexOf(`id="${id}"`);
+  if (start < 0) throw new Error(`missing ${id}`);
+  return html.slice(start, html.indexOf('</section>', start));
+};
+
+const teamCard = (html: string, name: string) => {
+  const start = html.indexOf(`<h3>${name}</h3>`);
+  if (start < 0) throw new Error(`missing team ${name}`);
+  return html.slice(html.lastIndexOf('<article', start), html.indexOf('</article>', start));
+};
+
+const structure = (html: string) =>
+  [
+    ...html.matchAll(
+      /<(section|article|aside|div|h1|h2|h3|form|table|a|button|span)\b[^>]*?(?:\sclass="([^"]*)")?[^>]*>/g,
+    ),
+  ]
+    .map((m) => `${m[1]}.${m[2] ?? ''}`)
+    .join('\n');
+
+describe('setup checklist', () => {
+  test('the progress badge counts the steps, with linear only when a team uses it', async () => {
+    expect(await page(status())).toContain('3 of 3 steps done');
+    const linearTeam = status({
+      linear: { connected: false },
+      trackerNotices: ['linear_not_connected'],
+      teams: [
+        {
+          name: 'Alpha',
+          channel: '#alpha',
+          remindAt: '09:00',
+          digestAt: '10:00',
+          tracker: 'linear',
+        },
+      ],
+    });
+    expect(await page(linearTeam)).toContain('3 of 4 steps done');
+  });
+
+  test('a connected slack is done; a member gets no reconnect and no admin form', async () => {
+    const admin = section(await page(status()), 'step-slack');
+    expect(admin).toContain('step step-done');
+    expect(admin).toContain('Connected to Acme');
+    expect(admin).toContain('Reconnect Slack');
+    const html = await page(
+      status({ admin: false, apiKeys: { manage: false }, webhooks: { manage: false } }),
+    );
+    const member = section(html, 'step-slack');
+    expect(member).toContain('step step-done');
+    expect(member).toContain('Connected to Acme');
+    expect(html).not.toContain('Reconnect');
+    expect(html).not.toContain('action="/setup/');
+  });
+
+  test('an invalid linear shows the danger alert and, for the admin, reconnect', async () => {
+    const value = status({
+      linear: { connected: true, workspace: 'Acme', urlKey: 'acme', invalid: true },
+    });
+    const card = section(await page(value), 'step-linear');
+    expect(card).toContain('step step-error');
+    expect(card).toContain('class="alert alert-danger"');
+    expect(card).toContain('Linear stopped working');
+    expect(card).toContain('Reconnect Linear');
+    const member = section(await page({ ...value, admin: false }), 'step-linear');
+    expect(member).toContain('Linear stopped working');
+    expect(member).not.toContain('/connect/linear');
+  });
+
+  test('linear is optional when no team uses it', async () => {
+    expect(section(await page(status()), 'step-linear')).toContain('Optional');
+  });
+
+  test('a configured file shows one card per team and an edit link', async () => {
+    const card = section(await page(status()), 'step-config');
+    expect(card).toContain('step step-done');
+    expect(card.match(/<article class="card team-card/g)?.length).toBe(2);
+    expect(teamCard(card, 'Alpha')).toContain('#alpha');
+    expect(teamCard(card, 'Alpha')).toContain('reminder 09:00 · digest 10:00');
+    expect(teamCard(card, 'Beta')).toContain('reminder 08:30 · digest 11:00');
+    expect(card).toContain(
+      '<a class="btn btn-secondary" href="https://github.com/acme/.github/blob/main/standwise.yml">',
+    );
+    expect(card).toContain('Edit on GitHub');
+  });
+
+  test('a team notice renders inside its team card with the warning tone', async () => {
+    const html = await page(
+      status({ teamNotices: [{ team: 'Beta', reference: '@acme/gone', kind: 'missing' }] }),
+    );
+    const beta = teamCard(html, 'Beta');
+    expect(beta).toContain('card-warning');
+    expect(beta).toContain('the GitHub team @acme/gone was not found');
+    expect(teamCard(html, 'Alpha')).not.toContain('@acme/gone');
+    expect(teamCard(html, 'Alpha')).not.toContain('card-warning');
+  });
+
+  test('an invalid file lists every error path in a scroll table', async () => {
+    const card = section(
+      await page(
+        status({
+          config: {
+            status: 'invalid',
+            errors: [
+              { path: 'teams.0.digest_at', message: 'must be HH:MM (24h)' },
+              { path: 'teams.1.chat', message: 'required' },
+            ],
+            lastValid: true,
+          },
+        }),
+      ),
+      'step-config',
+    );
+    expect(card).toContain('step step-error');
+    expect(card).toContain('class="table-scroll"');
+    expect(card).toContain('teams.0.digest_at');
+    expect(card).toContain('teams.1.chat');
+    expect(card).toContain('keeps using the last valid version');
+  });
+
+  test('an unconfigured file is a todo with the template and the create action', async () => {
+    const card = section(
+      await page(
+        status({
+          config: { status: 'unconfigured', reason: 'no_file' },
+          teams: [],
+          configFileUrl: null,
+        }),
+      ),
+      'step-config',
+    );
+    expect(card).toContain('step step-todo');
+    expect(card).toContain('no_file');
+    expect(card).toContain('Create standwise.yml from the template');
+    expect(card).toContain('<pre>');
+    expect(card).not.toContain('Edit on GitHub');
+  });
+
+  test('long values wrap and wide tables scroll', async () => {
+    const url = `https://hooks.example.com/${'a'.repeat(274)}`;
+    const owner = 'o'.repeat(120);
+    const base = status();
+    if (!base.webhooks.manage) throw new Error('expected webhooks');
+    const html = await page({
+      ...base,
+      owner,
+      installations: [{ id: 11, owner }],
+      webhooks: {
+        ...base.webhooks,
+        endpoints: base.webhooks.endpoints.map((e) => ({ ...e, url })),
+      },
+    });
+    const webhooks = section(html, 'webhooks');
+    const scroll = webhooks.indexOf('class="table-scroll"');
+    expect(scroll).toBeGreaterThan(-1);
+    expect(webhooks.indexOf(url)).toBeGreaterThan(scroll);
+    expect(html).toContain(`<strong class="topbar-org">${owner}</strong>`);
+    expect(section(html, 'step-github')).toContain(`<p class="muted">Installed on ${owner}</p>`);
+    expect(PAGE_CSS).toMatch(/[ ,]strong[ ,][^{]*\{[^}]*overflow-wrap: anywhere/);
+    expect(PAGE_CSS).toMatch(/[ ,]p[ ,][^{]*\{[^}]*overflow-wrap: anywhere/);
+    expect(PAGE_CSS).toMatch(/[ ,]code[ ,][^{]*\{[^}]*overflow-wrap: anywhere/);
+  });
+
+  test('the aside holds failed deliveries, api keys, webhooks and support, in order', async () => {
+    const html = await page(status());
+    const aside = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'));
+    const order = ['id="failed"', 'id="api-keys"', 'id="webhooks"', 'mailto:help@example.com'].map(
+      (needle) => aside.indexOf(needle),
+    );
+    expect(order.every((i) => i > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(section(html, 'failed')).toContain('class="table-scroll"');
+    const empty = await page(status({ teamFailures: [], personFailures: [] }));
+    expect(section(empty, 'failed')).toContain('No failed deliveries.');
+  });
+
+  test('one-time secrets render first in the main column as an info alert', async () => {
+    const html = await page(status(), 'en', {
+      newKey: { name: 'ci', key: 'swk_secret' },
+      newWebhook: { url: 'https://hooks.example.com/a', secret: 'whsec_x' },
+    });
+    const main = html.slice(html.indexOf('class="layout-main'), html.indexOf('id="step-github"'));
+    expect(main).toContain('class="alert alert-info"');
+    expect(main).toContain('<code class="code">swk_secret</code>');
+    expect(main).toContain('<code class="code">whsec_x</code>');
+    expect(main).toContain('Copy it now');
+  });
+
+  test('every step status has a translated label', async () => {
+    const en = await page(status({ slack: { connected: false } }));
+    expect(en).toContain('<span class="sr-only">Done</span>');
+    expect(en).toContain('<span class="sr-only">To do</span>');
+    const pt = await page(status({ slack: { connected: false } }), 'pt-BR');
+    expect(pt).toContain('<span class="sr-only">Concluída</span>');
+    expect(pt).toContain('<span class="sr-only">Pendente</span>');
+  });
+
+  test('pt-BR renders the same structure with translated labels', async () => {
+    const en = await page(status());
+    const pt = await page(status(), 'pt-BR');
+    expect(structure(pt)).toBe(structure(en));
+    expect(pt).toContain('3 de 3 etapas concluídas');
+    expect(pt).toContain('Editar no GitHub');
+    expect(pt).toContain('lembrete 09:00 · consolidado 10:00');
+    expect(pt).toContain('Opcional');
+  });
 });
