@@ -9,7 +9,7 @@ import {
   listDailies,
   operationalConfig,
 } from '@standwise/db';
-import { chatUserIdFor } from '../chat-identity';
+import { chatUserIdFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';
 import { describeDeliveryError } from './delivery-error';
@@ -60,13 +60,14 @@ export async function sendReminder(deps: WorkerDeps, job: SendReminderJob): Prom
   const claim = await claimDelivery(deps.db, key);
   if (claim.status !== 'claimed') return;
 
+  let chatUserId: string | null = null;
   try {
     const chat = await deps.chatFor(job.installationId, 'slack');
     if (!chat) {
       await failDelivery(deps.db, key, claim.token, 'no_chat_connection');
       return;
     }
-    const chatUserId = await chatUserIdFor(deps, job.installationId, config, login);
+    chatUserId = await chatUserIdFor(deps, job.installationId, config, login);
     if (!chatUserId) {
       await failDelivery(deps.db, key, claim.token, `no_chat_identity: ${login}`);
       return;
@@ -78,6 +79,9 @@ export async function sendReminder(deps: WorkerDeps, job: SendReminderJob): Prom
     await completeDelivery(deps.db, key, claim.token, ref);
   } catch (error) {
     await failDelivery(deps.db, key, claim.token, describeDeliveryError(error));
+    if (chatUserId) {
+      await forgetStaleChatIdentity(deps, job.installationId, config, login, chatUserId, error);
+    }
     throw error;
   }
 }

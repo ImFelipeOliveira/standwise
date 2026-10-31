@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
   claimDelivery,
   createApiKey,
@@ -194,4 +194,57 @@ describe('getSetupStatus linear', () => {
   test('says jira is coming soon when a team uses jira', async () => {
     expect((await status(tracker('jira'))).trackerNotices).toEqual(['jira_coming_soon']);
   });
+});
+
+describe('getSetupStatus team notices', () => {
+  async function run(members: string, options: Parameters<typeof fakeDeps>[0] = {}) {
+    await seedOrg(config(members));
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps(options);
+    return { fake, member };
+  }
+
+  async function notices(members: string, options: Parameters<typeof fakeDeps>[0] = {}) {
+    const { fake, member } = await run(members, options);
+    return (await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST))
+      .teamNotices;
+  }
+
+  test('reports missing and truncated references per team, without members', async () => {
+    const result = await notices('[alice, "@acme/gone", "@acme/huge"]', {
+      teams: { '@acme/huge': ['bob'] },
+      truncatedTeams: ['@acme/huge'],
+    });
+    expect(result).toEqual([
+      { team: 'Alpha', reference: '@acme/gone', kind: 'missing' },
+      { team: 'Alpha', reference: '@acme/huge', kind: 'truncated' },
+    ]);
+    expect(JSON.stringify(result)).not.toContain('bob');
+  });
+
+  test('has no notices when everything resolves', async () => {
+    expect(await notices('[alice, "@acme/ok"]', { teams: { '@acme/ok': ['bob'] } })).toEqual([]);
+  });
+
+  test('a failing resolution leaves setup working without notices', async () => {
+    const { fake, member } = await run('[alice, "@acme/x"]');
+    fake.deps.github.resolveTeamMembers = async () => {
+      throw new Error('github down');
+    };
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    spy.mockRestore();
+    expect(status.teamNotices).toEqual([]);
+    expect(status.owner).toBe('acme');
+  });
+
+  test('a hanging resolution gives up after about 3 seconds', async () => {
+    const { fake, member } = await run('[alice, "@acme/x"]');
+    fake.deps.github.resolveTeamMembers = () => new Promise(() => {});
+    const started = Date.now();
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    expect(status.teamNotices).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(4500);
+  }, 10000);
 });

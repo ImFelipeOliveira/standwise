@@ -11,7 +11,12 @@ import { LinearRateLimitError } from '@standwise/linear';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   configPeople,
+  enqueueLinkTrackerIdentities,
+  LINK_TRACKER_BATCH,
   LINK_TRACKER_IDENTITIES_JOB,
+  LINK_TRACKER_IDENTITY_JOB,
+  type LinkTrackerIdentitiesJob,
+  type LinkTrackerIdentityJob,
   linkTrackerIdentities,
   linkTrackerIdentity,
   loginForLinearUser,
@@ -41,22 +46,52 @@ const people: ReadonlySet<string> = new Set(['alice', 'bob']);
 const overrides = (body: string) => `members:\n${body}`;
 
 describe('linking at login', () => {
-  test('links by the github email', async () => {
+  const linkJobs = (queue: ReturnType<typeof fakeDeps>['queue']) =>
+    queue.enqueued.filter((j) => j.name === LINK_TRACKER_IDENTITY_JOB).map((j) => j.data);
+
+  test('a login with linear connected enqueues a job and never calls linear', async () => {
     await seedOrg();
     await connect();
-    const { deps, linear } = fakeDeps();
+    const { deps, linear, queue } = fakeDeps();
     linear.state.users.set('alice@acme.com', 'lin-alice');
     await startSession(deps, { githubToken: 'gho_x' });
+    const member = await seedMember();
+    expect(linkJobs(queue)).toEqual([{ installationId: INST, memberId: member.id }]);
+    expect(linear.calls.bearer).toEqual([]);
+    expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
+  });
+
+  test('a login without a linear connection enqueues nothing', async () => {
+    await seedOrg();
+    const { deps, queue } = fakeDeps();
+    await startSession(deps, { githubToken: 'gho_x' });
+    expect(linkJobs(queue)).toEqual([]);
+  });
+
+  test('the queued job links the person by the stored github email', async () => {
+    await seedOrg();
+    await connect();
+    const { deps, linear, queue } = fakeDeps();
+    linear.state.users.set('alice@acme.com', 'lin-alice');
+    await queue.work(
+      LINK_TRACKER_IDENTITY_JOB,
+      async (data: LinkTrackerIdentityJob) =>
+        linkTrackerIdentity(deps, data.installationId, data.memberId),
+      { policies: ['stately'] },
+    );
+    await startSession(deps, { githubToken: 'gho_x' });
+    await queue.drain();
     expect((await getIdentities(db, INST, 'linear')).get('alice')).toBe('lin-alice');
   });
 
   test('the config override wins over the github email', async () => {
     await seedOrg(config('[alice, bob]', overrides('  alice:\n    linear: other@acme.com')));
     await connect();
+    const member = await seedMember();
     const { deps, linear } = fakeDeps();
     linear.state.users.set('alice@acme.com', 'lin-wrong');
     linear.state.users.set('other@acme.com', 'lin-right');
-    await startSession(deps, { githubToken: 'gho_x' });
+    await linkTrackerIdentity(deps, INST, member.id);
     expect((await getIdentities(db, INST, 'linear')).get('alice')).toBe('lin-right');
     expect(linear.calls.userLookups).toEqual(['other@acme.com']);
   });
@@ -68,42 +103,70 @@ describe('linking at login', () => {
     await setMemberInstallations(db, member.id, [INST]);
     await setIdentity(db, INST, member.id, 'linear', 'lin-old');
     const { deps } = fakeDeps();
-    await linkTrackerIdentity(deps, INST, member.id, 'alice@acme.com');
+    await linkTrackerIdentity(deps, INST, member.id);
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 
-  test('a linear failure does not fail login', async () => {
+  test('a linear failure is logged and does not throw', async () => {
     await seedOrg();
     await connect();
+    const member = await seedMember();
     const { deps, linear } = fakeDeps();
     linear.state.graphqlStatus = 500;
-    const result = await startSession(deps, { githubToken: 'gho_x' });
-    expect(result.orgs).toHaveLength(1);
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await linkTrackerIdentity(deps, INST, member.id);
+    } finally {
+      spy.mockRestore();
+    }
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 
-  test('an auth failure invalidates the connection and does not fail login', async () => {
+  test('an auth failure invalidates the connection without throwing', async () => {
     await seedOrg();
     await connect();
+    const member = await seedMember();
     const { deps, linear } = fakeDeps();
     linear.state.graphqlStatus = 401;
-    await startSession(deps, { githubToken: 'gho_x' });
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await linkTrackerIdentity(deps, INST, member.id);
+    } finally {
+      spy.mockRestore();
+    }
     expect((await getConnection(db, INST, 'linear', KEY))?.invalidatedAt).toBeTruthy();
+  });
+
+  test('a rate limit throws so the job is retried', async () => {
+    await seedOrg();
+    await connect();
+    const member = await seedMember();
+    const { deps, linear } = fakeDeps();
+    linear.state.graphqlStatus = 429;
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(linkTrackerIdentity(deps, INST, member.id)).rejects.toBeInstanceOf(
+        LinearRateLimitError,
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test('does nothing without a connection or an operational config', async () => {
     await seedOrg();
+    const member = await seedMember();
     const { deps, linear } = fakeDeps();
     linear.state.users.set('alice@acme.com', 'lin-alice');
-    await startSession(deps, { githubToken: 'gho_x' });
-    expect(linear.calls.userLookups).toEqual([]);
+    await linkTrackerIdentity(deps, INST, member.id);
+    expect(linear.calls.bearer).toEqual([]);
     await seedOrg(null);
     await connect();
-    await startSession(deps, { githubToken: 'gho_x' });
-    expect(linear.calls.userLookups).toEqual([]);
+    await linkTrackerIdentity(deps, INST, member.id);
+    expect(linear.calls.bearer).toEqual([]);
   });
 
-  test('a workspace change during a login lookup writes nothing', async () => {
+  test('a workspace change during the lookup writes nothing', async () => {
     await seedOrg();
     await connect();
     const member = await seedMember();
@@ -121,7 +184,7 @@ describe('linking at login', () => {
     };
     const spy = spyOn(console, 'error').mockImplementation(() => {});
     try {
-      await linkTrackerIdentity(deps, INST, member.id, 'alice@acme.com');
+      await linkTrackerIdentity(deps, INST, member.id);
     } finally {
       spy.mockRestore();
     }
@@ -131,10 +194,10 @@ describe('linking at login', () => {
   test('without any email it removes a stale identity and never calls linear', async () => {
     await seedOrg();
     await connect();
-    const member = await seedMember();
+    const member = await upsertMember(db, { githubUserId: 1, login: 'Alice', email: null });
     await setIdentity(db, INST, member.id, 'linear', 'lin-old');
     const { deps, linear } = fakeDeps();
-    await linkTrackerIdentity(deps, INST, member.id, null);
+    await linkTrackerIdentity(deps, INST, member.id);
     expect(linear.calls.userLookups).toEqual([]);
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
@@ -240,6 +303,42 @@ describe('linkTrackerIdentities', () => {
     expect((await getIdentities(db, INST, 'linear')).size).toBe(0);
   });
 
+  test('a relink of 450 members runs as three chained jobs and links everyone', async () => {
+    await seedOrg(config('[alice, "@acme/big"]'));
+    await connect();
+    const logins = Array.from({ length: 450 }, (_, i) => `m${String(i).padStart(3, '0')}`);
+    const { deps, linear, queue } = fakeDeps({ teams: { '@acme/big': logins } });
+    for (const [i, login] of logins.entries()) {
+      const m = await upsertMember(db, {
+        githubUserId: 1000 + i,
+        login,
+        email: `${login}@acme.com`,
+      });
+      await setMemberInstallations(db, m.id, [INST]);
+      linear.state.users.set(`${login}@acme.com`, `lin-${login}`);
+    }
+    const runs: LinkTrackerIdentitiesJob[] = [];
+    await queue.work(
+      LINK_TRACKER_IDENTITIES_JOB,
+      async (data: LinkTrackerIdentitiesJob) => {
+        runs.push(data);
+        await linkTrackerIdentities(deps, data.installationId, data.afterLogin);
+      },
+      { policies: ['stately'] },
+    );
+    await enqueueLinkTrackerIdentities(deps, INST);
+    await queue.drain();
+    expect(LINK_TRACKER_BATCH).toBe(200);
+    expect(runs).toEqual([
+      { installationId: INST },
+      { installationId: INST, afterLogin: 'm199' },
+      { installationId: INST, afterLogin: 'm399' },
+    ]);
+    const ids = await getIdentities(db, INST, 'linear');
+    expect(ids.size).toBe(450);
+    expect(logins.every((l) => ids.get(l) === `lin-${l}`)).toBe(true);
+  });
+
   test('does nothing when the installation has no config or no connection', async () => {
     await seedOrg();
     const { deps, linear } = fakeDeps();
@@ -343,5 +442,6 @@ describe('loginForLinearUser', () => {
 
   test('job name is stable', () => {
     expect(LINK_TRACKER_IDENTITIES_JOB).toBe('link-tracker-identities');
+    expect(LINK_TRACKER_IDENTITY_JOB).toBe('link-tracker-identity');
   });
 });

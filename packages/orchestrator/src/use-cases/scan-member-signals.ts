@@ -7,6 +7,7 @@ import {
   teamsForMember,
 } from '@standwise/core';
 import {
+  getDelivery,
   getInstallation,
   getInstallationMemberIds,
   markDeliverySent,
@@ -76,6 +77,17 @@ export async function scanMemberSignals(
 
   const memberId = (await getInstallationMemberIds(deps.db, installation.id, [login])).get(login);
   if (!memberId) return;
+  if (job.date) {
+    const marker = await getDelivery(deps.db, {
+      installationId: installation.id,
+      teamName: '',
+      date: job.date,
+      kind: 'signal_scan',
+      subject: login,
+    });
+    if (marker?.status === 'sent') return;
+  }
+
   const teams = teamsForMember(
     login,
     await resolveTeams(deps, installation.id, installation.accountLogin, config),

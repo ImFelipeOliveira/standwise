@@ -33,13 +33,14 @@ export async function getDraft(
   const cal = ctx.mine[0];
   const lastDaily = await getLastDaily(deps.db, ctx.installationId, ctx.member.id, ctx.date);
   const since = activitySince({ date: ctx.date, cal, ...(lastDaily ? { lastDaily } : {}) });
-  const octokit = await deps.github.installationOctokit(ctx.installationId);
-  const github = await deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
-  const cards = await listCards(deps, ctx, since);
+  const [github, cards, pending] = await Promise.all([
+    listGithubActivity(deps, ctx, since),
+    listCards(deps, ctx, since),
+    listPendingSuggestions(deps.db, ctx.installationId, ctx.member.id),
+  ]);
   const activity = [...github, ...cards]
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, MAX_ACTIVITY);
-  const pending = await listPendingSuggestions(deps.db, ctx.installationId, ctx.member.id);
   return {
     org: ctx.owner,
     date: ctx.date,
@@ -53,6 +54,15 @@ export async function getDraft(
       since: s.createdAt.toISOString(),
     })),
   };
+}
+
+async function listGithubActivity(
+  deps: Deps,
+  ctx: OrgContext,
+  since: Date,
+): Promise<ActivityItem[]> {
+  const octokit = await deps.github.installationOctokit(ctx.installationId);
+  return deps.github.listActivity(octokit, ctx.owner, ctx.member.login, since);
 }
 
 async function listCards(deps: Deps, ctx: OrgContext, since: Date): Promise<ActivityItem[]> {

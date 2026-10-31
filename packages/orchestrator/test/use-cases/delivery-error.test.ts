@@ -8,6 +8,15 @@ describe('describeDeliveryError', () => {
     expect(describeDeliveryError(error)).toBe('not_in_channel: the bot is not in the channel');
   });
 
+  test('a stale slack user keeps its code with a safe message', () => {
+    expect(describeDeliveryError(new ChatDeliveryError('user_not_found', 'raw U123'))).toBe(
+      'user_not_found: the Slack user was not found',
+    );
+    expect(describeDeliveryError(new ChatDeliveryError('user_disabled', 'raw U123'))).toBe(
+      'user_disabled: the Slack user is deactivated',
+    );
+  });
+
   test('an unknown chat error code keeps the code with a generic message', () => {
     expect(describeDeliveryError(new ChatDeliveryError('msg_too_long', 'raw details'))).toBe(
       'msg_too_long: Slack rejected the message',

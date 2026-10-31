@@ -68,7 +68,11 @@ async function setup(cfg: StandwiseConfig = trackerConfig(), connected = true) {
   const resolved: string[][] = [];
   fake.deps.github.resolveTeamMembers = async (_o, _owner, members) => {
     resolved.push(members);
-    return members.flatMap((m) => (m === '@acme/backend' ? ['dave'] : [m.toLowerCase()]));
+    return {
+      logins: members.flatMap((m) => (m === '@acme/backend' ? ['dave'] : [m.toLowerCase()])),
+      missingTeams: [],
+      truncatedTeams: [],
+    };
   };
   const team = cfg.teams[0] as StandwiseConfig['teams'][number];
   const build = (): Promise<ProjectTracker> => fake.deps.trackerFor(INST, 'acme', cfg, team);

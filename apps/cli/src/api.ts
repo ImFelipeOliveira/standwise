@@ -1,6 +1,12 @@
 import type { DailyConfirmation, DailySubmission } from '@standwise/core';
 
-export const DEFAULT_API_URL = 'https://api.standwise.dev';
+import { resolveDefaultApiUrl } from './default-api-url';
+
+declare const STANDWISE_DEFAULT_API_URL: string | undefined;
+
+export const DEFAULT_API_URL = resolveDefaultApiUrl(
+  typeof STANDWISE_DEFAULT_API_URL === 'string' ? STANDWISE_DEFAULT_API_URL : undefined,
+);
 
 export class ApiError extends Error {
   constructor(

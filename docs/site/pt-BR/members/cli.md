@@ -141,7 +141,7 @@ Inicia o servidor MCP local pela entrada e saída padrão, para clientes de IA. 
 | --- | --- |
 | `--org <login>` | A organização, quando você está em mais de uma. |
 | `--file <caminho>` | O arquivo JSON da daily para o `submit`. |
-| `--api-url <url>` | A API do Standwise. O padrão é `STANDWISE_API_URL` e, depois, `https://api.standwise.dev`. |
+| `--api-url <url>` | A API do Standwise. Sem ela, a CLI usa `STANDWISE_API_URL` e, sem essa variável, a API do Standwise em `https://api.standwise.dev`. |
 | `--help` | Mostra o uso. |
 | `--version` | Mostra a versão. |
 

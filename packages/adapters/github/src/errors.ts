@@ -39,6 +39,11 @@ export function rateLimitRetryAfter(error: unknown, now: number = Date.now()): n
   return null;
 }
 
+export function isRateLimited(error: unknown): boolean {
+  const headers = headersOf(error);
+  return headers['retry-after'] !== undefined || String(headers['x-ratelimit-remaining']) === '0';
+}
+
 export function asRateLimitError(error: unknown): unknown {
   const retryAfter = rateLimitRetryAfter(error);
   return retryAfter === null ? error : new GitHubRateLimitError(retryAfter);

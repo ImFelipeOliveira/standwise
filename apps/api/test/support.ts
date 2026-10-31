@@ -16,6 +16,7 @@ export function createTestApp(
     request?: FakeRequest;
     docsDir?: string;
     db?: Deps['db'];
+    healthTimeoutMs?: number;
   } = {},
 ) {
   let now = new Date('2026-10-28T15:00:05Z');
@@ -39,7 +40,11 @@ export function createTestApp(
         };
       },
       listActivity: async () => [],
-      resolveTeamMembers: async (_o, _owner, members) => members,
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members,
+        missingTeams: [],
+        truncatedTeams: [],
+      }),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],
@@ -83,6 +88,7 @@ export function createTestApp(
     app: createApp(deps, {
       getClientIp: options.getClientIp ?? headerIp,
       ...(options.docsDir ? { docsDir: options.docsDir } : {}),
+      ...(options.healthTimeoutMs ? { healthTimeoutMs: options.healthTimeoutMs } : {}),
     }),
     queue,
     setNow: (d: Date) => (now = d),

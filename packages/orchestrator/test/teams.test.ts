@@ -36,7 +36,11 @@ describe('resolveTeams', () => {
         },
         resolveTeamMembers: async (_o: unknown, owner: string, members: string[]) => {
           calls.push([owner, members]);
-          return members.flatMap((m) => (m === '@acme/backend' ? ['Bob', 'DAVE'] : [m]));
+          return {
+            logins: members.flatMap((m) => (m === '@acme/backend' ? ['Bob', 'DAVE'] : [m])),
+            missingTeams: [],
+            truncatedTeams: [],
+          };
         },
       },
     } as unknown as Deps;
@@ -58,7 +62,7 @@ describe('resolveTeams', () => {
         installationOctokit: async () => ({}),
         resolveTeamMembers: async (_o: unknown, _owner: string, members: string[]) => {
           resolved.push(members);
-          return members;
+          return { logins: members, missingTeams: [], truncatedTeams: [] };
         },
       },
     } as unknown as Deps;

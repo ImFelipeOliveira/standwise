@@ -39,7 +39,11 @@ function harness(source: Source) {
         throw new Error('unused');
       },
       listActivity: async () => [],
-      resolveTeamMembers: async (_o, _owner, members) => members,
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members,
+        missingTeams: [],
+        truncatedTeams: [],
+      }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],
       listOpenPullRequestSnapshots: async () => [],

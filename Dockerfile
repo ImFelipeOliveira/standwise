@@ -1,19 +1,20 @@
 ARG APP=api
 
-FROM oven/bun:1.4.4 AS deps
+FROM oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d AS deps
 WORKDIR /app
 COPY . .
 RUN bun install --frozen-lockfile --production
 
-FROM oven/bun:1.4.4 AS docs
+FROM oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d AS docs
 ARG SUPPORT_EMAIL
+ARG STANDWISE_PUBLIC_URL
 WORKDIR /app
-COPY --from=node:22-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da /usr/local/bin/node /usr/local/bin/node
 COPY . .
 RUN bun install --frozen-lockfile
-RUN test -n "$SUPPORT_EMAIL" && SUPPORT_EMAIL="$SUPPORT_EMAIL" bun run docs:build
+RUN test -n "$SUPPORT_EMAIL" && SUPPORT_EMAIL="$SUPPORT_EMAIL" STANDWISE_PUBLIC_URL="$STANDWISE_PUBLIC_URL" bun run docs:build
 
-FROM oven/bun:1.4.4
+FROM oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d
 ARG APP
 ENV NODE_ENV=production
 ENV PORT=3000

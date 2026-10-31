@@ -10,13 +10,22 @@ What changed in Standwise. The API section follows the [versioning policy](/api/
 
 ### Unreleased
 
+- Hardening:
+  - The setup page shows a notice when a GitHub team in `standwise.yml` cannot be found or is too large (only the first 5,000 members are used).
+  - **Sign out** on the setup page ends the web session.
+  - Pull request links are matched without regard to letter case, so a blocker is not routed twice for the same pull request.
+  - Reviews, timeline events and check runs are read page by page from GitHub, so large pull requests are no longer cut short.
+  - The health check is bounded and does not pile up queries when the database is slow.
+  - The installer works with BusyBox shells.
+  - A stale Slack identity is removed automatically when Slack answers `user_not_found` or `user_disabled`. The person signs in again to relink.
+
 - Documentation site in English and Portuguese, with the product overview, guides for admins and members, the `standwise.yml` reference and the API guides.
 - Claude Code plugin with the `/daily` skill and the bundled MCP server.
 - `standwise mcp`: local MCP server with draft and confirmed submit tools, plus read tools for managers and admins.
 - `standwise` CLI: `login`, `logout`, `whoami`, `draft`, `submit` and `suggestion`.
 - Team digest in Slack at `digest_at`, with late dailies in the thread.
 - Setup page: configuration state, Slack connection, failed deliveries, API keys and webhooks.
-- Reminders by direct message at `remind_at`, once per person per day.
+- Reminders by direct message at `remind_at`, once per person per day. `remind_at` must be before `digest_at`.
 - Blocker routing by direct message: reviewers, then CODEOWNERS, then managers.
 - Suggested blockers for pull requests without review and failing CI, visible only to the person, with `signals.direct_message` to also get them by direct message.
 - `Standwise config` check run on changes to `standwise.yml`.

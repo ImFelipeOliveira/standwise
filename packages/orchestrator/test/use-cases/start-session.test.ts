@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { getIdentities, listMemberInstallations, resolveSession } from '@standwise/db';
+import {
+  getIdentities,
+  listMemberInstallations,
+  resolveSession,
+  saveConnection,
+} from '@standwise/db';
 import { ChatDeliveryError } from '@standwise/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { DomainError, endSession, startSession } from '../../src';
@@ -10,6 +15,7 @@ useCleanDb();
 describe('startSession', () => {
   test('creates member, keeps known installations and links slack', async () => {
     await seedOrg();
+    await saveConnection(db, INST, 'slack', 'T1', 'xoxb-1', new Uint8Array(32).fill(7), 'Acme');
     const { deps } = fakeDeps();
     const result = await startSession(deps, { githubToken: 'gho_x' });
     expect(result.token.startsWith('sw_')).toBe(true);

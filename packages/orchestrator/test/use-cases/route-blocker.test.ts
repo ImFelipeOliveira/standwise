@@ -10,6 +10,7 @@ import {
   claimDelivery,
   getConnection,
   getDelivery,
+  getIdentities,
   saveConnection,
   setIdentity,
   setMemberInstallations,
@@ -17,6 +18,7 @@ import {
   upsertMember,
 } from '@standwise/db';
 import type { PullRequestDetail } from '@standwise/github';
+import { ChatDeliveryError } from '@standwise/slack';
 import { deliveries } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
@@ -152,8 +154,11 @@ async function setup(
   const fake = fakeDeps(opts);
   const chat = fakeChat();
   fake.deps.chatFor = async () => chat.chat;
-  fake.deps.github.resolveTeamMembers = async (_o, _owner, members) =>
-    members.flatMap((m) => (m === '@acme/backend' ? ['dave', 'bob'] : [m.toLowerCase()]));
+  fake.deps.github.resolveTeamMembers = async (_o, _owner, members) => ({
+    logins: members.flatMap((m) => (m === '@acme/backend' ? ['dave', 'bob'] : [m.toLowerCase()])),
+    missingTeams: [],
+    truncatedTeams: [],
+  });
   return { ...fake, ...chat, cfg };
 }
 
@@ -537,6 +542,19 @@ describe('routeBlocker', () => {
     expect(fake.directs).toHaveLength(1);
   });
 
+  test('a resubmit whose blocker url differs only in case is not routed again', async () => {
+    const fake = await setup({ pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla'] }) } });
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const isMember = createMembershipCheck(fake.deps);
+    await submitDaily(fake.deps, isMember, member, { ...daily, blockers: [prBlocker()] });
+    await submitDaily(fake.deps, isMember, member, {
+      ...daily,
+      blockers: [prBlocker('https://github.com/Acme/API/pull/7')],
+    });
+    expect(fake.queue.enqueued.filter((j) => j.name === 'route-blocker')).toHaveLength(1);
+  });
+
   test('two blockers with different refs are routed separately', async () => {
     const fake = await setup({
       pulls: {
@@ -691,6 +709,42 @@ describe('routeBlocker', () => {
     expect(fake.directs.map((d) => d.userId)).toEqual(['U0DAVE', 'U0ERIN']);
     await routeBlocker(fake.deps, job);
     expect(fake.directs.map((d) => d.userId)).toEqual(['U0DAVE', 'U0ERIN', 'U0CARLA']);
+  });
+
+  test('a user_not_found failure forgets only the stored slack identity of that target', async () => {
+    const extra = 'members:\n  mgr: { slack: U0MGR }';
+    const fake = await setup(
+      { pulls: { 'acme/api#7': pull({ requestedReviewers: ['carla', 'dave'] }) } },
+      extra,
+    );
+    for (const [login, id] of [
+      ['carla', 'U1CARLA'],
+      ['dave', 'U1DAVE'],
+    ] as const) {
+      const m = await upsertMember(db, { githubUserId: nextUserId++, login, email: null });
+      await setIdentity(db, INST, m.id, 'slack', id);
+    }
+    const dailyId = await seedDaily([prBlocker()]);
+    const send = fake.chat.sendDirect;
+    fake.chat.sendDirect = async (userId, msg) => {
+      if (userId === 'U1CARLA') throw new ChatDeliveryError('user_not_found', 'gone');
+      return send(userId, msg);
+    };
+    const job = { installationId: INST, dailyId, blockerIndex: 0 };
+    await expect(routeBlocker(fake.deps, job)).rejects.toThrow();
+    expect(fake.directs.map((d) => d.userId)).toEqual(['U1DAVE']);
+    const failed = await getDelivery(db, {
+      installationId: INST,
+      teamName: '',
+      date: DATE,
+      kind: 'blocker_route',
+      subject: `${dailyId}:${blockerRouteId(prBlocker())}:carla`,
+    });
+    expect(failed?.status).toBe('failed');
+    expect(failed?.error).toStartWith('user_not_found');
+    expect(Object.fromEntries(await getIdentities(db, INST, 'slack'))).toEqual({
+      dave: 'U1DAVE',
+    });
   });
 
   test('a missing daily or index does nothing', async () => {

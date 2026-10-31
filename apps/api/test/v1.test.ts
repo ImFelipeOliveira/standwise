@@ -10,6 +10,7 @@ import {
   listMemberInstallations,
   listPendingSuggestions,
   resolveSession,
+  saveConnection,
   setInstallationConfig,
   syncSuggestions,
   upsertInstallation,
@@ -103,7 +104,11 @@ function harness(
         activityCalls.push(since);
         return [];
       },
-      resolveTeamMembers: async (_o, _owner, members) => members.map((m) => m.toLowerCase()),
+      resolveTeamMembers: async (_o, _owner, members) => ({
+        logins: members.map((m) => m.toLowerCase()),
+        missingTeams: [],
+        truncatedTeams: [],
+      }),
       fetchConfigSource: async () => ({ found: false, reason: 'no_repo' }),
       getPullRequest: async () => null,
       listPullRequestFiles: async () => [],
@@ -170,6 +175,7 @@ async function seed(cfg: StandwiseConfig | null = config()): Promise<void> {
     INST,
     cfg ? { status: 'configured', config: cfg } : { status: 'unconfigured', reason: 'no_repo' },
   );
+  await saveConnection(db, INST, 'slack', 'T1', 'xoxb-1', KEY, 'Acme Workspace');
 }
 
 async function login(h: Harness): Promise<string> {

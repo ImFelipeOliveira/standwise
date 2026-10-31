@@ -2,15 +2,18 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import { type PullRequestSnapshot, parseConfig, type StandwiseConfig } from '@standwise/core';
 import {
   decideSuggestion,
-  deleteIdentities,
+  deleteIdentityByLogin,
   getDelivery,
+  getIdentities,
   listPendingSuggestions,
   markConnectionInvalid,
+  markDeliverySent,
   saveConnection,
   setIdentity,
   setMemberInstallations,
 } from '@standwise/db';
 import { GitHubRateLimitError } from '@standwise/github';
+import { ChatDeliveryError } from '@standwise/slack';
 import { suggestions } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { nullTracker, scanMemberSignals } from '../../src';
@@ -295,7 +298,7 @@ describe('scanMemberSignals', () => {
 
   test('a person without a chat identity gets a failed delivery and no DM', async () => {
     const s = await setup({ directMessage: true });
-    await deleteIdentities(db, INST, 'slack');
+    await deleteIdentityByLogin(db, INST, 'slack', 'alice', 'UALICE');
     s.snapshots.alice = [pr()];
     await s.scan();
     expect(s.directs).toEqual([]);
@@ -309,6 +312,28 @@ describe('scanMemberSignals', () => {
     expect(delivery?.status).toBe('failed');
     expect(delivery?.error).toBe('no_chat_identity');
     expect((await states(s.alice.id))[0]?.notified).toBe(false);
+  });
+
+  test('a user_not_found DM failure forgets the stored slack identity', async () => {
+    const s = await setup({ directMessage: true });
+    s.snapshots.alice = [pr()];
+    s.failWith(new ChatDeliveryError('user_not_found', 'gone'));
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await s.scan();
+    } finally {
+      spy.mockRestore();
+    }
+    const delivery = await getDelivery(db, {
+      installationId: INST,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'suggestion_dm',
+      subject: `${s.alice.id}:${FP}`,
+    });
+    expect(delivery?.status).toBe('failed');
+    expect(delivery?.error).toStartWith('user_not_found');
+    expect((await getIdentities(db, INST, 'slack')).size).toBe(0);
   });
 
   test('a failed DM is recorded and the remaining suggestions are still sent', async () => {
@@ -388,6 +413,36 @@ describe('scanMemberSignals', () => {
       subject: 'alice',
     });
     expect(marker?.status).toBe('sent');
+  });
+
+  test('a scan whose day is already marked sent makes no github or linear call', async () => {
+    const s = await setup({ linear: true });
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    const githubCalls = s.calls.snapshots.length;
+    const linearCalls = s.linear.calls.queries.length;
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    expect(s.calls.snapshots).toHaveLength(githubCalls);
+    expect(s.linear.calls.queries).toHaveLength(linearCalls);
+    expect(githubCalls).toBe(1);
+  });
+
+  test('a sent marker skips before resolving teams with a cold cache', async () => {
+    const s = await setup();
+    await markDeliverySent(db, {
+      installationId: INST,
+      teamName: '',
+      date: '2026-10-28',
+      kind: 'signal_scan',
+      subject: 'alice',
+    });
+    let resolved = 0;
+    s.deps.github.resolveTeamMembers = async () => {
+      resolved++;
+      return { logins: ['alice'], missingTeams: [], truncatedTeams: [] };
+    };
+    await scanMemberSignals(s.deps, { installationId: INST, login: 'alice', date: '2026-10-28' });
+    expect(resolved).toBe(0);
+    expect(s.calls.snapshots).toEqual([]);
   });
 
   describe('card_stale', () => {
@@ -598,7 +653,7 @@ describe('scanMemberSignals', () => {
       const s = await setup({ linear: true });
       s.linear.state.stale = [staleCard()];
       await s.scan();
-      await deleteIdentities(db, INST, 'linear');
+      await deleteIdentityByLogin(db, INST, 'linear', 'alice', 'lin-alice');
       const before = s.linear.calls.bearer.length;
       await s.scan();
       expect(s.linear.calls.bearer).toHaveLength(before);

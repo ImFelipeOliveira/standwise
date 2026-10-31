@@ -1,5 +1,6 @@
 import {
   createSession,
+  getConnectionExternalId,
   getInstallation,
   type MemberRow,
   revokeSession,
@@ -10,7 +11,7 @@ import type { Deps } from '../deps';
 import { rememberGitHubInstallations } from '../github-installations';
 import { linkChatIdentities } from '../identity';
 import { forgetMembership, statusOf } from '../membership';
-import { linkTrackerIdentity } from '../tracker-identity';
+import { enqueueLinkTrackerIdentity } from '../tracker-identity';
 import { DomainError } from './errors';
 
 export type StartSessionResult = {
@@ -47,7 +48,11 @@ export async function syncMemberFromGitHub(
   forgetMembership(deps, profile.installationIds, member.id);
   await setMemberInstallations(deps.db, member.id, ids);
   await linkChatIdentities(deps, member.id, profile.email, ids);
-  for (const id of ids) await linkTrackerIdentity(deps, id, member.id, profile.email);
+  for (const id of ids) {
+    if (await getConnectionExternalId(deps.db, id, 'linear')) {
+      await enqueueLinkTrackerIdentity(deps, id, member.id);
+    }
+  }
   return { member, known };
 }
 

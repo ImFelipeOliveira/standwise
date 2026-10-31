@@ -18,6 +18,7 @@ export * from './list-org-dailies';
 export * from './list-org-digests';
 export * from './list-org-teams';
 export * from './load-installation-config';
+export * from './logout-web-session';
 export * from './notify-suggestions';
 export * from './org-context';
 export * from './pagination';

@@ -141,7 +141,7 @@ Starts the local MCP server over standard input and output, for AI clients. See 
 | --- | --- |
 | `--org <login>` | The organization, when you belong to more than one. |
 | `--file <path>` | The daily JSON file for `submit`. |
-| `--api-url <url>` | The Standwise API. Defaults to `STANDWISE_API_URL`, then `https://api.standwise.dev`. |
+| `--api-url <url>` | The Standwise API. Without it, the CLI uses `STANDWISE_API_URL`, and without that, the Standwise API at `https://api.standwise.dev`. |
 | `--help` | Shows the usage. |
 | `--version` | Shows the version. |
 

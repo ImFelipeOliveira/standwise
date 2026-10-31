@@ -30,17 +30,48 @@ const health = createRoute({
   },
 });
 
-export type PublicOptions = { getClientIp: GetClientIp };
+export const HEALTH_TIMEOUT_MS = 2000;
+
+export type PublicOptions = { getClientIp: GetClientIp; healthTimeoutMs?: number };
+
+function createDatabaseProbe(deps: Deps, timeoutMs: number): () => Promise<boolean> {
+  let pending: { query: Promise<boolean>; startedAt: number } | undefined;
+  const run = () => {
+    const entry = {
+      startedAt: Date.now(),
+      query: Promise.resolve()
+        .then(() => deps.db.execute(sql`select 1`))
+        .then(
+          () => true,
+          () => false,
+        )
+        .finally(() => {
+          if (pending === entry) pending = undefined;
+        }),
+    };
+    return entry;
+  };
+  return async () => {
+    if (!pending || Date.now() - pending.startedAt > 5 * timeoutMs) pending = run();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs);
+    });
+    try {
+      return await Promise.race([pending.query, timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
 
 export function publicRoutes(deps: Deps, options: PublicOptions): OpenAPIHono {
   const app = new OpenAPIHono();
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', apiKeyScheme());
   registerWebhooks(app);
+  const databaseUp = createDatabaseProbe(deps, options.healthTimeoutMs ?? HEALTH_TIMEOUT_MS);
   app.openapi(health, async (c) => {
-    const up = await deps.db.execute(sql`select 1`).then(
-      () => true,
-      () => false,
-    );
+    const up = await databaseUp();
     return up ? c.json({ ok: true }, 200) : c.json({ ok: false }, 503);
   });
   app.route('/', orgRoutes(deps, options));

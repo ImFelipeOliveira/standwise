@@ -157,6 +157,45 @@ describe('getDraft with linear cards', () => {
   });
 });
 
+describe('getDraft concurrency', () => {
+  test('github and linear calls start before either resolves', async () => {
+    const { deps, isMember, member } = await setupCards();
+    const started: string[] = [];
+    let releaseGithub: (items: ActivityItem[]) => void = () => {};
+    deps.github.listActivity = () => {
+      started.push('github');
+      return new Promise<ActivityItem[]>((resolve) => {
+        releaseGithub = resolve;
+      });
+    };
+    let releaseCards: (items: ActivityItem[]) => void = () => {};
+    deps.trackerFor = async () =>
+      ({
+        connected: true,
+        listActivity: () => {
+          started.push('linear');
+          return new Promise<ActivityItem[]>((resolve) => {
+            releaseCards = resolve;
+          });
+        },
+      }) as never;
+    const draft = getDraft(deps, isMember, member, 'acme');
+    for (let i = 0; i < 100 && started.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    expect(started.sort()).toEqual(['github', 'linear']);
+    releaseGithub([pr(1, '2026-10-27T15:00:00Z')]);
+    releaseCards([]);
+    expect((await draft).activity.map((a) => a.title)).toEqual(['PR 1']);
+  });
+
+  test('a github failure still rejects the draft', async () => {
+    const { deps, isMember, member } = await setupCards();
+    deps.github.listActivity = async () => {
+      throw new Error('github down');
+    };
+    await expect(getDraft(deps, isMember, member, 'acme')).rejects.toThrow('github down');
+  });
+});
+
 describe('getDraft', () => {
   test('since window starts at the previous workday', async () => {
     const { deps, isMember, member, calls } = await setup();

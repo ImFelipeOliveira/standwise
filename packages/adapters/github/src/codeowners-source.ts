@@ -16,11 +16,10 @@ export async function fetchCodeowners(
         repo,
         path,
         ref,
+        headers: { accept: 'application/vnd.github.raw+json' },
+        request: { parseSuccessResponseBody: false },
       });
-      const data = response.data as { content?: string };
-      if (typeof data.content === 'string') {
-        return Buffer.from(data.content, 'base64').toString('utf8');
-      }
+      return await new Response(response.data as BodyInit).text();
     } catch (error) {
       if (httpStatus(error) !== 404) throw error;
     }

@@ -17,7 +17,8 @@
     "build:cli": "bun scripts/build-cli.ts",
     "docs:dev": "vitepress dev docs/site",
     "docs:build": "vitepress build docs/site",
-    "check-docs": "bun scripts/check-docs.ts"
+    "check-docs": "bun scripts/check-docs.ts",
+    "check-pins": "bun scripts/check-pins.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
