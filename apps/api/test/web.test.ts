@@ -993,6 +993,48 @@ describe('web logout', () => {
     expect(again.headers.get('set-cookie') ?? '').toContain('sw_web=;');
   });
 
+  test('a post without a cookie does not touch cookies', async () => {
+    const { app } = harness();
+    const res = await app.request('/logout', { method: 'POST' });
+    expect(res.status).toBe(303);
+    expect(location(res)).toBe('/');
+    expect(res.headers.get('set-cookie')).toBeNull();
+  });
+
+  test('a cross-site post is rejected and keeps the session', async () => {
+    const { app } = harness();
+    const { cookie, token } = await seed();
+    const res = await app.request('/logout', {
+      method: 'POST',
+      headers: {
+        cookie,
+        'content-type': 'application/x-www-form-urlencoded',
+        'sec-fetch-site': 'cross-site',
+      },
+      body: new URLSearchParams({ csrf: csrfToken('sess', token) }).toString(),
+    });
+    expect(res.status).toBe(403);
+    expect(res.headers.get('set-cookie') ?? '').not.toContain('sw_web=;');
+    const after = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
+    expect(after.status).toBe(200);
+  });
+
+  test('a same-origin post with a valid token still signs out', async () => {
+    const { app } = harness();
+    const { cookie, token } = await seed();
+    const res = await app.request('/logout', {
+      method: 'POST',
+      headers: {
+        cookie,
+        'content-type': 'application/x-www-form-urlencoded',
+        'sec-fetch-site': 'same-origin',
+      },
+      body: new URLSearchParams({ csrf: csrfToken('sess', token) }).toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get('set-cookie') ?? '').toContain('sw_web=;');
+  });
+
   test('the setup page shows a sign out button in en and pt-BR', async () => {
     const { app } = harness();
     const { cookie } = await seed();

@@ -235,13 +235,17 @@ export function webRoutes(deps: Deps, options: { getClientIp: GetClientIp }): Ho
   });
 
   app.post('/logout', async (c) => {
+    if (c.req.header('sec-fetch-site') === 'cross-site') {
+      throw new DomainError('forbidden', 'cross-site request');
+    }
+    c.header('Cache-Control', 'no-store');
+    if (!getCookie(c, COOKIE)) return c.redirect('/', 303);
     const session = await readSession(c);
     if (session) {
       await readForm(c, session);
       await logoutWebSession(deps, session.token);
     }
     deleteCookie(c, COOKIE, { path: '/', secure: true });
-    c.header('Cache-Control', 'no-store');
     return c.redirect('/', 303);
   });
 
