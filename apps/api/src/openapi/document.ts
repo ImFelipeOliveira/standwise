@@ -6,8 +6,9 @@ import pagination from '../../../../docs/api/guides/pagination.md' with { type: 
 import rateLimits from '../../../../docs/api/guides/rate-limits.md' with { type: 'text' };
 import versioning from '../../../../docs/api/guides/versioning.md' with { type: 'text' };
 import webhooks from '../../../../docs/api/guides/webhooks.md' with { type: 'text' };
+import rootPackage from '../../../../package.json' with { type: 'json' };
 
-export const API_VERSION = '1.2.0';
+export const API_VERSION: string = rootPackage.version;
 
 const overview = (docsUrl: string) =>
   `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.

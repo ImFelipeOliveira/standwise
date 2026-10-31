@@ -6,11 +6,33 @@
       "release-type": "node",
       "package-name": "standwise",
       "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance" },
-        { "type": "docs", "section": "Documentation" },
-        { "type": "refactor", "section": "Refactoring" }
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation"
+        },
+        {
+          "type": "refactor",
+          "section": "Refactoring"
+        }
+      ],
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "packages/plugin/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        }
       ]
     }
   }
