@@ -11,6 +11,12 @@ describe('codeowners', () => {
     ]);
   });
 
+  test('strips comments that start a line or follow whitespace, keeping # inside patterns', () => {
+    expect(parseCodeowners('docs/a#b @org/docs # owners\n# only a comment\n')).toEqual([
+      { pattern: 'docs/a#b', owners: ['@org/docs'] },
+    ]);
+  });
+
   test('drops email owners but keeps rules left without owners', () => {
     const rules = parseCodeowners('a.txt dev@acme.com @alice\nb.txt dev@acme.com\n');
     expect(rules).toEqual([

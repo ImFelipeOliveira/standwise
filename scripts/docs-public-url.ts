@@ -36,7 +36,7 @@ export function rewritePublicUrl(tokens: UrlToken[], publicUrl: string): void {
       token.content = token.content.replaceAll(CANONICAL_PUBLIC_URL, publicUrl);
     }
     const href = token.type === 'link_open' ? token.attrGet?.('href') : null;
-    if (href?.includes(CANONICAL_PUBLIC_URL)) {
+    if (href?.startsWith(CANONICAL_PUBLIC_URL)) {
       token.attrSet?.('href', href.replaceAll(CANONICAL_PUBLIC_URL, publicUrl));
     }
     if (token.children) rewritePublicUrl(token.children, publicUrl);

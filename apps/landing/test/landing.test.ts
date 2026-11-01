@@ -48,14 +48,19 @@ function jsonLd(html: string): Record<string, unknown>[] {
   );
 }
 
+const ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&lt;': '<',
+  '&gt;': '>',
+};
+
 function decode(text: string): string {
   return text
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .split(/<[^>]*>/)
+    .join('')
+    .replace(/&(?:amp|quot|#39|lt|gt);/g, (entity) => ENTITIES[entity] ?? entity)
     .trim();
 }
 
