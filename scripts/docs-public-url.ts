@@ -27,6 +27,12 @@ export function resolvePublicUrl(value: string | undefined): string {
   return value;
 }
 
+function isCanonicalUrl(href: string): boolean {
+  if (!href.startsWith(CANONICAL_PUBLIC_URL)) return false;
+  const next = href.charAt(CANONICAL_PUBLIC_URL.length);
+  return next === '' || next === '/' || next === '?' || next === '#';
+}
+
 const REWRITTEN = new Set(['text', 'code_inline', 'fence', 'code_block']);
 
 export function rewritePublicUrl(tokens: UrlToken[], publicUrl: string): void {
@@ -36,8 +42,8 @@ export function rewritePublicUrl(tokens: UrlToken[], publicUrl: string): void {
       token.content = token.content.replaceAll(CANONICAL_PUBLIC_URL, publicUrl);
     }
     const href = token.type === 'link_open' ? token.attrGet?.('href') : null;
-    if (href?.includes(CANONICAL_PUBLIC_URL)) {
-      token.attrSet?.('href', href.replaceAll(CANONICAL_PUBLIC_URL, publicUrl));
+    if (href && isCanonicalUrl(href)) {
+      token.attrSet?.('href', publicUrl + href.slice(CANONICAL_PUBLIC_URL.length));
     }
     if (token.children) rewritePublicUrl(token.children, publicUrl);
   }
