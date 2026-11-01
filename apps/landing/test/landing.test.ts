@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -238,10 +239,26 @@ describe('landing', () => {
     }
     const css = read('styles.css');
     expect(css).not.toContain('googleapis');
-    for (const [, path] of css.matchAll(/url\('([^']+\.woff2)'\)/g)) {
-      expect(existsSync(join(PUBLIC, path ?? ''))).toBe(true);
+    const fontUrls = [...css.matchAll(/url\(["']([^"']+\.woff2)["']\)/g)].map(
+      (match) => match[1] ?? '',
+    );
+    expect(fontUrls.length).toBeGreaterThanOrEqual(4);
+    for (const path of fontUrls) {
+      expect(existsSync(join(PUBLIC, path))).toBe(true);
     }
     expect(existsSync(join(PUBLIC, 'fonts/LICENSE-OFL.txt'))).toBe(true);
+  });
+
+  test('font files carry their content hash, so the immutable cache is safe', () => {
+    const fonts = readdirSync(join(PUBLIC, 'fonts')).filter((name) => name.endsWith('.woff2'));
+    expect(fonts.length).toBeGreaterThanOrEqual(4);
+    for (const name of fonts) {
+      const hash = createHash('sha256')
+        .update(readFileSync(join(PUBLIC, 'fonts', name)))
+        .digest('hex')
+        .slice(0, 8);
+      expect(name.endsWith(`.${hash}.woff2`)).toBe(true);
+    }
   });
 
   test('copy makes no undecided promises and links the self-hosting readme', () => {

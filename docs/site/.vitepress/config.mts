@@ -111,6 +111,7 @@ export default defineConfigWithTheme<ThemeConfig>({
   base: '/',
   srcExclude: ['README.md'],
   lastUpdated: false,
+  cleanUrls: true,
   sitemap: { hostname: DOCS_DOMAIN },
   ignoreDeadLinks: false,
   buildEnd: async (siteConfig) => {

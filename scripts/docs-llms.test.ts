@@ -60,6 +60,10 @@ describe('docs llms files', () => {
     expect(robots).toContain('User-agent: *\nAllow: /');
     expect(robots).toContain('Sitemap: https://docs-standcast.usefachada.dev/sitemap.xml');
     const sitemap = await read('sitemap.xml');
-    expect(sitemap).toContain('https://docs-standcast.usefachada.dev/admin/install');
+    expect(sitemap).toContain('<loc>https://docs-standcast.usefachada.dev/admin/install</loc>');
+    expect(sitemap).toContain(
+      '<loc>https://docs-standcast.usefachada.dev/pt-BR/admin/install</loc>',
+    );
+    expect(sitemap).not.toContain('.html</loc>');
   });
 });
