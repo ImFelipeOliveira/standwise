@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -214,6 +215,52 @@ describe('landing', () => {
     expect(read('_headers')).toContain(
       `form-action ${API} ${DOCS} ${SITE}; base-uri 'none'; frame-ancestors 'none'`,
     );
+  });
+
+  test('csp is self-only for styles, fonts and robots fetches', () => {
+    const headers = read('_headers');
+    expect(headers).toContain("style-src 'self';");
+    expect(headers).toContain("font-src 'self';");
+    expect(headers).toContain("connect-src 'self';");
+    expect(headers).toContain('/fonts/*\n  Cache-Control: public, max-age=31536000, immutable');
+  });
+
+  test('fonts are self-hosted and the preloaded file exists', () => {
+    for (const file of htmlFiles()) {
+      const html = read(file);
+      expect(html).not.toContain('fonts.googleapis.com');
+      expect(html).not.toContain('fonts.gstatic.com');
+      const preload = tags(html, 'link').find((tag) => attr(tag, 'rel') === 'preload');
+      expect(preload).toBeDefined();
+      expect(attr(preload ?? '', 'as')).toBe('font');
+      expect(attr(preload ?? '', 'type')).toBe('font/woff2');
+      expect(preload).toContain('crossorigin');
+      const href = attr(preload ?? '', 'href') ?? '';
+      expect(href).toMatch(/^\/fonts\/[\w.-]+\.woff2$/);
+      expect(statSync(join(PUBLIC, href)).isFile()).toBe(true);
+    }
+    const css = read('styles.css');
+    expect(css).not.toContain('googleapis');
+    const fontUrls = [...css.matchAll(/url\(["']([^"']+\.woff2)["']\)/g)].map(
+      (match) => match[1] ?? '',
+    );
+    expect(fontUrls.length).toBeGreaterThanOrEqual(4);
+    for (const path of fontUrls) {
+      expect(existsSync(join(PUBLIC, path))).toBe(true);
+    }
+    expect(existsSync(join(PUBLIC, 'fonts/LICENSE-OFL.txt'))).toBe(true);
+  });
+
+  test('font files carry their content hash, so the immutable cache is safe', () => {
+    const fonts = readdirSync(join(PUBLIC, 'fonts')).filter((name) => name.endsWith('.woff2'));
+    expect(fonts.length).toBeGreaterThanOrEqual(4);
+    for (const name of fonts) {
+      const hash = createHash('sha256')
+        .update(readFileSync(join(PUBLIC, 'fonts', name)))
+        .digest('hex')
+        .slice(0, 8);
+      expect(name.endsWith(`.${hash}.woff2`)).toBe(true);
+    }
   });
 
   test('copy makes no undecided promises and links the self-hosting readme', () => {

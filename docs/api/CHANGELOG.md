@@ -4,7 +4,25 @@ Versions match the GitHub releases. During the public beta (0.x), incompatible c
 
 ## Unreleased
 
-- Standwise is now Standcast: new name, CLI binary `standcast`, config file `standcast.yml`, `STANDCAST_*` environment variables, `Standcast-*` webhook headers, `sc_`/`sck_` token prefixes and new URLs.
+## 0.3.0 — 2026-11-01
+
+### Breaking: the rename to Standcast
+
+- Base URL: `https://api-standcast.usefachada.dev`.
+- API keys start with `sck_` and session tokens with `sc_`. Keys and sessions created before 0.3.0 stop working; create new keys on the setup page.
+- Webhook headers are `Standcast-Signature`, `Standcast-Event` and `Standcast-Delivery`, with `User-Agent: Standcast-Webhooks/1`. Update your signature verification to read `Standcast-Signature`.
+- The internal confirmation header is `X-Standcast-Confirmation`, and the MCP tools are named `standcast_*`.
+- The configuration file is `standcast.yml`, and the check run is named "Standcast config".
+
+### New
+
+- `GET /llms.txt`: a plain-text index for AI agents, linking the OpenAPI document, the interactive reference and the documentation's `llms.txt`.
+- `POST /beta` receives the landing page's beta form. It is not part of the public API and is not in the OpenAPI document.
+- **Deploy requirement:** the api accepts `LANDING_URL` (https, no trailing slash, default `https://standcast.usefachada.dev`). The worker accepts `RESEND_API_KEY`, and needs `BETA_EMAIL_FROM` and `SUPPORT_EMAIL` when the key is set.
+
+## 0.2.1 — 2026-10-31
+
+- No API changes.
 
 ## 0.2.0 — 2026-10-31
 

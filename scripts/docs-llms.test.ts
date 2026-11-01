@@ -32,6 +32,12 @@ describe('docs llms files', () => {
     expect(text).toContain('/pt-BR/llms.txt');
   });
 
+  test('english llms.txt has a non-empty summary line', async () => {
+    const lines = (await read('llms.txt')).split('\n').filter((line) => line.trim() !== '');
+    expect(lines[1]).toStartWith('> ');
+    expect(lines[1]?.slice(2).trim().length).toBeGreaterThan(0);
+  });
+
   test('english llms-full.txt carries english pages only', async () => {
     const text = await read('llms-full.txt');
     expect(text).toContain('remind_at');
@@ -47,5 +53,17 @@ describe('docs llms files', () => {
   test('every page has a markdown twin in both languages', async () => {
     expect(await exists('admin/configuration.md')).toBe(true);
     expect(await exists('pt-BR/admin/configuration.md')).toBe(true);
+  });
+
+  test('robots.txt and sitemap.xml are published', async () => {
+    const robots = await read('robots.txt');
+    expect(robots).toContain('User-agent: *\nAllow: /');
+    expect(robots).toContain('Sitemap: https://docs-standcast.usefachada.dev/sitemap.xml');
+    const sitemap = await read('sitemap.xml');
+    expect(sitemap).toContain('<loc>https://docs-standcast.usefachada.dev/admin/install</loc>');
+    expect(sitemap).toContain(
+      '<loc>https://docs-standcast.usefachada.dev/pt-BR/admin/install</loc>',
+    );
+    expect(sitemap).not.toContain('.html</loc>');
   });
 });

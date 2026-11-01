@@ -244,12 +244,70 @@ export async function checkSuggestionLeaks(root: string): Promise<string[]> {
   return problems;
 }
 
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const BR_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+function isoParts(text: string): [number, number, number] | null {
+  const m = text.match(ISO_DATE);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+function brParts(text: string): [number, number, number] | null {
+  const m = text.match(BR_DATE);
+  return m ? [Number(m[3]), Number(m[2]), Number(m[1])] : null;
+}
+
+function isCalendarDate(parts: [number, number, number] | null): boolean {
+  if (parts === null) return false;
+  const [year, month, day] = parts;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+const CHANGELOG_HEADINGS = [
+  { file: 'docs/site/changelog.md', prefix: '### ', date: isoParts },
+  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ', date: brParts },
+  { file: 'docs/api/CHANGELOG.md', prefix: '## ', date: isoParts },
+];
+
+export function changelogVersionProblems(file: string, text: string, version: string): string[] {
+  const format = CHANGELOG_HEADINGS.find((c) => c.file === file) ?? {
+    prefix: '## ',
+    date: isoParts,
+  };
+  const start = `${format.prefix}${version} — `;
+  const found = text
+    .split('\n')
+    .some(
+      (line) =>
+        line.startsWith(start) && isCalendarDate(format.date(line.slice(start.length).trim())),
+    );
+  return found ? [] : [`${file}: no "${version} — <date>" heading for the current version`];
+}
+
+export async function checkChangelogVersions(root: string): Promise<string[]> {
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { version: string };
+  const problems: string[] = [];
+  for (const { file } of CHANGELOG_HEADINGS) {
+    const text = await readFile(join(root, file), 'utf8').catch(() => null);
+    if (text === null) {
+      problems.push(`${file}: page not found`);
+      continue;
+    }
+    problems.push(...changelogVersionProblems(file, text, pkg.version));
+  }
+  return problems;
+}
+
 if (import.meta.main) {
   const root = join(import.meta.dir, '..');
   const problems = [
     ...(await checkDocs(join(root, 'docs/site'))),
     ...(await checkInstallUrl(root)),
     ...(await checkSuggestionLeaks(root)),
+    ...(await checkChangelogVersions(root)),
   ];
   for (const problem of problems) console.error(problem);
   if (problems.length > 0) process.exit(1);

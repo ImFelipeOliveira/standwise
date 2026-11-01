@@ -10,7 +10,19 @@ What changed in Standcast. Versions match the [GitHub releases](https://github.c
 
 ### Unreleased
 
-- Standwise is now Standcast: new name, CLI binary `standcast`, config file `standcast.yml`, `STANDCAST_*` environment variables, `Standcast-*` webhook headers, `sc_`/`sck_` token prefixes and new URLs.
+- The documentation site publishes `robots.txt` and a `sitemap.xml`, and the landing page serves its own fonts.
+
+### 0.3.0 — 2026-11-01
+
+- Standwise is now **Standcast**: new name, CLI binary `standcast`, config file `standcast.yml`, `STANDCAST_*` environment variables, `Standcast-*` webhook headers, `sc_`/`sck_` token prefixes and new URLs (`api-standcast.usefachada.dev`, `docs-standcast.usefachada.dev`). Existing sessions and API keys stop working: sign in again and create new keys.
+- Landing page at [standcast.usefachada.dev](https://standcast.usefachada.dev), in English and Portuguese, with a form to join the public beta. After sending it you land on the install guide.
+- Documentation for AI agents: `llms.txt`, `llms-full.txt` and a Markdown copy of every page, in English and Portuguese. The api serves its own `llms.txt` with links to the OpenAPI document and the API guides.
+- The privacy page explains what the beta form stores and for how long.
+- CODEOWNERS files are parsed in linear time.
+
+### 0.2.1 — 2026-10-31
+
+- Release tooling only: versions match the GitHub releases everywhere. No product changes.
 
 ### 0.2.0 — 2026-10-31
 

@@ -111,6 +111,8 @@ export default defineConfigWithTheme<ThemeConfig>({
   base: '/',
   srcExclude: ['README.md'],
   lastUpdated: false,
+  cleanUrls: true,
+  sitemap: { hostname: DOCS_DOMAIN },
   ignoreDeadLinks: false,
   buildEnd: async (siteConfig) => {
     await writeLocaleLlms(siteConfig.outDir, DOCS_DOMAIN);
@@ -123,7 +125,7 @@ export default defineConfigWithTheme<ThemeConfig>({
         injectLLMHint: false,
         ignoreFiles: ['pt-BR/index.md'],
         ignoreFilesPerOutput: { llmsTxt: ['pt-BR/**'], llmsFullTxt: ['pt-BR/**'] },
-        customLLMsTxtTemplate: `# {title}\n\n> {description}\n\n## Table of Contents\n\n{toc}\n\n## Optional\n\n- [Português (Brasil)](${DOCS_DOMAIN}/pt-BR/llms.txt): the documentation in Portuguese\n`,
+        customLLMsTxtTemplate: `# {title}\n\n> Standcast orchestrates your team's daily standup: each person writes it with their AI agent (Claude Code, Cursor, MCP or CLI) from GitHub and Linear activity, confirms it, and Standcast posts one digest per team to Slack.\n\n## Table of Contents\n\n{toc}\n\n## Optional\n\n- [Português (Brasil)](${DOCS_DOMAIN}/pt-BR/llms.txt): the documentation in Portuguese\n`,
       }),
     ],
   },
