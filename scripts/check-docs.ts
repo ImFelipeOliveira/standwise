@@ -244,12 +244,43 @@ export async function checkSuggestionLeaks(root: string): Promise<string[]> {
   return problems;
 }
 
+const CHANGELOG_HEADINGS = [
+  { file: 'docs/site/changelog.md', prefix: '### ' },
+  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ' },
+  { file: 'docs/api/CHANGELOG.md', prefix: '## ' },
+];
+
+export function changelogVersionProblems(file: string, text: string, version: string): string[] {
+  const heading = new RegExp(
+    `^${CHANGELOG_HEADINGS.find((c) => c.file === file)?.prefix ?? '## '}${version.replaceAll('.', '\\.')} — `,
+    'm',
+  );
+  return heading.test(text)
+    ? []
+    : [`${file}: no "${version} — <date>" heading for the current version`];
+}
+
+export async function checkChangelogVersions(root: string): Promise<string[]> {
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { version: string };
+  const problems: string[] = [];
+  for (const { file } of CHANGELOG_HEADINGS) {
+    const text = await readFile(join(root, file), 'utf8').catch(() => null);
+    if (text === null) {
+      problems.push(`${file}: page not found`);
+      continue;
+    }
+    problems.push(...changelogVersionProblems(file, text, pkg.version));
+  }
+  return problems;
+}
+
 if (import.meta.main) {
   const root = join(import.meta.dir, '..');
   const problems = [
     ...(await checkDocs(join(root, 'docs/site'))),
     ...(await checkInstallUrl(root)),
     ...(await checkSuggestionLeaks(root)),
+    ...(await checkChangelogVersions(root)),
   ];
   for (const problem of problems) console.error(problem);
   if (problems.length > 0) process.exit(1);
