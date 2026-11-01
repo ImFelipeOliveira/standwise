@@ -79,3 +79,7 @@ Read [How it works](/how-it-works) for the full cycle of a day.
 | An integrator | [API overview](/api/overview) and [Webhooks](/api/webhooks) |
 
 New to the terms? See [Concepts](/concepts).
+
+## For AI agents
+
+Standwise publishes its documentation in a format built for AI agents. [llms.txt](/llms.txt) lists every page, [llms-full.txt](/llms-full.txt) holds the whole documentation in one file, and every page is also available as Markdown by adding `.md` to its address. The Portuguese files are at [/pt-BR/llms.txt](/pt-BR/llms.txt) and [/pt-BR/llms-full.txt](/pt-BR/llms-full.txt).

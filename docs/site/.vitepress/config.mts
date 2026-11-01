@@ -1,5 +1,7 @@
 import { type DefaultTheme, defineConfigWithTheme } from 'vitepress';
+import llmstxt from 'vitepress-plugin-llms';
 import { writeSiteHeaders } from '../../../scripts/docs-headers';
+import { writeLocaleLlms } from '../../../scripts/docs-llms';
 import { publicUrlPlugin, resolvePublicUrl } from '../../../scripts/docs-public-url';
 
 const supportEmail = process.env.SUPPORT_EMAIL?.trim();
@@ -10,6 +12,8 @@ if (!supportEmail) {
 const publicUrl = resolvePublicUrl(process.env.STANDWISE_PUBLIC_URL?.trim());
 
 type ThemeConfig = DefaultTheme.Config & { supportEmail: string };
+
+const DOCS_DOMAIN = 'https://docs-standwise.usefachada.dev';
 
 const API_REFERENCE = { link: `${publicUrl}/reference`, target: '_self' };
 
@@ -109,7 +113,19 @@ export default defineConfigWithTheme<ThemeConfig>({
   lastUpdated: false,
   ignoreDeadLinks: false,
   buildEnd: async (siteConfig) => {
+    await writeLocaleLlms(siteConfig.outDir, DOCS_DOMAIN);
     await writeSiteHeaders(siteConfig.outDir);
+  },
+  vite: {
+    plugins: [
+      llmstxt({
+        domain: DOCS_DOMAIN,
+        injectLLMHint: false,
+        ignoreFiles: ['pt-BR/index.md'],
+        ignoreFilesPerOutput: { llmsTxt: ['pt-BR/**'], llmsFullTxt: ['pt-BR/**'] },
+        customLLMsTxtTemplate: `# {title}\n\n> {description}\n\n## Table of Contents\n\n{toc}\n\n## Optional\n\n- [Português (Brasil)](${DOCS_DOMAIN}/pt-BR/llms.txt): the documentation in Portuguese\n`,
+      }),
+    ],
   },
   markdown: {
     config: (md) => {

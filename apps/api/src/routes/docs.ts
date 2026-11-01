@@ -23,6 +23,25 @@ function docsLocation(docsUrl: string, requestUrl: string): string {
   return `${docsUrl}/${rest}${search}`;
 }
 
+function llmsText(publicUrl: string, docsUrl: string): string {
+  return `# Standwise API
+
+> Standwise orchestrates a team daily standup from GitHub to Slack. The public API is read-only: it exposes organization data to integrators. Dailies are never sent through the public API; they are sent through the MCP server or the CLI.
+
+## API
+
+- [OpenAPI document](${publicUrl}/openapi.json): the machine-readable description of the public API
+- [API reference](${publicUrl}/reference): interactive reference
+
+## Documentation
+
+- [Docs index for agents](${docsUrl}/llms.txt): every documentation page as Markdown
+- [Full docs in one file](${docsUrl}/llms-full.txt): the whole documentation in a single file
+- [API overview](${docsUrl}/api/overview.md): authentication, pagination, rate limits and errors
+- [Webhooks](${docsUrl}/api/webhooks.md): events, signatures and retries
+`;
+}
+
 export function docsRoutes(
   deps: Deps,
   apps: { public: DocumentSource; internal: DocumentSource },
@@ -34,6 +53,11 @@ export function docsRoutes(
     docsUrl: deps.env.docsUrl,
   };
   const app = new Hono();
+  app.get('/llms.txt', (c) =>
+    c.text(llmsText(deps.env.publicUrl, deps.env.docsUrl), 200, {
+      'content-type': 'text/plain; charset=utf-8',
+    }),
+  );
   app.get('/openapi.json', (c) => c.json(publicDocument(apps.public, env)));
   app.get(
     '/openapi.internal.json',

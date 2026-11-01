@@ -80,3 +80,7 @@ Veja [Como funciona](/pt-BR/how-it-works) para o ciclo completo de um dia.
 | Integrador | [Visão geral da API](/pt-BR/api/overview) e [Webhooks](/pt-BR/api/webhooks) |
 
 Não conhece os termos? Veja [Conceitos](/pt-BR/concepts).
+
+## Para agentes de IA
+
+O Standwise publica a documentação em um formato feito para agentes de IA. O [llms.txt](/pt-BR/llms.txt) lista todas as páginas, o [llms-full.txt](/pt-BR/llms-full.txt) reúne a documentação inteira em um só arquivo, e cada página também está disponível em Markdown ao adicionar `.md` ao endereço dela.

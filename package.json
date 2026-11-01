@@ -27,6 +27,7 @@
     "@types/bun": "^1.4.4",
     "ajv": "^8.20.0",
     "typescript": "^7.0.2",
-    "vitepress": "1.6.4"
+    "vitepress": "1.6.4",
+    "vitepress-plugin-llms": "1.14.0"
   }
 }
