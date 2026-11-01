@@ -9,6 +9,10 @@ const schema = z.object({
     .url({ protocol: /^https$/ })
     .refine((url) => !url.endsWith('/'), 'must not end with a slash')
     .default('https://docs.standwise.dev'),
+  LANDING_URL: z
+    .url({ protocol: /^https$/ })
+    .refine((url) => !url.endsWith('/'), 'must not end with a slash')
+    .default('https://standwise.usefachada.dev'),
   TRUST_PROXY: z
     .enum(['true', 'false'])
     .default('false')

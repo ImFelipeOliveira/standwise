@@ -52,4 +52,11 @@ describe('parseEnv', () => {
       expect(() => parseEnv({ ...base, DOCS_URL }), DOCS_URL).toThrow();
     }
   });
+
+  test('defaults LANDING_URL and rejects http or a trailing slash', () => {
+    expect(parseEnv(base).LANDING_URL).toBe('https://standwise.usefachada.dev');
+    for (const LANDING_URL of ['http://x.dev', 'https://x.dev/', 'x.dev']) {
+      expect(() => parseEnv({ ...base, LANDING_URL }), LANDING_URL).toThrow();
+    }
+  });
 });

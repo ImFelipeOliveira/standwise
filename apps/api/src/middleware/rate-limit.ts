@@ -8,6 +8,7 @@ export const FAILED_AUTH_LIMIT = 20;
 export const SESSION_LIMIT = 120;
 export const API_KEY_LIMIT = 600;
 export const SESSION_START_LIMIT = 10;
+export const BETA_LIMIT = 5;
 
 export type GetClientIp = (c: Context) => string;
 

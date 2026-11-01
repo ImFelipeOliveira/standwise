@@ -54,6 +54,7 @@ export type Deps = {
     publicUrl: string;
     supportEmail: string;
     docsUrl: string;
+    landingUrl: string;
     appId: string;
     webhookSecret: string;
     githubClientId: string;

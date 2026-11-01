@@ -130,6 +130,7 @@ function harness(
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
       docsUrl: 'https://docs.sw.test',
+      landingUrl: 'https://landing.sw.test',
       appId: '1',
       webhookSecret: 'whsec',
       githubClientId: 'cid',
