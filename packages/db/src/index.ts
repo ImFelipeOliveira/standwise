@@ -1,6 +1,7 @@
 export * from './client';
 export * from './crypto';
 export * from './repo/api-keys';
+export * from './repo/beta-requests';
 export * from './repo/connections';
 export * from './repo/dailies';
 export * from './repo/deliveries';

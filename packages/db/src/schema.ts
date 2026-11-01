@@ -253,3 +253,22 @@ export const rateLimits = pgTable(
     index('rate_limits_window_start_idx').on(t.windowStart),
   ],
 );
+
+export const betaRequests = pgTable(
+  'beta_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    teamSize: text('team_size').notNull(),
+    chat: text('chat').notNull(),
+    tracker: text('tracker').notNull(),
+    locale: text('locale').notNull(),
+    createdAt: createdAt(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('beta_requests_email_idx').on(t.email),
+    index('beta_requests_created_at_idx').on(t.createdAt),
+  ],
+);
