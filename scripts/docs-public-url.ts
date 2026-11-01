@@ -28,9 +28,10 @@ export function resolvePublicUrl(value: string | undefined): string {
 }
 
 function isCanonicalUrl(href: string): boolean {
-  if (!href.startsWith(CANONICAL_PUBLIC_URL)) return false;
+  if (!URL.canParse(href)) return false;
   const next = href.charAt(CANONICAL_PUBLIC_URL.length);
-  return next === '' || next === '/' || next === '?' || next === '#';
+  const atBoundary = next === '' || next === '/' || next === '?' || next === '#';
+  return new URL(href).origin === CANONICAL_PUBLIC_URL && atBoundary;
 }
 
 const REWRITTEN = new Set(['text', 'code_inline', 'fence', 'code_block']);
