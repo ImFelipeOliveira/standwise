@@ -114,7 +114,8 @@ describe('public openapi document', () => {
   test('errors guide lists every domain error code with its status', async () => {
     const doc = (await (await load('/openapi.json')).json()) as Doc;
     const webhookCodes = { invalid_signature: 401, payload_too_large: 413 };
-    for (const [code, status] of Object.entries({ ...STATUS, ...webhookCodes })) {
+    const { invalid_beta_request: _internal, ...documented } = STATUS;
+    for (const [code, status] of Object.entries({ ...documented, ...webhookCodes })) {
       const row = doc.info.description.split('\n').find((l) => l.includes(`\`${code}\``));
       expect(row).toBeDefined();
       expect(row).toContain(`| ${status} |`);

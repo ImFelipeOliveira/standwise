@@ -11,6 +11,7 @@
     "@standwise/github": "workspace:*",
     "@standwise/linear": "workspace:*",
     "@standwise/queue": "workspace:*",
-    "@standwise/slack": "workspace:*"
+    "@standwise/slack": "workspace:*",
+    "zod": "^4.6.7"
   }
 }

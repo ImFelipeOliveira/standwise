@@ -14,7 +14,8 @@ export type DomainErrorCode =
   | 'rate_limited'
   | 'insufficient_scope'
   | 'not_found'
-  | 'suggestion_already_decided';
+  | 'suggestion_already_decided'
+  | 'invalid_beta_request';
 
 export class DomainError extends Error {
   constructor(
