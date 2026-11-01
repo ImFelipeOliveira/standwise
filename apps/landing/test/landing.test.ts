@@ -235,7 +235,9 @@ describe('landing', () => {
       expect(attr(preload ?? '', 'as')).toBe('font');
       expect(attr(preload ?? '', 'type')).toBe('font/woff2');
       expect(preload).toContain('crossorigin');
-      expect(existsSync(join(PUBLIC, attr(preload ?? '', 'href') ?? ''))).toBe(true);
+      const href = attr(preload ?? '', 'href') ?? '';
+      expect(href).toMatch(/^\/fonts\/[\w.-]+\.woff2$/);
+      expect(statSync(join(PUBLIC, href)).isFile()).toBe(true);
     }
     const css = read('styles.css');
     expect(css).not.toContain('googleapis');
