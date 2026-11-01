@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   addMemberInstallation,
   claimDelivery,
   type MemberRow,
   upsertDaily,
   upsertMember,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   createMembershipCheck,
@@ -21,7 +21,7 @@ import { fakeDeps, INST, seedOrg } from './fakes';
 
 useCleanDb();
 
-function teams(): StandwiseConfig {
+function teams(): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: backend

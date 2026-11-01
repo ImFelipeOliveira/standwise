@@ -1,6 +1,6 @@
-import type { Language } from '@standwise/core';
-import { API_KEY_SCOPES, WEBHOOK_EVENTS } from '@standwise/db';
-import { type SetupStatus, WEBHOOK_DISABLE_AFTER_FAILURES } from '@standwise/orchestrator';
+import type { Language } from '@standcast/core';
+import { API_KEY_SCOPES, WEBHOOK_EVENTS } from '@standcast/db';
+import { type SetupStatus, WEBHOOK_DISABLE_AFTER_FAILURES } from '@standcast/orchestrator';
 import {
   DELIVERY_LABELS,
   EVENT_LABELS,
@@ -77,7 +77,7 @@ export function ApiKeysCard(props: {
               <div class="item-head">
                 <strong>{k.name}</strong>
                 <span class="row">
-                  <code>swk_{k.prefix}</code>
+                  <code>sck_{k.prefix}</code>
                   {k.revokedAt ? <Badge tone="neutral">{t('web.apiKeys.revoked')}</Badge> : null}
                 </span>
               </div>

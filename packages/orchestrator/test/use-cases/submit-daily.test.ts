@@ -7,7 +7,7 @@ import {
   listPendingSuggestions,
   setMemberInstallations,
   syncSuggestions,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   blockerRouteId,

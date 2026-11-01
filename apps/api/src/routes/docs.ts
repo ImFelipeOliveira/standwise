@@ -1,5 +1,5 @@
 import { Scalar } from '@scalar/hono-api-reference';
-import type { Deps } from '@standwise/orchestrator';
+import type { Deps } from '@standcast/orchestrator';
 import { Hono } from 'hono';
 import {
   type GetClientIp,
@@ -24,9 +24,9 @@ function docsLocation(docsUrl: string, requestUrl: string): string {
 }
 
 function llmsText(publicUrl: string, docsUrl: string): string {
-  return `# Standwise API
+  return `# Standcast API
 
-> Standwise orchestrates a team daily standup from GitHub to Slack. The public API is read-only: it exposes organization data to integrators. Dailies are never sent through the public API; they are sent through the MCP server or the CLI.
+> Standcast orchestrates a team daily standup from GitHub to Slack. The public API is read-only: it exposes organization data to integrators. Dailies are never sent through the public API; they are sent through the MCP server or the CLI.
 
 ## API
 
@@ -87,7 +87,7 @@ export function docsRoutes(
           "frame-ancestors 'none'",
         ].join('; '),
       );
-      return { url: '/openapi.json', pageTitle: 'Standwise API', cdn: SCALAR_CDN, nonce };
+      return { url: '/openapi.json', pageTitle: 'Standcast API', cdn: SCALAR_CDN, nonce };
     }),
   );
   app.get('/reference/', (c) => c.redirect('/reference', 301));

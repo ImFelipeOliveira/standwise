@@ -1,4 +1,4 @@
-import { type InstallationRow, type MemberRow, updateMemberLogin } from '@standwise/db';
+import { type InstallationRow, type MemberRow, updateMemberLogin } from '@standcast/db';
 import type { Deps } from './deps';
 import { scopedTtlCache } from './ttl-cache';
 

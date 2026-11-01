@@ -1,10 +1,10 @@
 # Concepts
 
-The terms used across Standwise and these docs.
+The terms used across Standcast and these docs.
 
 ## Installation
 
-One installation of the Standwise GitHub App on a GitHub organization or personal account. Everything in Standwise belongs to one installation: configuration, dailies, the Slack connection, API keys and webhooks. Data never crosses installations.
+One installation of the Standcast GitHub App on a GitHub organization or personal account. Everything in Standcast belongs to one installation: configuration, dailies, the Slack connection, API keys and webhooks. Data never crosses installations.
 
 ## Organization
 
@@ -12,7 +12,7 @@ The GitHub organization (or personal account) where the app is installed. The CL
 
 ## Team
 
-A group of people declared under `teams` in `standwise.yml`. Each team has its own time zone, workdays, digest time, language and Slack channel. See the [standwise.yml reference](/admin/configuration).
+A group of people declared under `teams` in `standcast.yml`. Each team has its own time zone, workdays, digest time, language and Slack channel. See the [standcast.yml reference](/admin/configuration).
 
 ## Member
 
@@ -38,11 +38,11 @@ Each item is a line of text, optionally linked to a pull request, issue, commit 
 
 ## Standup date
 
-The date a daily counts for. It is today in the time zone of the person's first team (the first team in `standwise.yml` that lists them). On a day that is not a workday, the daily counts for the next workday: a daily sent on Saturday counts for Monday.
+The date a daily counts for. It is today in the time zone of the person's first team (the first team in `standcast.yml` that lists them). On a day that is not a workday, the daily counts for the next workday: a daily sent on Saturday counts for Monday.
 
 ## Draft
 
-The starting point for "yesterday", built by Standwise from the person's GitHub activity in the organization since their last daily: pull requests opened, pull requests merged, reviews and commits, plus your own Linear cards that started or finished, when Linear is connected. The agent shows it, and the person keeps, edits or removes each item.
+The starting point for "yesterday", built by Standcast from the person's GitHub activity in the organization since their last daily: pull requests opened, pull requests merged, reviews and commits, plus your own Linear cards that started or finished, when Linear is connected. The agent shows it, and the person keeps, edits or removes each item.
 
 ## Digest
 
@@ -54,7 +54,7 @@ A daily sent after the team's digest was posted. It goes as a reply in the diges
 
 ## Confirmation
 
-Standwise sends a daily only after the person confirms it. With MCP clients that support it, Standwise asks the person directly; otherwise the agent must ask. See [the confirmation rule](/members/mcp#the-confirmation-rule).
+Standcast sends a daily only after the person confirms it. With MCP clients that support it, Standcast asks the person directly; otherwise the agent must ask. See [the confirmation rule](/members/mcp#the-confirmation-rule).
 
 ## Reminder
 
@@ -62,7 +62,7 @@ A direct message at the team's `remind_at` to people who have not sent the daily
 
 ## Suggested blocker
 
-A blocker Standwise notices for you: your pull request with no review for `pr_review_hours`, failing CI on it for 24 hours, or one of your Linear cards in progress for `card_stale_days`. It goes only to you, in your draft. Your manager sees it only if you confirm it in your daily.
+A blocker Standcast notices for you: your pull request with no review for `pr_review_hours`, failing CI on it for 24 hours, or one of your Linear cards in progress for `card_stale_days`. It goes only to you, in your draft. Your manager sees it only if you confirm it in your daily.
 
 ## Blocker routing
 
@@ -70,7 +70,7 @@ Sending each new blocker once to whoever can help: the reviewers of the linked p
 
 ## Linear connection
 
-One connection per installation, made by an admin on the setup page. It lets Standwise read cards of one Linear workspace, read-only. See [Install](/admin/install#5-connect-linear-optional).
+One connection per installation, made by an admin on the setup page. It lets Standcast read cards of one Linear workspace, read-only. See [Install](/admin/install#5-connect-linear-optional).
 
 ## Delivery
 
@@ -78,7 +78,7 @@ One attempt to send a message to Slack: a digest, a late daily, a reminder or a 
 
 ## API key
 
-A secret starting with `swk_` that an admin creates on the setup page, with read-only scopes, for other systems to read the organization's confirmed dailies, digests and blockers. See [API keys](/admin/api-keys).
+A secret starting with `sck_` that an admin creates on the setup page, with read-only scopes, for other systems to read the organization's confirmed dailies, digests and blockers. See [API keys](/admin/api-keys).
 
 ## Webhook
 
@@ -86,4 +86,4 @@ An HTTPS endpoint an admin registers to receive signed events: `daily.submitted`
 
 ## Session
 
-What `standwise login` stores on your machine after you sign in with GitHub. It starts with `sw_`, is used by the CLI, the skill and the MCP server, and expires after 90 days without use.
+What `standcast login` stores on your machine after you sign in with GitHub. It starts with `sc_`, is used by the CLI, the skill and the MCP server, and expires after 90 days without use.

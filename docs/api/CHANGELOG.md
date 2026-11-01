@@ -4,6 +4,8 @@ Versions match the GitHub releases. During the public beta (0.x), incompatible c
 
 ## Unreleased
 
+- Standwise is now Standcast: new name, CLI binary `standcast`, config file `standcast.yml`, `STANDCAST_*` environment variables, `Standcast-*` webhook headers, `sc_`/`sck_` token prefixes and new URLs.
+
 ## 0.2.0 — 2026-10-31
 
 First public beta.

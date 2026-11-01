@@ -8,7 +8,7 @@ import {
   saveConnection,
   setInstallationConfig,
   setMemberInstallations,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, getSetupStatus } from '../../src';
 import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -298,7 +298,7 @@ describe('getSetupStatus teams and config file', () => {
 
   test('links the file on the default branch of the config repo', async () => {
     const status = await load(config());
-    expect(status.configFileUrl).toBe('https://github.com/acme/.github/blob/trunk/standwise.yml');
+    expect(status.configFileUrl).toBe('https://github.com/acme/.github/blob/trunk/standcast.yml');
   });
 
   test('has no teams and no file link without a config', async () => {

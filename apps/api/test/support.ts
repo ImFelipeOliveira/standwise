@@ -1,5 +1,5 @@
-import { type Deps, nullTracker } from '@standwise/orchestrator';
-import { createMemoryQueue } from '@standwise/queue';
+import { type Deps, nullTracker } from '@standcast/orchestrator';
+import { createMemoryQueue } from '@standcast/queue';
 import type { Context } from 'hono';
 import { db } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';

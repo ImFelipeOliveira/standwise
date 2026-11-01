@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { DailySubmission } from '@standwise/core';
+import type { DailySubmission } from '@standcast/core';
 import { sql } from 'drizzle-orm';
 import {
   claimDelivery,
@@ -421,12 +421,12 @@ describe('sessions', () => {
   test('sessions store only hashes', async () => {
     const m = await seed();
     const token = await createSession(db, m.id, 'cli');
-    expect(token).toMatch(/^sw_[A-Za-z0-9_-]{43}$/);
+    expect(token).toMatch(/^sc_[A-Za-z0-9_-]{43}$/);
     const rows = await db.execute(sql`SELECT * FROM sessions`);
     expect(JSON.stringify(rows)).not.toContain(token);
     expect((await resolveSession(db, token, 'cli'))?.id).toBe(m.id);
     expect(await resolveSession(db, token, 'web')).toBeNull();
-    expect(await resolveSession(db, 'sw_nope', 'cli')).toBeNull();
+    expect(await resolveSession(db, 'sc_nope', 'cli')).toBeNull();
   });
 
   test('web session expires 7 days after creation', async () => {

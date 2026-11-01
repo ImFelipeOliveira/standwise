@@ -1,4 +1,4 @@
-import { createDb } from '@standwise/db';
+import { createDb } from '@standcast/db';
 import {
   createCheckRun,
   createGitHubApp,
@@ -11,11 +11,11 @@ import {
   listOpenPullRequestSnapshots,
   listPullRequestFiles,
   resolveTeamMembers,
-} from '@standwise/github';
-import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
-import { createChatFor, createTrackerFor, type Deps } from '@standwise/orchestrator';
-import { createPgBossQueue } from '@standwise/queue';
-import { exchangeSlackCode } from '@standwise/slack';
+} from '@standcast/github';
+import { exchangeLinearCode, refreshLinearToken } from '@standcast/linear';
+import { createChatFor, createTrackerFor, type Deps } from '@standcast/orchestrator';
+import { createPgBossQueue } from '@standcast/queue';
+import { exchangeSlackCode } from '@standcast/slack';
 import { createApp } from './app';
 import { parseEnv } from './env';
 import { clientIpResolver } from './middleware/rate-limit';
@@ -39,7 +39,7 @@ const deps: Deps = {
   db,
   queue,
   now: () => new Date(),
-  encryptionKey: env.STANDWISE_ENCRYPTION_KEY,
+  encryptionKey: env.STANDCAST_ENCRYPTION_KEY,
   github: {
     app,
     installationOctokit: (installationId) => app.getInstallationOctokit(installationId),
@@ -61,7 +61,7 @@ const deps: Deps = {
   },
   slack: { exchangeCode: exchangeSlackCode },
   linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
-  chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
+  chatFor: createChatFor(db, env.STANDCAST_ENCRYPTION_KEY),
   trackerFor: (...args) => createTrackerFor(deps)(...args),
   env: {
     publicUrl: env.PUBLIC_URL,

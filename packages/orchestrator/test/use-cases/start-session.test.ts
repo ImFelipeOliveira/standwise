@@ -4,8 +4,8 @@ import {
   listMemberInstallations,
   resolveSession,
   saveConnection,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { DomainError, endSession, startSession } from '../../src';
 import { fakeDeps, INST, seedOrg } from './fakes';
@@ -18,7 +18,7 @@ describe('startSession', () => {
     await saveConnection(db, INST, 'slack', 'T1', 'xoxb-1', new Uint8Array(32).fill(7), 'Acme');
     const { deps } = fakeDeps();
     const result = await startSession(deps, { githubToken: 'gho_x' });
-    expect(result.token.startsWith('sw_')).toBe(true);
+    expect(result.token.startsWith('sc_')).toBe(true);
     expect(result.login).toBe('Alice');
     expect(result.orgs).toEqual([{ installationId: INST, login: 'acme' }]);
     const member = await resolveSession(db, result.token, 'cli');

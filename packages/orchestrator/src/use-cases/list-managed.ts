@@ -1,5 +1,5 @@
-import { addCalendarDays, localDate } from '@standwise/core';
-import { listMemberInstallations, type MemberRow } from '@standwise/db';
+import { addCalendarDays, localDate } from '@standcast/core';
+import { listMemberInstallations, type MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
 import { DomainError } from './errors';

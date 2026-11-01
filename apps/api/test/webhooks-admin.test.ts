@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Validator } from '@seriousme/openapi-schema-validator';
-import { parseConfig } from '@standwise/core';
+import { parseConfig } from '@standcast/core';
 import {
   createSession,
   getWebhookEndpointSecret,
@@ -9,8 +9,8 @@ import {
   setMemberInstallations,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
-import { csrfToken } from '@standwise/orchestrator';
+} from '@standcast/db';
+import { csrfToken } from '@standcast/orchestrator';
 import rootPackage from '../../../package.json' with { type: 'json' };
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createTestApp, type FakeRequest } from './support';
@@ -18,7 +18,7 @@ import { createTestApp, type FakeRequest } from './support';
 useCleanDb();
 
 const INST = 11;
-const URL_OK = 'https://hooks.example.com/standwise';
+const URL_OK = 'https://hooks.example.com/standcast';
 const SECRET = /whsec_[A-Za-z0-9_-]{43}/;
 
 function config() {
@@ -69,8 +69,8 @@ async function harness() {
     app,
     queue,
     admins,
-    alice: { token: aliceToken, cookie: `sw_web=${aliceToken}` },
-    bob: { token: bobToken, cookie: `sw_web=${bobToken}` },
+    alice: { token: aliceToken, cookie: `sc_web=${aliceToken}` },
+    bob: { token: bobToken, cookie: `sc_web=${bobToken}` },
   };
 }
 
@@ -100,7 +100,7 @@ const flashOf = (res: Response) =>
   res.headers
     .getSetCookie()
     .map((c) => c.split(';')[0] ?? '')
-    .find((c) => c.startsWith('sw_flash=')) ?? '';
+    .find((c) => c.startsWith('sc_flash=')) ?? '';
 
 async function createAndShow(app: App, user: User, headers: Record<string, string> = {}) {
   const res = await post(
@@ -176,7 +176,7 @@ describe('webhooks section', () => {
         headers: { cookie: `${alice.cookie}; ${flashOf(res)}` },
       })
     ).text();
-    expect(html).toMatch(/swk_[A-Za-z0-9_-]{43}/);
+    expect(html).toMatch(/sck_[A-Za-z0-9_-]{43}/);
     expect(html).not.toMatch(SECRET);
   });
 
@@ -308,7 +308,7 @@ describe('openapi webhooks', () => {
       expect(json?.schema).toBeDefined();
       expect((json?.example as { type: string } | undefined)?.type).toBe(event);
     }
-    expect(doc.info.description).toContain('Standwise-Signature');
+    expect(doc.info.description).toContain('Standcast-Signature');
     const result = await new Validator().validate(doc);
     expect(result.errors).toBeUndefined();
   });

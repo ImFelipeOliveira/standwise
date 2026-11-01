@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://standwise.usefachada.dev/</loc>
+    <loc>https://standcast.usefachada.dev/</loc>
     <lastmod>2026-11-01</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://standwise.usefachada.dev/"/>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://standwise.usefachada.dev/pt-BR/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://standwise.usefachada.dev/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://standcast.usefachada.dev/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://standcast.usefachada.dev/pt-BR/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://standcast.usefachada.dev/"/>
   </url>
   <url>
-    <loc>https://standwise.usefachada.dev/pt-BR/</loc>
+    <loc>https://standcast.usefachada.dev/pt-BR/</loc>
     <lastmod>2026-11-01</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://standwise.usefachada.dev/"/>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://standwise.usefachada.dev/pt-BR/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://standwise.usefachada.dev/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://standcast.usefachada.dev/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://standcast.usefachada.dev/pt-BR/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://standcast.usefachada.dev/"/>
   </url>
 </urlset>

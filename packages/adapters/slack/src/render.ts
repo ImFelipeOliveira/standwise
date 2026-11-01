@@ -1,4 +1,4 @@
-import { type Block, type Inline, isSlackUserId, type Message } from '@standwise/core';
+import { type Block, type Inline, isSlackUserId, type Message } from '@standcast/core';
 
 const HEADER_LIMIT = 150;
 const SECTION_LIMIT = 3000;

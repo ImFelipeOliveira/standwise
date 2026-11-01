@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { addCalendarDays, parseConfig, type StandwiseConfig } from '@standwise/core';
+import { addCalendarDays, parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -7,7 +7,7 @@ import {
   type MemberRow,
   upsertDaily,
   upsertMember,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   DomainError,
@@ -26,7 +26,7 @@ useCleanDb();
 
 const OTHER = 22;
 
-function twoTeams(): StandwiseConfig {
+function twoTeams(): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha

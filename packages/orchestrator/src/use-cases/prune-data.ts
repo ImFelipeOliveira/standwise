@@ -4,7 +4,7 @@ import {
   deletePersonDeliveriesBefore,
   deleteResolvedSuggestionsBefore,
   deleteWebhookDeliveriesBefore,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 
 export const PRUNE_DATA_JOB = 'prune-data';

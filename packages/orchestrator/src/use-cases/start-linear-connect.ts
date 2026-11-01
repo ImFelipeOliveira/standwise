@@ -1,5 +1,5 @@
-import type { MemberRow } from '@standwise/db';
-import { linearAuthorizeUrl } from '@standwise/linear';
+import type { MemberRow } from '@standcast/db';
+import { linearAuthorizeUrl } from '@standcast/linear';
 import type { Deps } from '../deps';
 import { hashSessionToken, signState } from '../state-token';
 import type { MembershipCheck } from './org-context';

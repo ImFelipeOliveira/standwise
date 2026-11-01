@@ -1,28 +1,28 @@
-# Standwise
+# Standcast
 
-> Standwise orchestrates a team's daily standup. Each person drafts their daily from GitHub and Linear activity inside their AI agent (Claude Code, Cursor, Codex, any MCP client) or the terminal, confirms it, and Standwise posts one digest per team to Slack. Open source (MIT), free during the public beta.
+> Standcast orchestrates a team's daily standup. Each person drafts their daily from GitHub and Linear activity inside their AI agent (Claude Code, Cursor, Codex, any MCP client) or the terminal, confirms it, and Standcast posts one digest per team to Slack. Open source (MIT), free during the public beta.
 
 ## Landing
 
-- [Landing page in Markdown](https://standwise.usefachada.dev/index.md): what Standwise does, privacy, configuration, the three ways to write and the FAQ
-- [Landing page in Brazilian Portuguese](https://standwise.usefachada.dev/pt-BR/index.md): the same page in pt-BR
+- [Landing page in Markdown](https://standcast.usefachada.dev/index.md): what Standcast does, privacy, configuration, the three ways to write and the FAQ
+- [Landing page in Brazilian Portuguese](https://standcast.usefachada.dev/pt-BR/index.md): the same page in pt-BR
 
 ## Documentation
 
-- [Docs index for agents](https://docs-standwise.usefachada.dev/llms.txt): every documentation page as Markdown
-- [Full docs in one file](https://docs-standwise.usefachada.dev/llms-full.txt): the whole documentation in a single file
-- [Docs index in Brazilian Portuguese](https://docs-standwise.usefachada.dev/pt-BR/llms.txt): every pt-BR documentation page as Markdown
-- [Full docs in Brazilian Portuguese](https://docs-standwise.usefachada.dev/pt-BR/llms-full.txt): the whole pt-BR documentation in a single file
-- [Install](https://docs-standwise.usefachada.dev/admin/install): install the GitHub App, connect Slack and add standwise.yml
-- [Configuration](https://docs-standwise.usefachada.dev/admin/configuration): the standwise.yml reference
-- [MCP server](https://docs-standwise.usefachada.dev/members/mcp): write and read dailies from any MCP client
+- [Docs index for agents](https://docs-standcast.usefachada.dev/llms.txt): every documentation page as Markdown
+- [Full docs in one file](https://docs-standcast.usefachada.dev/llms-full.txt): the whole documentation in a single file
+- [Docs index in Brazilian Portuguese](https://docs-standcast.usefachada.dev/pt-BR/llms.txt): every pt-BR documentation page as Markdown
+- [Full docs in Brazilian Portuguese](https://docs-standcast.usefachada.dev/pt-BR/llms-full.txt): the whole pt-BR documentation in a single file
+- [Install](https://docs-standcast.usefachada.dev/admin/install): install the GitHub App, connect Slack and add standcast.yml
+- [Configuration](https://docs-standcast.usefachada.dev/admin/configuration): the standcast.yml reference
+- [MCP server](https://docs-standcast.usefachada.dev/members/mcp): write and read dailies from any MCP client
 
 ## API
 
-- [API index for agents](https://api-standwise.usefachada.dev/llms.txt): OpenAPI document, reference and webhooks guide
-- [API overview](https://docs-standwise.usefachada.dev/api/overview): authentication, scopes and endpoints
-- [OpenAPI document](https://api-standwise.usefachada.dev/openapi.json): the public read-only API as OpenAPI JSON
+- [API index for agents](https://api-standcast.usefachada.dev/llms.txt): OpenAPI document, reference and webhooks guide
+- [API overview](https://docs-standcast.usefachada.dev/api/overview): authentication, scopes and endpoints
+- [OpenAPI document](https://api-standcast.usefachada.dev/openapi.json): the public read-only API as OpenAPI JSON
 
 ## Repository
 
-- [Repository llms.txt](https://github.com/ImFelipeOliveira/standwise/blob/main/llms.txt): README, contributing guide and engineering docs
+- [Repository llms.txt](https://github.com/ImFelipeOliveira/standcast/blob/main/llms.txt): README, contributing guide and engineering docs

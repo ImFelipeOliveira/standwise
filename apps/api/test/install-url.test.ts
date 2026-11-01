@@ -6,7 +6,7 @@ import {
   PUBLISHED_INSTALL_URL,
 } from '../../../scripts/check-docs';
 
-const CANONICAL = 'curl -fsSL https://api.standwise.dev/install.sh | sh';
+const CANONICAL = 'curl -fsSL https://api.standcast.app/install.sh | sh';
 
 describe('install url check', () => {
   test('accepts the canonical url', () => {
@@ -14,9 +14,9 @@ describe('install url check', () => {
   });
 
   test('rejects other hosts and the placeholder', () => {
-    expect(installUrlProblems('a.md', 'https://standwise.dev/install.sh')).toHaveLength(1);
+    expect(installUrlProblems('a.md', 'https://standcast.app/install.sh')).toHaveLength(1);
     expect(
-      installUrlProblems('a.md', 'https://<standwise-host>/install.sh').length,
+      installUrlProblems('a.md', 'https://<standcast-host>/install.sh').length,
     ).toBeGreaterThan(0);
   });
 

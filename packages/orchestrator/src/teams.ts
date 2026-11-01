@@ -1,4 +1,4 @@
-import type { ResolvedTeam, StandwiseConfig } from '@standwise/core';
+import type { ResolvedTeam, StandcastConfig } from '@standcast/core';
 import type { Deps } from './deps';
 import { scopedTtlCache } from './ttl-cache';
 
@@ -21,7 +21,7 @@ async function resolveTeamsWithNotices(
   deps: Pick<Deps, 'github' | 'now'>,
   installationId: number,
   owner: string,
-  config: StandwiseConfig,
+  config: StandcastConfig,
 ): Promise<{ teams: ResolvedTeam[]; notices: TeamNotice[] }> {
   const cache = membersCache(deps.github);
   let octokit: Awaited<ReturnType<Deps['github']['installationOctokit']>> | undefined;
@@ -55,7 +55,7 @@ export async function resolveTeams(
   deps: Pick<Deps, 'github' | 'now'>,
   installationId: number,
   owner: string,
-  config: StandwiseConfig,
+  config: StandcastConfig,
 ): Promise<ResolvedTeam[]> {
   return (await resolveTeamsWithNotices(deps, installationId, owner, config)).teams;
 }
@@ -64,7 +64,7 @@ export async function teamResolutionNotices(
   deps: Pick<Deps, 'github' | 'now'>,
   installationId: number,
   owner: string,
-  config: StandwiseConfig,
+  config: StandcastConfig,
 ): Promise<TeamNotice[]> {
   return (await resolveTeamsWithNotices(deps, installationId, owner, config)).notices;
 }

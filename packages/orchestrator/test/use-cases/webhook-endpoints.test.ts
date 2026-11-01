@@ -6,7 +6,7 @@ import {
   insertWebhookEndpoint,
   listInstallationWebhookEndpoints,
   setMemberInstallations,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   createMembershipCheck,
@@ -23,7 +23,7 @@ import { fakeDeps, INST, seedMember, seedOrg } from './fakes';
 useCleanDb();
 
 const OTHER = 22;
-const URL_OK = 'https://hooks.example.com/standwise';
+const URL_OK = 'https://hooks.example.com/standcast';
 
 async function setup(admin = true) {
   await seedOrg();

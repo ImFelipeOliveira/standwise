@@ -1,5 +1,5 @@
 {
-  "name": "@standwise/db",
+  "name": "@standcast/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@standwise/core": "workspace:*",
+    "@standcast/core": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.7"
   },

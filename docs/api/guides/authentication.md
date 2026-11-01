@@ -1,20 +1,20 @@
 ## Authentication
 
-The public Standwise API authenticates with an **API key**. Send it as a bearer token on every request:
+The public Standcast API authenticates with an **API key**. Send it as a bearer token on every request:
 
 ```http
 GET /v1/{resource} HTTP/1.1
-Host: your-standwise-host
-Authorization: Bearer swk_xxxxxxxxxxxxxxxxxxxxxxxx
+Host: your-standcast-host
+Authorization: Bearer sck_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-API keys are prefixed with `swk_`. Every operation under `/v1/org` requires one. Only `swk_` keys are accepted there: a session token (`sw_`) sent to `/v1/org` fails with `401 unauthorized`, and an API key sent to a session-only route fails the same way.
+API keys are prefixed with `sck_`. Every operation under `/v1/org` requires one. Only `sck_` keys are accepted there: a session token (`sc_`) sent to `/v1/org` fails with `401 unauthorized`, and an API key sent to a session-only route fails the same way.
 
 ### Creating a key
 
-Only an organization admin can create keys. An admin signs in with GitHub, opens the Standwise setup page of the organization and uses the **API keys** section: name the key, pick its scopes and create it. For a personal account, the account owner is the admin. Each key belongs to one organization and sees only that organization's data.
+Only an organization admin can create keys. An admin signs in with GitHub, opens the Standcast setup page of the organization and uses the **API keys** section: name the key, pick its scopes and create it. For a personal account, the account owner is the admin. Each key belongs to one organization and sees only that organization's data.
 
-The full secret is shown once, when the key is created. Standwise stores only a hash and cannot show it again, so copy it right away. The list shows each key's prefix (the first 8 characters after `swk_`), scopes, creation date and last use, which is updated at most once per minute.
+The full secret is shown once, when the key is created. Standcast stores only a hash and cannot show it again, so copy it right away. The list shows each key's prefix (the first 8 characters after `sck_`), scopes, creation date and last use, which is updated at most once per minute.
 
 ### Scopes
 
@@ -52,6 +52,6 @@ An admin can revoke a key at any time. Revocation takes effect immediately and l
 - Never log the `Authorization` header.
 - If a key may have leaked, revoke it immediately.
 
-### Session tokens (`sw_`)
+### Session tokens (`sc_`)
 
-Tokens starting with `sw_` are session tokens issued to the Standwise CLI, skill and MCP server after a GitHub login. They are not an integration method and the operations they unlock are not part of this reference.
+Tokens starting with `sc_` are session tokens issued to the Standcast CLI, skill and MCP server after a GitHub login. They are not an integration method and the operations they unlock are not part of this reference.

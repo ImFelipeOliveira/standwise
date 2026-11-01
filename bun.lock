@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "standwise",
+      "name": "standcast",
       "devDependencies": {
         "@biomejs/biome": "^2.6.4",
         "@seriousme/openapi-schema-validator": "^2.11.0",
@@ -15,19 +15,19 @@
       },
     },
     "apps/api": {
-      "name": "@standwise/api",
+      "name": "@standcast/api",
       "version": "0.0.0",
       "dependencies": {
         "@hono/zod-openapi": "^1.6.3",
         "@octokit/webhooks": "^14.2.0",
         "@scalar/hono-api-reference": "^0.12.16",
-        "@standwise/core": "workspace:*",
-        "@standwise/db": "workspace:*",
-        "@standwise/github": "workspace:*",
-        "@standwise/linear": "workspace:*",
-        "@standwise/orchestrator": "workspace:*",
-        "@standwise/queue": "workspace:*",
-        "@standwise/slack": "workspace:*",
+        "@standcast/core": "workspace:*",
+        "@standcast/db": "workspace:*",
+        "@standcast/github": "workspace:*",
+        "@standcast/linear": "workspace:*",
+        "@standcast/orchestrator": "workspace:*",
+        "@standcast/queue": "workspace:*",
+        "@standcast/slack": "workspace:*",
         "hono": "^4.9.0",
         "zod": "^4.6.7",
       },
@@ -36,62 +36,62 @@
       },
     },
     "apps/cli": {
-      "name": "@standwise/cli",
+      "name": "@standcast/cli",
       "version": "0.0.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.32.2",
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
         "zod": "^4.6.7",
       },
     },
     "apps/landing": {
-      "name": "@standwise/landing",
+      "name": "@standcast/landing",
       "version": "0.0.0",
     },
     "apps/worker": {
-      "name": "@standwise/worker",
+      "name": "@standcast/worker",
       "version": "0.0.0",
       "dependencies": {
-        "@standwise/db": "workspace:*",
-        "@standwise/github": "workspace:*",
-        "@standwise/linear": "workspace:*",
-        "@standwise/orchestrator": "workspace:*",
-        "@standwise/queue": "workspace:*",
-        "@standwise/resend": "workspace:*",
+        "@standcast/db": "workspace:*",
+        "@standcast/github": "workspace:*",
+        "@standcast/linear": "workspace:*",
+        "@standcast/orchestrator": "workspace:*",
+        "@standcast/queue": "workspace:*",
+        "@standcast/resend": "workspace:*",
         "zod": "^4.6.7",
       },
     },
     "packages/adapters/github": {
-      "name": "@standwise/github",
+      "name": "@standcast/github",
       "version": "0.0.0",
       "dependencies": {
         "@octokit/app": "^16.0.0",
         "@octokit/core": "^7.0.0",
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
       },
     },
     "packages/adapters/linear": {
-      "name": "@standwise/linear",
+      "name": "@standcast/linear",
       "version": "0.0.0",
       "dependencies": {
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
         "zod": "^4.6.7",
       },
     },
     "packages/adapters/resend": {
-      "name": "@standwise/resend",
+      "name": "@standcast/resend",
       "version": "0.0.0",
     },
     "packages/adapters/slack": {
-      "name": "@standwise/slack",
+      "name": "@standcast/slack",
       "version": "0.0.0",
       "dependencies": {
         "@slack/web-api": "^8.2.0",
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
       },
     },
     "packages/core": {
-      "name": "@standwise/core",
+      "name": "@standcast/core",
       "version": "0.0.0",
       "dependencies": {
         "@date-fns/tz": "^1.5.0",
@@ -101,10 +101,10 @@
       },
     },
     "packages/db": {
-      "name": "@standwise/db",
+      "name": "@standcast/db",
       "version": "0.0.0",
       "dependencies": {
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
         "drizzle-orm": "^0.45.4",
         "postgres": "^3.4.7",
       },
@@ -113,24 +113,24 @@
       },
     },
     "packages/orchestrator": {
-      "name": "@standwise/orchestrator",
+      "name": "@standcast/orchestrator",
       "version": "0.0.0",
       "dependencies": {
-        "@standwise/core": "workspace:*",
-        "@standwise/db": "workspace:*",
-        "@standwise/github": "workspace:*",
-        "@standwise/linear": "workspace:*",
-        "@standwise/queue": "workspace:*",
-        "@standwise/resend": "workspace:*",
-        "@standwise/slack": "workspace:*",
+        "@standcast/core": "workspace:*",
+        "@standcast/db": "workspace:*",
+        "@standcast/github": "workspace:*",
+        "@standcast/linear": "workspace:*",
+        "@standcast/queue": "workspace:*",
+        "@standcast/resend": "workspace:*",
+        "@standcast/slack": "workspace:*",
         "zod": "^4.6.7",
       },
     },
     "packages/queue": {
-      "name": "@standwise/queue",
+      "name": "@standcast/queue",
       "version": "0.0.0",
       "dependencies": {
-        "@standwise/core": "workspace:*",
+        "@standcast/core": "workspace:*",
         "pg-boss": "^12.0.0",
       },
     },
@@ -418,29 +418,29 @@
 
     "@slack/web-api": ["@slack/web-api@8.3.0", "", { "dependencies": { "@slack/logger": "^5.0.0", "@slack/types": "^3.3.0", "@types/node": ">=20", "@types/retry": "0.12.5", "eventemitter3": "^5.0.1", "p-queue": "^6.6.2", "p-retry": "^4.6.2", "retry": "^0.13.1" } }, "sha512-rGHDZggzG658Uc4yebenp3rVfVVToL0w8aOis40EfrstZCxg8FWS+ECGDIkw498Q9jxF/LVKgGbPfUeYntTrUQ=="],
 
-    "@standwise/api": ["@standwise/api@workspace:apps/api"],
+    "@standcast/api": ["@standcast/api@workspace:apps/api"],
 
-    "@standwise/cli": ["@standwise/cli@workspace:apps/cli"],
+    "@standcast/cli": ["@standcast/cli@workspace:apps/cli"],
 
-    "@standwise/core": ["@standwise/core@workspace:packages/core"],
+    "@standcast/core": ["@standcast/core@workspace:packages/core"],
 
-    "@standwise/db": ["@standwise/db@workspace:packages/db"],
+    "@standcast/db": ["@standcast/db@workspace:packages/db"],
 
-    "@standwise/github": ["@standwise/github@workspace:packages/adapters/github"],
+    "@standcast/github": ["@standcast/github@workspace:packages/adapters/github"],
 
-    "@standwise/landing": ["@standwise/landing@workspace:apps/landing"],
+    "@standcast/landing": ["@standcast/landing@workspace:apps/landing"],
 
-    "@standwise/linear": ["@standwise/linear@workspace:packages/adapters/linear"],
+    "@standcast/linear": ["@standcast/linear@workspace:packages/adapters/linear"],
 
-    "@standwise/orchestrator": ["@standwise/orchestrator@workspace:packages/orchestrator"],
+    "@standcast/orchestrator": ["@standcast/orchestrator@workspace:packages/orchestrator"],
 
-    "@standwise/queue": ["@standwise/queue@workspace:packages/queue"],
+    "@standcast/queue": ["@standcast/queue@workspace:packages/queue"],
 
-    "@standwise/resend": ["@standwise/resend@workspace:packages/adapters/resend"],
+    "@standcast/resend": ["@standcast/resend@workspace:packages/adapters/resend"],
 
-    "@standwise/slack": ["@standwise/slack@workspace:packages/adapters/slack"],
+    "@standcast/slack": ["@standcast/slack@workspace:packages/adapters/slack"],
 
-    "@standwise/worker": ["@standwise/worker@workspace:apps/worker"],
+    "@standcast/worker": ["@standcast/worker@workspace:apps/worker"],
 
     "@types/aws-lambda": ["@types/aws-lambda@8.10.164", "", {}, "sha512-XOnrazWcOd6yWPnR7DxqCBPPYciDjHq+NN8LPwwqBCJNXLyPJgKo47fZpJ113+oyAn9Zti0Cf6H4k6yPcE3WFg=="],
 

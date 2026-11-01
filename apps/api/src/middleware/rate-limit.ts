@@ -1,5 +1,5 @@
-import { hitRateLimit } from '@standwise/db';
-import { type Deps, DomainError } from '@standwise/orchestrator';
+import { hitRateLimit } from '@standcast/db';
+import { type Deps, DomainError } from '@standcast/orchestrator';
 import type { Context, MiddlewareHandler } from 'hono';
 
 export const WINDOW_SECONDS = 60;

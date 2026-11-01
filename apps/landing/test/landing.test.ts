@@ -3,9 +3,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PUBLIC = join(import.meta.dir, '../public');
-const SITE = 'https://standwise.usefachada.dev';
-const API = 'https://api-standwise.usefachada.dev';
-const DOCS = 'https://docs-standwise.usefachada.dev';
+const SITE = 'https://standcast.usefachada.dev';
+const API = 'https://api-standcast.usefachada.dev';
+const DOCS = 'https://docs-standcast.usefachada.dev';
 
 const PAGES = [
   { file: 'index.html', url: `${SITE}/`, locale: 'en' },
@@ -198,7 +198,7 @@ describe('landing', () => {
   test('pt-BR page links the pt-BR docs', () => {
     const docsLinks = [
       ...read('pt-BR/index.html').matchAll(
-        /href="(https:\/\/docs-standwise\.usefachada\.dev[^"]*)"/g,
+        /href="(https:\/\/docs-standcast\.usefachada\.dev[^"]*)"/g,
       ),
     ].map((match) => match[1] ?? '');
     expect(docsLinks.length).toBeGreaterThan(0);
@@ -230,7 +230,7 @@ describe('landing', () => {
     }
     for (const file of PAGES.map((page) => page.file)) {
       expect(read(file)).toContain(
-        'href="https://github.com/ImFelipeOliveira/standwise#self-hosting"',
+        'href="https://github.com/ImFelipeOliveira/standcast#self-hosting"',
       );
     }
   });
@@ -288,7 +288,7 @@ describe('landing', () => {
 
   test('llms.txt links docs llms and openapi', () => {
     const llms = read('llms.txt');
-    expect(llms).toMatch(/^# Standwise\n\n> /);
+    expect(llms).toMatch(/^# Standcast\n\n> /);
     for (const url of [
       `${SITE}/index.md`,
       `${DOCS}/llms.txt`,
@@ -301,7 +301,7 @@ describe('landing', () => {
       `${DOCS}/admin/configuration`,
       `${DOCS}/members/mcp`,
       `${DOCS}/api/overview`,
-      'https://github.com/ImFelipeOliveira/standwise/blob/main/llms.txt',
+      'https://github.com/ImFelipeOliveira/standcast/blob/main/llms.txt',
     ]) {
       expect(llms).toContain(`](${url}`);
     }

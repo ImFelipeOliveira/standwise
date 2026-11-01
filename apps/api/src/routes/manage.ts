@@ -7,7 +7,7 @@ import {
   listManagedDigests,
   listManagedTeams,
   type MembershipCheck,
-} from '@standwise/orchestrator';
+} from '@standcast/orchestrator';
 import type { SessionEnv } from '../middleware/session-auth';
 import {
   ORG_BLOCKERS_EXAMPLE,
@@ -28,7 +28,7 @@ const org = z.string().optional().openapi({
 });
 
 const team = z.string().optional().openapi({
-  description: 'Team name as written in `standwise.yml`. Required.',
+  description: 'Team name as written in `standcast.yml`. Required.',
   example: 'Alpha',
 });
 
@@ -59,7 +59,7 @@ const ERRORS = {
     org_not_found: 'organization not found',
   }),
   409: errorResponse('The organization is not ready to use.', {
-    org_not_configured: 'organization has no valid standwise.yml',
+    org_not_configured: 'organization has no valid standcast.yml',
   }),
   422: errorResponse('A query parameter is not valid, or the range is outside the window.', {
     invalid_request: 'history is limited to the last 90 days, from 2026-07-31 to 2026-10-28',
@@ -68,9 +68,9 @@ const ERRORS = {
 };
 
 const RULES =
-  'Only what people confirmed is returned: no suggestions and no per-person aggregates. Readable by the managers of the team listed in `standwise.yml` and by organization admins. History is limited to the last 90 days, today included, in the team time zone.';
+  'Only what people confirmed is returned: no suggestions and no per-person aggregates. Readable by the managers of the team listed in `standcast.yml` and by organization admins. History is limited to the last 90 days, today included, in the team time zone.';
 const RULES_PT =
-  'Só o que as pessoas confirmaram é devolvido: sem sugestões e sem agregados por pessoa. Podem ler os gestores do time listados no `standwise.yml` e os admins da organização. O histórico vai até 90 dias atrás, contando hoje, no fuso do time.';
+  'Só o que as pessoas confirmaram é devolvido: sem sugestões e sem agregados por pessoa. Podem ler os gestores do time listados no `standcast.yml` e os admins da organização. O histórico vai até 90 dias atrás, contando hoje, no fuso do time.';
 
 const listRoute = <S extends z.ZodType>(
   resource: 'digests' | 'dailies' | 'blockers',

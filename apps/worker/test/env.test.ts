@@ -3,7 +3,7 @@ import { parseEnv } from '../src/env';
 
 const base = {
   DATABASE_URL: 'postgres://x',
-  STANDWISE_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+  STANDCAST_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
   GITHUB_APP_ID: '1',
   GITHUB_APP_PRIVATE_KEY: 'k',
   GITHUB_WEBHOOK_SECRET: 's',

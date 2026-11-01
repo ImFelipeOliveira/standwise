@@ -1,4 +1,4 @@
-import type { Weekday } from '@standwise/core';
+import type { Weekday } from '@standcast/core';
 import type { Deps } from '../deps';
 import { loadOrgTeams } from './org-teams';
 

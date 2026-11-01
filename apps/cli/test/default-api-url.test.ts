@@ -4,7 +4,7 @@ import { FALLBACK_API_URL, resolveDefaultApiUrl } from '../src/default-api-url';
 
 describe('default api url', () => {
   test('falls back when no build-time value is injected', () => {
-    expect(DEFAULT_API_URL).toBe('https://api.standwise.dev');
+    expect(DEFAULT_API_URL).toBe('https://api.standcast.app');
     expect(resolveDefaultApiUrl(undefined)).toBe(FALLBACK_API_URL);
     expect(resolveDefaultApiUrl('')).toBe(FALLBACK_API_URL);
   });

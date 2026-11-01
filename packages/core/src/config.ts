@@ -25,7 +25,7 @@ export type MemberOverrides = {
   jira?: string;
 };
 
-export type StandwiseConfig = {
+export type StandcastConfig = {
   teams: TeamConfig[];
   members: Record<string, MemberOverrides>;
 };
@@ -33,7 +33,7 @@ export type StandwiseConfig = {
 export type ConfigError = { path: string; message: string };
 
 export type ParseConfigResult =
-  | { ok: true; config: StandwiseConfig }
+  | { ok: true; config: StandcastConfig }
   | { ok: false; errors: ConfigError[] };
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be HH:MM (24h)');
@@ -87,7 +87,7 @@ export function isSlackUserId(id: string): boolean {
   return SLACK_USER_ID.test(id);
 }
 
-export function memberOverrides(config: StandwiseConfig, login: string): MemberOverrides {
+export function memberOverrides(config: StandcastConfig, login: string): MemberOverrides {
   const lower = login.toLowerCase();
   return Object.entries(config.members).find(([key]) => key.toLowerCase() === lower)?.[1] ?? {};
 }
@@ -131,7 +131,7 @@ function compact<T extends object>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
 }
 
-function toConfig(raw: RawConfig): StandwiseConfig {
+function toConfig(raw: RawConfig): StandcastConfig {
   return {
     teams: raw.teams.map((t) => {
       const team: TeamConfig = {

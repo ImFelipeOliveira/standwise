@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 const LOCALE = 'pt-BR';
-const DESCRIPTION = 'O Standwise orquestra a daily do seu time, do GitHub ao Slack.';
+const DESCRIPTION = 'O Standcast orquestra a daily do seu time, do GitHub ao Slack.';
 
 function titleOf(markdown: string, fallback: string): string {
   const heading = /^#\s+(.+)$/m.exec(markdown);
@@ -20,7 +20,7 @@ export async function writeLocaleLlms(outDir: string, domain: string): Promise<v
     links.push(`- [${titleOf(markdown, page)}](${domain}/${LOCALE}/${page})`);
     sections.push(markdown.trim());
   }
-  const index = `# Standwise\n\n> ${DESCRIPTION}\n\n## Sumário\n\n${links.join('\n')}\n`;
+  const index = `# Standcast\n\n> ${DESCRIPTION}\n\n## Sumário\n\n${links.join('\n')}\n`;
   const full = `${sections.join('\n\n---\n\n')}\n`;
   await mkdir(dirname(join(dir, 'llms.txt')), { recursive: true });
   await writeFile(join(dir, 'llms.txt'), index);

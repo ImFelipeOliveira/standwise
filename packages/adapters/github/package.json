@@ -1,5 +1,5 @@
 {
-  "name": "@standwise/github",
+  "name": "@standcast/github",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,6 +8,6 @@
   "dependencies": {
     "@octokit/app": "^16.0.0",
     "@octokit/core": "^7.0.0",
-    "@standwise/core": "workspace:*"
+    "@standcast/core": "workspace:*"
   }
 }

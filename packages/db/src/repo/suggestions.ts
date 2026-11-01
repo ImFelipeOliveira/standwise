@@ -1,4 +1,4 @@
-import type { Ref, Signal, SignalKind } from '@standwise/core';
+import type { Ref, Signal, SignalKind } from '@standcast/core';
 import { and, asc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type SuggestionState, suggestions } from '../schema';

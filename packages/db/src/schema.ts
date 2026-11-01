@@ -3,9 +3,9 @@ import type {
   MessageRef,
   Ref,
   SignalKind,
-  StandwiseConfig,
+  StandcastConfig,
   StoredDaily,
-} from '@standwise/core';
+} from '@standcast/core';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -37,7 +37,7 @@ export const installations = pgTable('installations', {
     .$type<'unconfigured' | 'configured' | 'invalid'>()
     .notNull()
     .default('unconfigured'),
-  config: jsonb('config').$type<StandwiseConfig>(),
+  config: jsonb('config').$type<StandcastConfig>(),
   configErrors: jsonb('config_errors').$type<ConfigError[]>(),
   unconfiguredReason: text('unconfigured_reason'),
   accessWarning: text('access_warning'),

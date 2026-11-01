@@ -1,8 +1,8 @@
-import { decryptSecret, encryptSecret } from '@standwise/db';
-import { hashSessionToken } from '@standwise/orchestrator';
+import { decryptSecret, encryptSecret } from '@standcast/db';
+import { hashSessionToken } from '@standcast/orchestrator';
 import type { NewApiKey, NewWebhook } from './setup';
 
-export const FLASH_COOKIE = 'sw_flash';
+export const FLASH_COOKIE = 'sc_flash';
 export const FLASH_PATH = '/setup';
 export const FLASH_SECONDS = 60;
 

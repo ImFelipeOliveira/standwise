@@ -1,4 +1,4 @@
-import { DomainError, type DomainErrorCode, logError } from '@standwise/orchestrator';
+import { DomainError, type DomainErrorCode, logError } from '@standcast/orchestrator';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 

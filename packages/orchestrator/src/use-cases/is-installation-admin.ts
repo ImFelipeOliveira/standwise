@@ -1,4 +1,4 @@
-import { getInstallation, type MemberRow } from '@standwise/db';
+import { getInstallation, type MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { currentLogin, isUserAccountOwner, statusOf } from '../membership';
 

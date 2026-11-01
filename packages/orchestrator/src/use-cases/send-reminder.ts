@@ -1,4 +1,4 @@
-import { buildReminder, isWorkday, localInstant, teamsForMember } from '@standwise/core';
+import { buildReminder, isWorkday, localInstant, teamsForMember } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -8,7 +8,7 @@ import {
   getInstallation,
   listDailies,
   operationalConfig,
-} from '@standwise/db';
+} from '@standcast/db';
 import { chatUserIdFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';

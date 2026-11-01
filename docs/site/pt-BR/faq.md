@@ -4,7 +4,7 @@
 
 Não. O rascunho é só seu. O gestor vê apenas o que você confirmou e enviou.
 
-## O Standwise pode enviar a daily por mim?
+## O Standcast pode enviar a daily por mim?
 
 Não. Toda daily precisa da sua confirmação explícita. A skill e o servidor MCP perguntam antes de enviar, e a API pública não tem como enviar daily.
 
@@ -20,7 +20,7 @@ Ela conta para o próximo dia útil do seu primeiro time, então aparece no cons
 
 Não. Uma daily por dia por organização. Ela aparece no consolidado de todos os seus times.
 
-## Trabalho em duas organizações que usam o Standwise.
+## Trabalho em duas organizações que usam o Standcast.
 
 Você escreve uma daily para cada. A CLI pede `--org` e as tools do MCP pedem `org` quando você está em mais de uma.
 
@@ -28,11 +28,11 @@ Você escreve uma daily para cada. A CLI pede `--org` e as tools do MCP pedem `o
 
 Claude Code pela [skill](/pt-BR/members/claude-code). Claude Desktop, Cursor, Codex, VS Code e qualquer outro cliente MCP pelo [servidor MCP](/pt-BR/members/mcp). Sem agente, use a [CLI](/pt-BR/members/cli).
 
-## O Standwise usa IA nos meus dados?
+## O Standcast usa IA nos meus dados?
 
-Não. Nenhum LLM processa os seus dados nos servidores do Standwise. O seu agente roda na sua máquina, com a sua conta. Veja [Privacidade](/pt-BR/privacy).
+Não. Nenhum LLM processa os seus dados nos servidores do Standcast. O seu agente roda na sua máquina, com a sua conta. Veja [Privacidade](/pt-BR/privacy).
 
-## O Standwise mede produtividade?
+## O Standcast mede produtividade?
 
 Não. Não há ranking, nota, contagem de commits por pessoa nem agregados por pessoa em lugar nenhum.
 
@@ -44,7 +44,7 @@ O Linear funciona hoje: os seus cards aparecem no rascunho, os impedimentos de c
 
 Sim. No `remind_at`, quem ainda não enviou a daily recebe uma mensagem direta no Slack, no máximo uma vez por dia. Veja [Como funciona](/pt-BR/how-it-works).
 
-## O meu gestor vê os impedimentos que o Standwise sugere?
+## O meu gestor vê os impedimentos que o Standcast sugere?
 
 Não. Os impedimentos sugeridos aparecem só para você, no seu rascunho. O gestor só vê um impedimento depois que você o adiciona à sua daily.
 
@@ -52,13 +52,13 @@ Não. Os impedimentos sugeridos aparecem só para você, no seu rascunho. O gest
 
 Cada impedimento novo vai uma vez, por mensagem direta, para os revisores do pull request ligado, ou os CODEOWNERS dele, ou os gestores do time. Veja [Encaminhamento de impedimentos](/pt-BR/how-it-works#encaminhamento-de-impedimentos).
 
-## Dá para configurar o Standwise sem o repositório `.github`?
+## Dá para configurar o Standcast sem o repositório `.github`?
 
-Não. A configuração mora só no `standwise.yml` da raiz do repositório `.github`. Um repositório `.github` privado funciona.
+Não. A configuração mora só no `standcast.yml` da raiz do repositório `.github`. Um repositório `.github` privado funciona.
 
-## Posso rodar o Standwise nos meus servidores?
+## Posso rodar o Standcast nos meus servidores?
 
-Não. O Standwise é um serviço hospedado. O código é aberto, com licença MIT.
+Não. O Standcast é um serviço hospedado. O código é aberto, com licença MIT.
 
 ## Como falo com o suporte?
 

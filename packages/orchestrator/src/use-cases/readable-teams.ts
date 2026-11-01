@@ -1,5 +1,5 @@
-import type { TeamConfig } from '@standwise/core';
-import { getInstallation, type MemberRow, operationalConfig } from '@standwise/db';
+import type { TeamConfig } from '@standcast/core';
+import { getInstallation, type MemberRow, operationalConfig } from '@standcast/db';
 import type { Deps } from '../deps';
 import { currentLogin } from '../membership';
 import { isInstallationAdmin } from './is-installation-admin';

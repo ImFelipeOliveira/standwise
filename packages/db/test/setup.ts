@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { createDb, type Db, migrate } from '../src';
 
 export const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgres://standwise:standwise@localhost:5433/standwise_test';
+  process.env.TEST_DATABASE_URL ?? 'postgres://standcast:standcast@localhost:5433/standcast_test';
 
 await migrate(TEST_DATABASE_URL);
 

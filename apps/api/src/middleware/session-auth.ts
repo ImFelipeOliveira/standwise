@@ -1,5 +1,5 @@
-import { type MemberRow, resolveSession } from '@standwise/db';
-import { type Deps, DomainError } from '@standwise/orchestrator';
+import { type MemberRow, resolveSession } from '@standcast/db';
+import { type Deps, DomainError } from '@standcast/orchestrator';
 import type { MiddlewareHandler } from 'hono';
 import {
   enforceRateLimit,

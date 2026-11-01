@@ -41,8 +41,8 @@ const ORGS = [
 const DAILY = { org: 'acme', yesterday: [], today: [{ text: 'ship it' }], blockers: [] };
 
 async function loggedIn(apiUrl: string, orgs = ORGS, stdin = '', extra = {}) {
-  const ctx = await makeIo({ STANDWISE_API_URL: apiUrl, ...extra }, stdin);
-  await writeCredentials(ctx.io.env, { apiUrl, token: 'sw_tok', login: 'alice', orgs });
+  const ctx = await makeIo({ STANDCAST_API_URL: apiUrl, ...extra }, stdin);
+  await writeCredentials(ctx.io.env, { apiUrl, token: 'sc_tok', login: 'alice', orgs });
   return ctx;
 }
 
@@ -69,10 +69,10 @@ describe('login', () => {
     const api = serve(async (req) => {
       const path = new URL(req.url).pathname;
       if (path === '/v1/meta') return json({ githubClientId: 'cid', supportEmail: 's@x' });
-      if (path === '/v1/sessions') return json({ token: 'sw_tok', login: 'alice', orgs: ORGS });
+      if (path === '/v1/sessions') return json({ token: 'sc_tok', login: 'alice', orgs: ORGS });
       return json({}, 404);
     });
-    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
 
     const code = await run(['login'], ctx.io);
 
@@ -80,7 +80,7 @@ describe('login', () => {
     expect(ctx.sleeps).toEqual([5000, 5000, 10000]);
     expect(ctx.err.join('')).toContain('ABCD-1234');
     expect(ctx.err.join('')).toContain('https://github.com/login/device');
-    expect(ctx.err.join('') + ctx.out.join('')).not.toContain('sw_tok');
+    expect(ctx.err.join('') + ctx.out.join('')).not.toContain('sc_tok');
     expect(ctx.err.join('') + ctx.out.join('')).not.toContain('gho_user');
     expect(ctx.opened).toEqual(['https://github.com/login/device']);
     const sessionCall = api.seen.find((s) => s.path === '/v1/sessions');
@@ -94,7 +94,7 @@ describe('login', () => {
     expect((await stat(credentialsPath(ctx.io.env))).mode & 0o777).toBe(0o600);
     expect(await readCredentials(ctx.io.env)).toEqual({
       apiUrl: api.url,
-      token: 'sw_tok',
+      token: 'sc_tok',
       login: 'alice',
       orgs: ORGS,
     });
@@ -111,14 +111,14 @@ describe('login', () => {
           : json({ error }),
       );
       const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
-      const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+      const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
       expect(await run(['login'], ctx.io)).toBe(1);
       expect(ctx.err.join('')).toContain(message);
       expect(await readCredentials(ctx.io.env)).toBeNull();
     }
   });
 
-  test('login messages follow STANDWISE_LANG', async () => {
+  test('login messages follow STANDCAST_LANG', async () => {
     const github = serve((req) =>
       new URL(req.url).pathname === '/login/device/code'
         ? json({ device_code: 'd', user_code: 'U-1', verification_uri: 'https://v', interval: 1 })
@@ -126,9 +126,9 @@ describe('login', () => {
     );
     const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
     const ctx = await makeIo({
-      STANDWISE_API_URL: api.url,
-      STANDWISE_GITHUB_URL: github.url,
-      STANDWISE_LANG: 'pt-BR',
+      STANDCAST_API_URL: api.url,
+      STANDCAST_GITHUB_URL: github.url,
+      STANDCAST_LANG: 'pt-BR',
     });
     await run(['login'], ctx.io);
     expect(ctx.err.join('')).toContain('informe o código: U-1');
@@ -140,7 +140,7 @@ describe('logout and whoami', () => {
   test('whoami prints JSON and exits 2 when logged out', async () => {
     const out = await makeIo();
     expect(await run(['whoami'], out.io)).toBe(2);
-    expect(out.err.join('')).toContain('standwise login');
+    expect(out.err.join('')).toContain('standcast login');
     const ctx = await loggedIn('http://unused');
     expect(await run(['whoami'], ctx.io)).toBe(0);
     expect(JSON.parse(ctx.out.join(''))).toEqual({ login: 'alice', orgs: ORGS });
@@ -167,16 +167,16 @@ describe('draft', () => {
     const single = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
     expect(await run(['draft'], single.io)).toBe(0);
     expect(JSON.parse(single.out.join(''))).toEqual({ org: 'acme', activity: [] });
-    expect(api.seen[0]).toMatchObject({ path: '/v1/draft?org=acme', auth: 'Bearer sw_tok' });
+    expect(api.seen[0]).toMatchObject({ path: '/v1/draft?org=acme', auth: 'Bearer sc_tok' });
     const multi = await loggedIn(api.url);
     expect(await run(['draft', '--org', 'beta'], multi.io)).toBe(0);
     expect(api.seen[1]?.path).toBe('/v1/draft?org=beta');
   });
 
-  test('--api-url overrides STANDWISE_API_URL', async () => {
+  test('--api-url overrides STANDCAST_API_URL', async () => {
     const api = serve(() => json({ ok: true }));
     const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]], '', {
-      STANDWISE_API_URL: 'http://localhost:1',
+      STANDCAST_API_URL: 'http://localhost:1',
     });
     expect(await run(['draft', '--api-url', api.url], ctx.io)).toBe(0);
     expect(api.seen).toHaveLength(1);
@@ -206,7 +206,7 @@ describe('suggestion', () => {
     expect(api.seen[0]).toMatchObject({
       method: 'POST',
       path: `/v1/suggestions/${ID}/decision`,
-      auth: 'Bearer sw_tok',
+      auth: 'Bearer sc_tok',
     });
     expect(JSON.parse(api.seen[0]?.body ?? '')).toEqual({ org: 'acme', decision: 'ignored' });
     expect(JSON.parse(ctx.out.join(''))).toEqual({ id: ID, decision: 'ignored' });
@@ -243,7 +243,7 @@ describe('suggestion', () => {
     const ctx = await loggedIn(api.url, [ORGS[0] as (typeof ORGS)[number]]);
     expect(await run(['suggestion', 'maybe', ID], ctx.io)).toBe(1);
     expect(await run(['suggestion', 'ignore'], ctx.io)).toBe(1);
-    expect(ctx.err.join('')).toContain('standwise suggestion ignore <id>');
+    expect(ctx.err.join('')).toContain('standcast suggestion ignore <id>');
     expect(api.seen).toHaveLength(0);
   });
 
@@ -272,7 +272,7 @@ describe('submit', () => {
     expect(api.seen[0]).toMatchObject({
       method: 'POST',
       path: '/v1/dailies',
-      auth: 'Bearer sw_tok',
+      auth: 'Bearer sc_tok',
     });
     expect(JSON.parse(api.seen[0]?.body ?? '{}')).toEqual(DAILY);
   });
@@ -318,15 +318,15 @@ describe('url safety', () => {
     expect(ctx.err.join('')).toContain('http://evil.example');
     const flag = await makeIo();
     expect(await run(['login', '--api-url', 'http://evil.example'], flag.io)).toBe(1);
-    const env = await makeIo({ STANDWISE_API_URL: 'ftp://evil.example' });
+    const env = await makeIo({ STANDCAST_API_URL: 'ftp://evil.example' });
     expect(await run(['login'], env.io)).toBe(1);
   });
 
-  test('non-local STANDWISE_GITHUB_URL is ignored with a warning', async () => {
+  test('non-local STANDCAST_GITHUB_URL is ignored with a warning', async () => {
     const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
     const ctx = await makeIo({
-      STANDWISE_API_URL: api.url,
-      STANDWISE_GITHUB_URL: 'https://evil.example',
+      STANDCAST_API_URL: api.url,
+      STANDCAST_GITHUB_URL: 'https://evil.example',
     });
     const seenUrls: string[] = [];
     const original = globalThis.fetch;
@@ -344,7 +344,7 @@ describe('url safety', () => {
       globalThis.fetch = original;
     }
     expect(seenUrls).toEqual(['https://github.com/login/device/code']);
-    expect(ctx.err.join('')).toContain('STANDWISE_GITHUB_URL');
+    expect(ctx.err.join('')).toContain('STANDCAST_GITHUB_URL');
   });
 
   test('localhost http is accepted', async () => {
@@ -361,11 +361,11 @@ describe('token origin binding', () => {
   test('a different effective origin never receives the stored token', async () => {
     const stored = serve(() => json({}));
     const other = serve(() => json({}));
-    const env = { STANDWISE_API_URL: other127(other.url) };
+    const env = { STANDCAST_API_URL: other127(other.url) };
     const ctx = await loggedIn(stored.url, [ORGS[0] as (typeof ORGS)[number]], '', env);
     expect(await run(['draft'], ctx.io)).toBe(2);
     expect(await run(['logout'], ctx.io)).toBe(0);
-    expect(ctx.err.join('')).toContain('standwise login --api-url');
+    expect(ctx.err.join('')).toContain('standcast login --api-url');
     const submitCtx = await loggedIn(stored.url, ORGS, JSON.stringify(DAILY), env);
     expect(await run(['submit'], submitCtx.io)).toBe(2);
     expect(other.seen).toHaveLength(0);
@@ -389,7 +389,7 @@ describe('logout revoke', () => {
     expect(api.seen[0]).toMatchObject({
       method: 'DELETE',
       path: '/v1/sessions/current',
-      auth: 'Bearer sw_tok',
+      auth: 'Bearer sc_tok',
     });
     expect(await readCredentials(ctx.io.env)).toBeNull();
   });
@@ -425,7 +425,7 @@ describe('device flow hardening', () => {
       },
       () => json({ error: 'authorization_pending' }),
     );
-    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
     expect(await run(['login'], ctx.io)).toBe(1);
     expect(ctx.sleeps.length).toBeLessThan(5);
     expect(ctx.err.join('')).toContain('expired');
@@ -436,7 +436,7 @@ describe('device flow hardening', () => {
       { device_code: 'd', user_code: 'U', verification_uri: 42, interval: 1 },
       () => json({}),
     );
-    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
     expect(await run(['login'], ctx.io)).toBe(1);
     expect(await readCredentials(ctx.io.env)).toBeNull();
   });
@@ -444,8 +444,8 @@ describe('device flow hardening', () => {
   test('github network failure is a friendly error', async () => {
     const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
     const ctx = await makeIo({
-      STANDWISE_API_URL: api.url,
-      STANDWISE_GITHUB_URL: 'http://localhost:1',
+      STANDCAST_API_URL: api.url,
+      STANDCAST_GITHUB_URL: 'http://localhost:1',
     });
     expect(await run(['login'], ctx.io)).toBe(1);
     expect(ctx.err.join('')).toContain('http://localhost:1');
@@ -457,7 +457,7 @@ describe('device flow hardening', () => {
         { device_code: 'd', user_code: 'U', verification_uri: uri, interval: 1 },
         () => json({ error: 'access_denied' }),
       );
-      const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+      const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
       await run(['login'], ctx.io);
       expect(ctx.opened).toEqual([]);
       expect(ctx.err.join('')).toContain(uri);
@@ -474,7 +474,7 @@ describe('device flow hardening', () => {
       },
       () => json({ error: 'access_denied' }),
     );
-    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
     await run(['login'], ctx.io);
     expect(ctx.err.join('')).not.toContain('\u001b');
   });
@@ -508,7 +508,7 @@ describe('api path and redirects', () => {
       () => new Response(null, { status: 307, headers: { location: `${target.url}/x` } }),
     );
     const api = serve(() => json({ githubClientId: 'cid', supportEmail: 's' }));
-    const ctx = await makeIo({ STANDWISE_API_URL: api.url, STANDWISE_GITHUB_URL: github.url });
+    const ctx = await makeIo({ STANDCAST_API_URL: api.url, STANDCAST_GITHUB_URL: github.url });
     expect(await run(['login'], ctx.io)).toBe(1);
     expect(target.seen).toHaveLength(0);
   });
@@ -516,7 +516,7 @@ describe('api path and redirects', () => {
 
 describe('message sanitising', () => {
   test('urls in messages lose control and bidi characters', async () => {
-    const ctx = await makeIo({ STANDWISE_API_URL: 'http://evil.example/\u001b[31m\u202e' });
+    const ctx = await makeIo({ STANDCAST_API_URL: 'http://evil.example/\u001b[31m\u202e' });
     expect(await run(['login'], ctx.io)).toBe(1);
     const text = ctx.err.join('');
     expect(text).toContain('http://evil.example/[31m');
@@ -529,7 +529,7 @@ describe('global flags', () => {
   test('--help prints usage, --version prints the root version', async () => {
     const help = await makeIo();
     expect(await run(['--help'], help.io)).toBe(0);
-    expect(help.out.join('')).toContain('standwise <command>');
+    expect(help.out.join('')).toContain('standcast <command>');
     const version = await makeIo();
     expect(await run(['--version'], version.io)).toBe(0);
     expect(version.out.join('').trim()).toMatch(/^\d+\.\d+\.\d+/);

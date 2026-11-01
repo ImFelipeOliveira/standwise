@@ -1,5 +1,5 @@
 import { Webhooks } from '@octokit/webhooks';
-import { type Deps, type GitHubEventPayload, handleGitHubEvent } from '@standwise/orchestrator';
+import { type Deps, type GitHubEventPayload, handleGitHubEvent } from '@standcast/orchestrator';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 

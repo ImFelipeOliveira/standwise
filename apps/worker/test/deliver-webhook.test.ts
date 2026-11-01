@@ -5,15 +5,15 @@ import {
   insertWebhookEndpoint,
   listInstallationWebhookEndpoints,
   upsertInstallation,
-} from '@standwise/db';
+} from '@standcast/db';
 import {
   emitEvent,
   nullTracker,
   type SafeFetchOptions,
   verifyWebhookSignature,
   type WorkerDeps,
-} from '@standwise/orchestrator';
-import { createMemoryQueue } from '@standwise/queue';
+} from '@standcast/orchestrator';
+import { createMemoryQueue } from '@standcast/queue';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { deliverWebhookJob, requeueWebhooksJob } from '../src/jobs/deliver-webhook';
 
@@ -97,7 +97,7 @@ function harness(resolved: string[] = ['93.184.216.34']) {
   };
 }
 
-async function seedEndpoint(path = '/standwise') {
+async function seedEndpoint(path = '/standcast') {
   await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
   const { id } = await insertWebhookEndpoint(
     db,
@@ -132,12 +132,12 @@ describe('deliver-webhook', () => {
     expect(received).toHaveLength(1);
     const [request] = received;
     if (!request) throw new Error('no request');
-    expect(request.path).toBe('/standwise');
+    expect(request.path).toBe('/standcast');
     expect(request.headers.get('content-type')).toBe('application/json');
-    expect(request.headers.get('user-agent')).toBe('Standwise-Webhooks/1');
-    expect(request.headers.get('standwise-event')).toBe('digest.sent');
-    expect(request.headers.get('standwise-delivery')).toBe(deliveryId);
-    const signature = request.headers.get('standwise-signature') ?? '';
+    expect(request.headers.get('user-agent')).toBe('Standcast-Webhooks/1');
+    expect(request.headers.get('standcast-event')).toBe('digest.sent');
+    expect(request.headers.get('standcast-delivery')).toBe(deliveryId);
+    const signature = request.headers.get('standcast-signature') ?? '';
     expect(signature).toMatch(/^t=\d+,v1=[0-9a-f]{64}$/);
     expect(
       verifyWebhookSignature(SECRET, request.body, signature, Math.floor(START.getTime() / 1000)),

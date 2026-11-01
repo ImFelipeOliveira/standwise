@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { hasUnsafeChars } from '@standwise/core';
+import { hasUnsafeChars } from '@standcast/core';
 import { listActivity } from '../src/activity';
 import { type Call, fixture, octokitWith } from './helpers';
 

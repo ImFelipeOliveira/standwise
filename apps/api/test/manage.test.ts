@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig } from '@standwise/core';
+import { parseConfig } from '@standcast/core';
 import {
   addMemberInstallation,
   createSession,
@@ -7,7 +7,7 @@ import {
   upsertDaily,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createTestApp, type FakeRequest } from './support';
 

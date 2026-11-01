@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { listMemberInstallations, setMemberInstallations } from '@standwise/db';
+import { listMemberInstallations, setMemberInstallations } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   authorizeInstallation,

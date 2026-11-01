@@ -1,4 +1,4 @@
-import { listDailiesPage } from '@standwise/db';
+import { listDailiesPage } from '@standcast/db';
 import type { Deps } from '../deps';
 import { type OrgItem, toOrgItem } from './list-org-dailies';
 import { loadOrgTeams, requireTeam, teamNames } from './org-teams';

@@ -1,4 +1,4 @@
-import { ChatDeliveryError } from '@standwise/slack';
+import { ChatDeliveryError } from '@standcast/slack';
 
 const SAFE_CODE = /^[a-z][a-z0-9_]{0,63}$/;
 

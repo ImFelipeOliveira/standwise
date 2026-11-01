@@ -132,15 +132,15 @@ const PingSchema = envelope(
 ).openapi('PingEvent');
 
 const HeadersSchema = z.object({
-  'Standwise-Signature': z.string().openapi({
+  'Standcast-Signature': z.string().openapi({
     description: '`t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">`.',
     example: 't=1793192580,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd',
   }),
-  'Standwise-Event': z.string().openapi({ example: 'daily.submitted' }),
-  'Standwise-Delivery': z
+  'Standcast-Event': z.string().openapi({ example: 'daily.submitted' }),
+  'Standcast-Delivery': z
     .string()
     .openapi({ description: 'Delivery id, unique per endpoint and event.', format: 'uuid' }),
-  'User-Agent': z.string().openapi({ example: 'Standwise-Webhooks/1' }),
+  'User-Agent': z.string().openapi({ example: 'Standcast-Webhooks/1' }),
 });
 
 const WEBHOOKS = [

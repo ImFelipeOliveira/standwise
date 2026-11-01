@@ -6,8 +6,8 @@ import {
   setIdentity,
   setMemberInstallations,
   upsertInstallation,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   completeSlackConnect,

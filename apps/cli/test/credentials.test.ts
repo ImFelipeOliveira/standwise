@@ -8,7 +8,7 @@ import {
 } from '../src/credentials';
 import { makeIo } from './support';
 
-const creds = { apiUrl: 'http://x', token: 'sw_secret', login: 'alice', orgs: [] };
+const creds = { apiUrl: 'http://x', token: 'sc_secret', login: 'alice', orgs: [] };
 
 describe('credentials', () => {
   test('writes with 0600 in a 0700 directory and reads back', async () => {
@@ -34,8 +34,8 @@ describe('credentials', () => {
     expect((await readdir(dir)).filter((f) => f.endsWith('.tmp'))).toEqual([]);
   });
 
-  test('defaults to ~/.config/standwise', () => {
-    expect(credentialsPath({ HOME: '/home/a' })).toBe('/home/a/.config/standwise/credentials.json');
+  test('defaults to ~/.config/standcast', () => {
+    expect(credentialsPath({ HOME: '/home/a' })).toBe('/home/a/.config/standcast/credentials.json');
   });
 
   test('read returns null when missing or malformed, delete reports removal', async () => {

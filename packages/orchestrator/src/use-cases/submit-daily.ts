@@ -1,11 +1,11 @@
-import type { DailyConfirmation, DailySubmission, Item } from '@standwise/core';
+import type { DailyConfirmation, DailySubmission, Item } from '@standcast/core';
 import {
   confirmSuggestionsByUrl,
   getDelivery,
   getMemberDaily,
   type MemberRow,
   upsertDaily,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { blockerRouteId, newBlockers, newRoutedBlockers } from '../events';
 import { logError } from '../log-error';

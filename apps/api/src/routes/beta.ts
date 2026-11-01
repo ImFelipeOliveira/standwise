@@ -1,4 +1,4 @@
-import { type Deps, DomainError, submitBetaRequest } from '@standwise/orchestrator';
+import { type Deps, DomainError, submitBetaRequest } from '@standcast/orchestrator';
 import { Hono } from 'hono';
 import { BETA_LIMIT, type GetClientIp, ipRateLimit } from '../middleware/rate-limit';
 

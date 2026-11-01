@@ -1,4 +1,4 @@
-import { type Language, stripUnsafeChars, t } from '@standwise/core';
+import { type Language, stripUnsafeChars, t } from '@standcast/core';
 import { EXIT, ExitError } from './io';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);

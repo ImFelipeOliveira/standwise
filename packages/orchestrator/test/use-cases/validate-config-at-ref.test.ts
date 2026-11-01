@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { getInstallation } from '@standwise/db';
+import { getInstallation } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { enqueueLoadConfig, loadConfig, validateConfigAtRef } from '../../src';
 import { config, type FakeOptions, fakeDeps, INST, seedOrg } from './fakes';
@@ -56,13 +56,13 @@ describe('validateConfigAtRef', () => {
     expect(run0?.owner).toBe('acme');
     expect(run0?.repo).toBe('.github');
     expect(run0?.headSha).toBe('abc123');
-    expect(run0?.name).toBe('Standwise config');
+    expect(run0?.name).toBe('Standcast config');
     expect(run0?.conclusion).toBe('failure');
-    expect(run0?.title).toBe('standwise.yml is invalid');
+    expect(run0?.title).toBe('standcast.yml is invalid');
     expect(run0?.summary).toContain('teams.0.digest_at');
     expect(run0?.summary).toContain('1 error(s) found');
     expect(run0?.annotations).toHaveLength(1);
-    expect(run0?.annotations[0]?.path).toBe('standwise.yml');
+    expect(run0?.annotations[0]?.path).toBe('standcast.yml');
     expect(run0?.annotations[0]?.line).toBe(6);
     expect(run0?.annotations[0]?.message).toContain('teams.0.digest_at');
   });
@@ -89,10 +89,10 @@ describe('validateConfigAtRef', () => {
         owner: 'acme',
         repo: '.github',
         headSha: 'abc123',
-        name: 'Standwise config',
+        name: 'Standcast config',
         conclusion: 'success',
-        title: 'standwise.yml válido',
-        summary: 'standwise.yml válido',
+        title: 'standcast.yml válido',
+        summary: 'standcast.yml válido',
         annotations: [],
       },
     ]);
@@ -125,7 +125,7 @@ describe('validateConfigAtRef', () => {
     ]);
   });
 
-  test('a PR that does not touch standwise.yml is skipped without check-run calls', async () => {
+  test('a PR that does not touch standcast.yml is skipped without check-run calls', async () => {
     await seedOrg();
     const { result, calls } = await run(
       { found: true, source: VALID },
@@ -138,11 +138,11 @@ describe('validateConfigAtRef', () => {
     expect(calls.createCheckRun).toEqual([]);
   });
 
-  test('a PR that touches standwise.yml is validated', async () => {
+  test('a PR that touches standcast.yml is validated', async () => {
     await seedOrg();
     const { result, calls } = await run(
       { found: true, source: VALID },
-      { files: { 'acme/.github#4': ['standwise.yml'] } },
+      { files: { 'acme/.github#4': ['standcast.yml'] } },
       { pullNumber: 4 },
     );
     expect(result).toBe('success');

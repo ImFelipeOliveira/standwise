@@ -1,4 +1,4 @@
-import type { ConfigError, StandwiseConfig } from '@standwise/core';
+import type { ConfigError, StandcastConfig } from '@standcast/core';
 import {
   type ApiKeySummary,
   getConnection,
@@ -11,7 +11,7 @@ import {
   operationalConfig,
   type PersonFailureGroup,
   type TeamFailure,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { statusOf } from '../membership';
@@ -60,7 +60,7 @@ export type SetupTeam = {
   tracker: 'linear' | 'jira' | null;
 };
 
-function setupTeams(config: StandwiseConfig | null): SetupTeam[] {
+function setupTeams(config: StandcastConfig | null): SetupTeam[] {
   return (config?.teams ?? []).map((team) => ({
     name: team.name,
     channel: team.chat.channel || null,
@@ -77,13 +77,13 @@ function configFileUrl(
 ): string | null {
   if (!configRepo.exists || config.status === 'unconfigured') return null;
   const branch = configRepo.defaultBranch.split('/').map(encodeURIComponent).join('/');
-  return `https://github.com/${encodeURIComponent(owner)}/.github/blob/${branch}/standwise.yml`;
+  return `https://github.com/${encodeURIComponent(owner)}/.github/blob/${branch}/standcast.yml`;
 }
 
 export type TrackerNotice = 'linear_not_connected' | 'jira_coming_soon';
 
 function trackerNotices(
-  config: StandwiseConfig | null,
+  config: StandcastConfig | null,
   linear: SetupStatus['linear'],
 ): TrackerNotice[] {
   const providers = new Set(config?.teams.map((team) => team.tracker?.provider) ?? []);
@@ -112,7 +112,7 @@ async function safeTeamNotices(
   deps: Deps,
   installationId: number,
   owner: string,
-  config: StandwiseConfig | null,
+  config: StandcastConfig | null,
 ): Promise<TeamNotice[]> {
   if (!config) return [];
   let timer: ReturnType<typeof setTimeout> | undefined;

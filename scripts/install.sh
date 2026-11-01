@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-REPO="ImFelipeOliveira/standwise"
+REPO="ImFelipeOliveira/standcast"
 BASE="https://github.com/${REPO}/releases/latest/download"
 BIN_DIR="${HOME}/.local/bin"
-TARGET="${BIN_DIR}/standwise"
+TARGET="${BIN_DIR}/standcast"
 
 fail() {
-  echo "standwise install: $1" >&2
+  echo "standcast install: $1" >&2
   exit 1
 }
 
@@ -23,7 +23,7 @@ case "$(uname -m)" in
   *) fail "unsupported architecture: $(uname -m)" ;;
 esac
 
-asset="standwise-bun-${os}-${arch}"
+asset="standcast-bun-${os}-${arch}"
 
 if command -v curl >/dev/null 2>&1; then
   download() { curl --proto '=https' --tlsv1.2 -fsSL -o "$2" "$1"; }
@@ -72,4 +72,4 @@ case ":${PATH}:" in
 esac
 
 echo
-echo "Next: run 'standwise login'"
+echo "Next: run 'standcast login'"

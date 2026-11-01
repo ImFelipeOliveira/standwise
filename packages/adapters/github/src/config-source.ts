@@ -6,7 +6,7 @@ export type ConfigSource =
   | { found: false; reason: 'no_repo' | 'no_access' | 'no_file' };
 
 const CONFIG_REPO = '.github';
-const CONFIG_PATH = 'standwise.yml';
+const CONFIG_PATH = 'standcast.yml';
 
 function failureReason(
   error: unknown,

@@ -1,5 +1,5 @@
-import type { Language } from '@standwise/core';
-import type { SetupStatus } from '@standwise/orchestrator';
+import type { Language } from '@standcast/core';
+import type { SetupStatus } from '@standcast/orchestrator';
 import { Layout } from './layout';
 import {
   ApiKeysCard,

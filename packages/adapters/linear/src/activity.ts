@@ -1,4 +1,4 @@
-import type { ActivityItem, CardSnapshot } from '@standwise/core';
+import type { ActivityItem, CardSnapshot } from '@standcast/core';
 import { z } from 'zod';
 import type { LinearClient } from './client';
 

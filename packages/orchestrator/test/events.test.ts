@@ -8,7 +8,7 @@ import {
   setMemberInstallations,
   upsertDaily,
   type WebhookEventType,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   createMembershipCheck,
@@ -35,7 +35,7 @@ afterEach(() => {
 async function endpoint(
   installationId = INST,
   events: WebhookEventType[] = ['daily.submitted', 'blocker.opened', 'digest.sent'],
-  url = 'https://hooks.example.com/standwise',
+  url = 'https://hooks.example.com/standcast',
 ) {
   const { id } = await insertWebhookEndpoint(
     db,

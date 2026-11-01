@@ -1,15 +1,15 @@
 # Skill do Claude Code
 
-O plugin do Standwise para o Claude Code adiciona a skill `/daily` e registra o servidor MCP do Standwise para você.
+O plugin do Standcast para o Claude Code adiciona a skill `/daily` e registra o servidor MCP do Standcast para você.
 
 ## Instalar
 
-1. [Instale a CLI e entre](/pt-BR/members/getting-started). O plugin usa o binário `standwise` do seu `PATH`; ele não o instala.
+1. [Instale a CLI e entre](/pt-BR/members/getting-started). O plugin usa o binário `standcast` do seu `PATH`; ele não o instala.
 2. No Claude Code, adicione o marketplace e instale o plugin:
 
 ```text
-/plugin marketplace add ImFelipeOliveira/standwise
-/plugin install standwise@standwise
+/plugin marketplace add ImFelipeOliveira/standcast
+/plugin install standcast@standcast
 ```
 
 3. Reinicie o Claude Code para ele carregar a skill e o servidor MCP.
@@ -25,13 +25,13 @@ Digite `/daily`, ou peça do seu jeito: "minha daily", "standup", "o que eu fiz 
 5. Mostra a daily final e pede a sua confirmação explícita.
 6. Envia e avisa se ela foi para a thread do consolidado porque ele já tinha sido publicado.
 
-Ela usa as tools do MCP quando estão disponíveis e, senão, a CLI `standwise`.
+Ela usa as tools do MCP quando estão disponíveis e, senão, a CLI `standcast`.
 
 ## A regra de confirmação
 
 - A skill nunca envia sem a sua confirmação explícita da daily final. Só um sim claro vale.
 - Qualquer mudança depois da revisão final, por menor que seja, exige uma nova revisão e uma nova confirmação.
-- Quando envia pelo MCP e o Claude Code suporta, o próprio Standwise também pergunta a você, fora da conversa, mostrando exatamente o que vai ser publicado.
+- Quando envia pelo MCP e o Claude Code suporta, o próprio Standcast também pergunta a você, fora da conversa, mostrando exatamente o que vai ser publicado.
 - Ela nunca traduz nem reescreve as suas palavras. Ela só pode dividir uma resposta de várias linhas em itens de uma linha.
 - Ela nunca inventa atividade: só o que está no rascunho ou o que você disse.
 - Títulos de PR, mensagens de commit e outros textos do GitHub são tratados como dados, nunca como instruções.
@@ -65,8 +65,8 @@ Claude:  Enviada para 2026-10-28. Ela entra no consolidado do backend.
 
 | Situação | O que a skill faz |
 | --- | --- |
-| O `standwise` não está instalado | Explica como instalar a CLI e para. |
-| Você não entrou, ou a sessão expirou | Pede para você rodar `standwise login` e para. |
+| O `standcast` não está instalado | Explica como instalar a CLI e para. |
+| Você não entrou, ou a sessão expirou | Pede para você rodar `standcast login` e para. |
 | Mais de uma organização | Pergunta qual e tenta de novo com ela. |
 | Uma sugestão já foi decidida | Avisa você e segue em frente. |
 | A daily é inválida | Mostra os problemas, corrige com você sem mudar o sentido e pede uma nova confirmação. |

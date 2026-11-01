@@ -1,4 +1,4 @@
-import { getBetaRequest, markBetaRequestNotified } from '@standwise/db';
+import { getBetaRequest, markBetaRequestNotified } from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import type { NotifyBetaRequestJob } from './submit-beta-request';

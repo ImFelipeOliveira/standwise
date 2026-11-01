@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { deleteBetaRequestsCreatedBefore } from '@standwise/db';
+import { deleteBetaRequestsCreatedBefore } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { DomainError, NOTIFY_BETA_REQUEST_JOB, submitBetaRequest } from '../../src';
 import { fakeDeps } from './fakes';

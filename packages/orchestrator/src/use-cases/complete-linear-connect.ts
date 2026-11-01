@@ -1,10 +1,10 @@
-import { type MemberRow, saveConnection } from '@standwise/db';
+import { type MemberRow, saveConnection } from '@standcast/db';
 import {
   createLinearClient,
   getOrganization,
   type LinearOrganization,
   type LinearTokens,
-} from '@standwise/linear';
+} from '@standcast/linear';
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { hashSessionToken, verifyState } from '../state-token';

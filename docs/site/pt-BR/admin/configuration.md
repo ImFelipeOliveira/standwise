@@ -1,6 +1,6 @@
-# Referência do standwise.yml
+# Referência do standcast.yml
 
-O Standwise lê toda a configuração de um arquivo só: o `standwise.yml` na **raiz** do repositório `.github` da organização (ou da conta pessoal), na branch padrão. Não existe outro lugar para configurar os times.
+O Standcast lê toda a configuração de um arquivo só: o `standcast.yml` na **raiz** do repositório `.github` da organização (ou da conta pessoal), na branch padrão. Não existe outro lugar para configurar os times.
 
 Todo exemplo `yaml` desta página passa pelo parser de verdade quando a documentação é gerada.
 
@@ -103,7 +103,7 @@ O idioma do consolidado e das dailies atrasadas publicadas na thread dele: `en` 
 
 Logins do GitHub dos gestores do time. Gestores leem os consolidados, as dailies e os impedimentos do time pelas [tools de gestor do MCP](/pt-BR/members/mcp#tools-de-gestor). Admins da organização leem todos os times sem precisar estar listados. Impedimentos sem outra pessoa para encaminhar vão para os gestores.
 
-Cada item precisa ser um login simples. Nomes que começam com `@`, como `@acme/leads`, não são aceitos: o Standwise não expande times do GitHub, então liste os logins um a um. Um item de time é rejeitado com um erro.
+Cada item precisa ser um login simples. Nomes que começam com `@`, como `@acme/leads`, não são aceitos: o Standcast não expande times do GitHub, então liste os logins um a um. Um item de time é rejeitado com um erro.
 
 ### `members`
 
@@ -112,7 +112,7 @@ Quem escreve dailies neste time. Cada item é:
 - um login do GitHub, como `alice`; ou
 - um time do GitHub, escrito `"@org/slug-do-time"`, como `"@acme/backend"`. Use aspas, porque o YAML não aceita valor começando com `@`.
 
-Os times do GitHub são resolvidos toda vez que o Standwise precisa do time, então as mudanças no GitHub valem sem editar o arquivo. O Standwise lê os 100 primeiros membros de cada time do GitHub. Os logins são comparados sem diferenciar maiúsculas e minúsculas.
+Os times do GitHub são resolvidos toda vez que o Standcast precisa do time, então as mudanças no GitHub valem sem editar o arquivo. O Standcast lê os 100 primeiros membros de cada time do GitHub. Os logins são comparados sem diferenciar maiúsculas e minúsculas.
 
 Uma pessoa pode estar em vários times. A daily dela aparece no consolidado de cada time, e a data da daily usa o fuso e os dias úteis do **primeiro** time que a lista.
 
@@ -121,7 +121,7 @@ Uma pessoa pode estar em vários times. A daily dela aparece no consolidado de c
 Para onde vai o consolidado.
 
 - `provider`: `slack`. O parser aceita `google-chat`, mas ele ainda não é suportado: os consolidados desse time falham com `unsupported_provider`.
-- `channel`: o canal do Slack, como `"#nome"` (com aspas, porque `#` começa um comentário no YAML) ou como id do canal, por exemplo `C0123456789`. Num canal privado, convide o bot do Standwise antes. Veja [Slack](/pt-BR/admin/slack).
+- `channel`: o canal do Slack, como `"#nome"` (com aspas, porque `#` começa um comentário no YAML) ou como id do canal, por exemplo `C0123456789`. Num canal privado, convide o bot do Standcast antes. Veja [Slack](/pt-BR/admin/slack).
 
 ### `tracker`
 
@@ -133,7 +133,7 @@ tracker:
   team: BE
 ```
 
-- `provider: linear`: o Standwise lê os cards do workspace do Linear que um admin conectou na página de setup. `team` é a chave do time no Linear, como `BE`, e limita a atividade e os sinais a esse time do Linear. Veja [Instalar](/pt-BR/admin/install#5-conecte-o-linear-opcional).
+- `provider: linear`: o Standcast lê os cards do workspace do Linear que um admin conectou na página de setup. `team` é a chave do time no Linear, como `BE`, e limita a atividade e os sinais a esse time do Linear. Veja [Instalar](/pt-BR/admin/install#5-conecte-o-linear-opcional).
 - `provider: jira` é aceito pelo parser, mas o Jira ainda vem em breve. A página de setup mostra um aviso e mais nada acontece.
 - Se um time usa o Linear e o Linear não está conectado, a página de setup avisa. Nada quebra: o rascunho só fica sem cards.
 
@@ -194,7 +194,7 @@ teams:
 
 ## Mapeamento de identidades
 
-O Standwise menciona as pessoas no Slack comparando o e-mail principal verificado da conta do GitHub com o e-mail do usuário no Slack. Quando os e-mails são diferentes, mapeie a pessoa à mão na chave `members` do nível de cima, pelo login do GitHub:
+O Standcast menciona as pessoas no Slack comparando o e-mail principal verificado da conta do GitHub com o e-mail do usuário no Slack. Quando os e-mails são diferentes, mapeie a pessoa à mão na chave `members` do nível de cima, pelo login do GitHub:
 
 ```yaml
 teams:
@@ -215,12 +215,12 @@ members:
 | --- | --- | --- |
 | `slack` | sim | Id de membro no Slack, como `U0456`. No Slack, abra o perfil da pessoa, clique nos três pontos e em **Copiar ID de membro**. |
 | `google_chat` | em breve | Usuário do Google Chat |
-| `linear` | sim | E-mail da pessoa no Linear. Opcional: sem ele, o Standwise usa o e-mail principal verificado do GitHub. Precisa ser um e-mail |
+| `linear` | sim | E-mail da pessoa no Linear. Opcional: sem ele, o Standcast usa o e-mail principal verificado do GitHub. Precisa ser um e-mail |
 | `jira` | em breve | Conta no Jira |
 
-Um mapeamento `slack` vale a partir do próximo consolidado, mesmo para quem nunca entrou. Quem não tem mapeamento é ligado pelo e-mail ao entrar com `standwise login` ou na página de setup. Se você conectar outro workspace do Slack, as ligações por e-mail são apagadas e refeitas no próximo login.
+Um mapeamento `slack` vale a partir do próximo consolidado, mesmo para quem nunca entrou. Quem não tem mapeamento é ligado pelo e-mail ao entrar com `standcast login` ou na página de setup. Se você conectar outro workspace do Slack, as ligações por e-mail são apagadas e refeitas no próximo login.
 
-O e-mail `linear` tem prioridade sobre o e-mail do GitHub. As ligações com o Linear são feitas quando a pessoa entra, logo depois de o Linear ser conectado, e sempre que o `standwise.yml` muda, inclusive para quem está num time por um time do GitHub (`@org/time`). O Standwise guarda o id do usuário no Linear, nunca o e-mail. Se você conectar outro workspace do Linear, as ligações com o Linear são apagadas.
+O e-mail `linear` tem prioridade sobre o e-mail do GitHub. As ligações com o Linear são feitas quando a pessoa entra, logo depois de o Linear ser conectado, e sempre que o `standcast.yml` muda, inclusive para quem está num time por um time do GitHub (`@org/time`). O Standcast guarda o id do usuário no Linear, nunca o e-mail. Se você conectar outro workspace do Linear, as ligações com o Linear são apagadas.
 
 ## Erros de validação comuns
 
@@ -246,4 +246,4 @@ Estas são as mensagens que a página de setup mostra, no formato `caminho: mens
 | `: Invalid input: expected object, received null` | O arquivo está vazio | Adicione pelo menos um time |
 | Uma mensagem de sintaxe do YAML com linha e coluna | Indentação quebrada, `[` ou aspas sem fechar | Corrija o YAML nessa linha |
 
-Enquanto o arquivo estiver inválido, o Standwise continua usando a última versão válida até você corrigir. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).
+Enquanto o arquivo estiver inválido, o Standcast continua usando a última versão válida até você corrigir. Veja [Estados da configuração](/pt-BR/admin/install#estados-da-configuracao).

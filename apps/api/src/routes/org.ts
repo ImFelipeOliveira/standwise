@@ -11,7 +11,7 @@ import {
   type OrgDaily,
   type OrgDigest,
   type Page,
-} from '@standwise/orchestrator';
+} from '@standcast/orchestrator';
 import { type ApiKeyEnv, apiKeyChain } from '../middleware/api-key';
 import type { GetClientIp } from '../middleware/rate-limit';
 import {
@@ -42,7 +42,7 @@ const forbidden = (scope: string) =>
   );
 
 const NOT_CONFIGURED = errorResponse('The organization is not ready to use.', {
-  org_not_configured: 'organization has no valid standwise.yml',
+  org_not_configured: 'organization has no valid standcast.yml',
 });
 
 const INVALID_QUERY = errorResponse('A query parameter is not valid.', {
@@ -64,7 +64,7 @@ const date = (description: string) =>
   z.string().optional().openapi({ description, example: '2026-10-28' });
 
 const team = z.string().optional().openapi({
-  description: 'Only this team, by name as written in `standwise.yml`.',
+  description: 'Only this team, by name as written in `standcast.yml`.',
   example: 'Alpha',
 });
 
@@ -82,7 +82,7 @@ const teams = createRoute({
   tags: ['Organization'],
   summary: 'List the teams',
   description:
-    'Returns the teams configured in `standwise.yml` of the key organization: name, time zone, workdays, reminder and digest times, and the lowercase GitHub logins of the members. All teams come in one page, so `next_cursor` is always `null`. Requires the `teams:read` scope.\n\nRetorna os times configurados no `standwise.yml` da organização da key: nome, fuso, dias úteis, horários do lembrete e do consolidado e os logins do GitHub (minúsculos) dos membros. Todos os times vêm em uma página, então `next_cursor` é sempre `null`. Exige o escopo `teams:read`.',
+    'Returns the teams configured in `standcast.yml` of the key organization: name, time zone, workdays, reminder and digest times, and the lowercase GitHub logins of the members. All teams come in one page, so `next_cursor` is always `null`. Requires the `teams:read` scope.\n\nRetorna os times configurados no `standcast.yml` da organização da key: nome, fuso, dias úteis, horários do lembrete e do consolidado e os logins do GitHub (minúsculos) dos membros. Todos os times vêm em uma página, então `next_cursor` é sempre `null`. Exige o escopo `teams:read`.',
   security: [{ apiKey: [] }],
   responses: {
     200: {
@@ -100,7 +100,7 @@ const dailies = createRoute({
   tags: ['Organization'],
   summary: 'List the dailies',
   description:
-    'Returns the confirmed dailies of the key organization, newest first, paginated by cursor. `teams` is computed from the current `standwise.yml`. Filter by standup `date` and by `team`. Suggestions and per-person aggregates are never returned. Requires the `dailies:read` scope.\n\nRetorna as dailies confirmadas da organização da key, da mais recente para a mais antiga, paginadas por cursor. `teams` é calculado a partir do `standwise.yml` atual. Filtre pela `date` da daily e pelo `team`. Sugestões e agregados por pessoa nunca são devolvidos. Exige o escopo `dailies:read`.',
+    'Returns the confirmed dailies of the key organization, newest first, paginated by cursor. `teams` is computed from the current `standcast.yml`. Filter by standup `date` and by `team`. Suggestions and per-person aggregates are never returned. Requires the `dailies:read` scope.\n\nRetorna as dailies confirmadas da organização da key, da mais recente para a mais antiga, paginadas por cursor. `teams` é calculado a partir do `standcast.yml` atual. Filtre pela `date` da daily e pelo `team`. Sugestões e agregados por pessoa nunca são devolvidos. Exige o escopo `dailies:read`.',
   security: [{ apiKey: [] }],
   request: {
     query: z.object({

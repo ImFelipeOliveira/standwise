@@ -1,5 +1,5 @@
-import { getConnection } from '@standwise/db';
-import { createSlackChannel } from '@standwise/slack';
+import { getConnection } from '@standcast/db';
+import { createSlackChannel } from '@standcast/slack';
 import type { Deps } from './deps';
 
 export function createChatFor(

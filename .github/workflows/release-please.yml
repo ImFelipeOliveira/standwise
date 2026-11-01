@@ -51,11 +51,11 @@ jobs:
       - name: Build CLI binaries
         if: hashFiles('apps/cli/src/main.ts') != ''
         env:
-          STANDWISE_DEFAULT_API_URL: https://api-standwise.usefachada.dev
+          STANDCAST_DEFAULT_API_URL: https://api-standcast.usefachada.dev
         run: bun run build:cli
       - name: Upload CLI binaries
         if: hashFiles('apps/cli/src/main.ts') != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG_NAME" dist/standwise-* dist/SHA256SUMS --clobber
+        run: gh release upload "$TAG_NAME" dist/standcast-* dist/SHA256SUMS --clobber

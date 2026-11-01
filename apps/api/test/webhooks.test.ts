@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { Webhooks } from '@octokit/webhooks';
-import { parseConfig } from '@standwise/core';
-import { getInstallation, setInstallationConfig, upsertInstallation } from '@standwise/db';
-import { type Deps, loadConfig, nullTracker } from '@standwise/orchestrator';
-import { createMemoryQueue } from '@standwise/queue';
+import { parseConfig } from '@standcast/core';
+import { getInstallation, setInstallationConfig, upsertInstallation } from '@standcast/db';
+import { type Deps, loadConfig, nullTracker } from '@standcast/orchestrator';
+import { createMemoryQueue } from '@standcast/queue';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
 
@@ -249,7 +249,7 @@ describe('github webhooks', () => {
     const res = await send(
       h,
       'push',
-      push('.github', 'refs/heads/main', { modified: ['standwise.yml'] }),
+      push('.github', 'refs/heads/main', { modified: ['standcast.yml'] }),
     );
     expect(res.status).toBe(202);
     expect(h.calls).toEqual([]);
@@ -262,10 +262,10 @@ describe('github webhooks', () => {
     expect(row?.configErrors?.length).toBeGreaterThan(0);
   });
 
-  test('push removing standwise.yml makes installation unconfigured', async () => {
+  test('push removing standcast.yml makes installation unconfigured', async () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const h = harness({ found: false, reason: 'no_file' });
-    await send(h, 'push', push('.github', 'refs/heads/main', { removed: ['standwise.yml'] }));
+    await send(h, 'push', push('.github', 'refs/heads/main', { removed: ['standcast.yml'] }));
     await h.worker();
     const row = await getInstallation(db, INST);
     expect(row?.status).toBe('unconfigured');
@@ -274,19 +274,19 @@ describe('github webhooks', () => {
 
   test('push to other repo ignored', async () => {
     const h = harness({ found: true, source: VALID });
-    await send(h, 'push', push('app', 'refs/heads/main', { modified: ['standwise.yml'] }));
+    await send(h, 'push', push('app', 'refs/heads/main', { modified: ['standcast.yml'] }));
     expect(h.calls).toEqual([]);
   });
 
   test('push to non default branch only enqueues a validation', async () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const h = harness({ found: true, source: VALID });
-    await send(h, 'push', push('.github', 'refs/heads/dev', { modified: ['standwise.yml'] }));
+    await send(h, 'push', push('.github', 'refs/heads/dev', { modified: ['standcast.yml'] }));
     expect(h.calls).toEqual([]);
     expect(h.queue.enqueued.map((j) => j.name)).toEqual(['validate-config']);
   });
 
-  test('push not touching standwise.yml ignored', async () => {
+  test('push not touching standcast.yml ignored', async () => {
     const h = harness({ found: true, source: VALID });
     await send(h, 'push', push('.github', 'refs/heads/main', { modified: ['README.md'] }));
     expect(h.calls).toEqual([]);

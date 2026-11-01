@@ -1,13 +1,13 @@
-import { memberOverrides, type StandwiseConfig } from '@standwise/core';
-import { deleteIdentityByLogin, getIdentities } from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+import { memberOverrides, type StandcastConfig } from '@standcast/core';
+import { deleteIdentityByLogin, getIdentities } from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import type { Deps } from './deps';
 import { logError } from './log-error';
 
 export async function chatUserIdsFor(
   deps: Pick<Deps, 'db'>,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   logins: string[],
 ): Promise<Map<string, string>> {
   const identities = await getIdentities(deps.db, installationId, 'slack');
@@ -23,7 +23,7 @@ export async function chatUserIdsFor(
 export async function chatUserIdFor(
   deps: Pick<Deps, 'db'>,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   login: string,
 ): Promise<string | null> {
   const ids = await chatUserIdsFor(deps, installationId, config, [login]);
@@ -44,7 +44,7 @@ export async function forgetChatIdentity(
 export async function forgetStaleChatIdentity(
   deps: Pick<Deps, 'db'>,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   memberLogin: string,
   externalId: string,
   error: unknown,

@@ -5,11 +5,11 @@ outline: [2, 3]
 
 # API overview
 
-The Standwise API lets your systems read your organization's data and receive events. It is versioned under `/v1` and described by an OpenAPI 3.1 document.
+The Standcast API lets your systems read your organization's data and receive events. It is versioned under `/v1` and described by an OpenAPI 3.1 document.
 
-- Base URL: `https://api.standwise.dev`
-- OpenAPI document: `https://api.standwise.dev/openapi.json`
-- Interactive reference, with every operation, parameter, example and error: [API reference](https://api.standwise.dev/reference)
+- Base URL: `https://api.standcast.app`
+- OpenAPI document: `https://api.standcast.app/openapi.json`
+- Interactive reference, with every operation, parameter, example and error: [API reference](https://api.standcast.app/reference)
 
 ## What the API offers
 
@@ -17,7 +17,7 @@ The Standwise API lets your systems read your organization's data and receive ev
 
   | Operation | Scope | Returns |
   | --- | --- | --- |
-  | `GET /v1/org/teams` | `teams:read` | The teams in `standwise.yml`: name, time zone, workdays, times and members |
+  | `GET /v1/org/teams` | `teams:read` | The teams in `standcast.yml`: name, time zone, workdays, times and members |
   | `GET /v1/org/dailies` | `dailies:read` | Confirmed dailies, filtered by `date` and `team` |
   | `GET /v1/org/dailies/{id}` | `dailies:read` | One daily |
   | `GET /v1/org/digests` | `digests:read` | Digest deliveries, with who did not send the daily, filtered by `team`, `from` and `to` |
@@ -32,13 +32,13 @@ The API returns only what people confirmed and what already appears in the diges
 
 **You cannot send a daily through the public API.** AI agents send dailies through the [MCP server](/members/mcp) or the [Claude Code skill](/members/claude-code), and scripts through the [CLI](/members/cli).
 
-Why: Standwise never sends a daily on someone's behalf without their explicit confirmation. That rule lives in one place, the MCP server and the skill, which show the person the daily and send it only after they confirm. An API key belongs to the organization, not to a person, so it cannot carry that confirmation. The routes the CLI uses to send dailies are internal, authenticated with a person's session, and not part of the public contract.
+Why: Standcast never sends a daily on someone's behalf without their explicit confirmation. That rule lives in one place, the MCP server and the skill, which show the person the daily and send it only after they confirm. An API key belongs to the organization, not to a person, so it cannot carry that confirmation. The routes the CLI uses to send dailies are internal, authenticated with a person's session, and not part of the public contract.
 
 ## Quick start
 
 ```bash
-curl -H "Authorization: Bearer $STANDWISE_API_KEY" \
-  https://api.standwise.dev/v1/org/teams
+curl -H "Authorization: Bearer $STANDCAST_API_KEY" \
+  https://api.standcast.app/v1/org/teams
 ```
 
 ```json

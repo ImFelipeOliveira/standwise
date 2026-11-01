@@ -1,5 +1,5 @@
-import { negotiateLanguage } from '@standwise/core';
-import { API_KEY_SCOPES, type MemberRow, resolveSession, WEBHOOK_EVENTS } from '@standwise/db';
+import { negotiateLanguage } from '@standcast/core';
+import { API_KEY_SCOPES, type MemberRow, resolveSession, WEBHOOK_EVENTS } from '@standcast/db';
 import {
   completeLinearConnect,
   completeSlackConnect,
@@ -21,7 +21,7 @@ import {
   startSlackConnect,
   startWebLogin,
   verifyCsrf,
-} from '@standwise/orchestrator';
+} from '@standcast/orchestrator';
 import { type Context, Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { secureHeaders } from 'hono/secure-headers';
@@ -41,8 +41,8 @@ import {
 import { PAGE_CSS } from '../web/layout';
 import { SetupPage } from '../web/setup';
 
-const COOKIE = 'sw_web';
-const LOGIN_COOKIE = 'sw_login';
+const COOKIE = 'sc_web';
+const LOGIN_COOKIE = 'sc_login';
 const LOGIN_COOKIE_PATH = '/auth/github';
 const LOGIN_NONCE_SECONDS = 600;
 const SIGN_IN_CODES = ['unauthorized', 'forbidden', 'invalid_state', 'access_denied'];

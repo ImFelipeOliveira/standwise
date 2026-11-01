@@ -1,13 +1,13 @@
-import { type ConfigError, type Language, locateConfigPath, parseConfig, t } from '@standwise/core';
-import { getInstallation } from '@standwise/db';
-import type { CheckRunInput, Octokit } from '@standwise/github';
+import { type ConfigError, type Language, locateConfigPath, parseConfig, t } from '@standcast/core';
+import { getInstallation } from '@standcast/db';
+import type { CheckRunInput, Octokit } from '@standcast/github';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 
 export const VALIDATE_CONFIG_JOB = 'validate-config';
 export const CONFIG_REPO = '.github';
-export const CONFIG_FILE = 'standwise.yml';
-const CHECK_RUN_NAME = 'Standwise config';
+export const CONFIG_FILE = 'standcast.yml';
+const CHECK_RUN_NAME = 'Standcast config';
 
 export type ValidateConfigJob = {
   installationId: number;
