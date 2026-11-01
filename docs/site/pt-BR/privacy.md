@@ -86,7 +86,7 @@ Quando alguém pede acesso ao beta na página do Standwise, o formulário coleta
 - Ler o seu código, as suas mensagens no Slack ou as suas mensagens diretas.
 - Escrever nos seus repositórios.
 - Mandar os seus dados para um modelo de IA.
-- Vender os seus dados, ou compartilhá-los com quem não seja os provedores que operam o serviço (como a Resend, para os e-mails de pedidos do beta).
+- Vender os seus dados, ou compartilhá-los com alguém além dos provedores que operam o serviço (como a Resend, para os e-mails de pedidos do beta).
 
 ## Quem vê o quê
 
