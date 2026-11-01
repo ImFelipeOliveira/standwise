@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/ImFelipeOliveira/standwise/compare/standwise-v0.2.0...standwise-v0.2.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **release:** bump the plugin version with each release and keep the generated changelog out of lint ([9b86ab6](https://github.com/ImFelipeOliveira/standwise/commit/9b86ab64b1a78ec63b60747dd76b703d09293f8a))
+* **release:** versions match the GitHub releases everywhere ([#19](https://github.com/ImFelipeOliveira/standwise/issues/19)) ([01ceb50](https://github.com/ImFelipeOliveira/standwise/commit/01ceb50ba02fa690f35fa142a845b02a851004aa))
+
+
+### Documentation
+
+* changelogs and openapi version follow the github releases ([ac8d82d](https://github.com/ImFelipeOliveira/standwise/commit/ac8d82d1312aab218a3c2134fc198b50e48b556c))
+
 ## [0.2.0](https://github.com/ImFelipeOliveira/standwise/compare/standwise-v0.1.0...standwise-v0.2.0) (2026-10-31)
 
 
