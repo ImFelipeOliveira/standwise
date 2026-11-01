@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { DailySubmissionSchema, stripUnsafeChars, t } from '@standwise/core';
+import { DailySubmissionSchema, stripUnsafeChars, t } from '@standcast/core';
 import { postDaily } from '../api';
 import { type Ctx, EXIT, ExitError } from '../io';
 import { requireBoundCredentials, resolveOrg } from '../session';

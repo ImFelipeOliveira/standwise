@@ -1,11 +1,11 @@
-import { stripUnsafeChars, t } from '@standwise/core';
+import { stripUnsafeChars, t } from '@standcast/core';
 import { DEFAULT_API_URL } from './api';
 import { type Credentials, readCredentials } from './credentials';
 import { type Ctx, EXIT, ExitError } from './io';
 import { assertSafeUrl } from './url';
 
 export function loginApiUrl({ io, flags, lang }: Ctx): string {
-  const url = flags.apiUrl || io.env.STANDWISE_API_URL || DEFAULT_API_URL;
+  const url = flags.apiUrl || io.env.STANDCAST_API_URL || DEFAULT_API_URL;
   assertSafeUrl(url, lang);
   return url;
 }
@@ -20,7 +20,7 @@ export async function requireBoundCredentials(
   ctx: Ctx,
 ): Promise<{ credentials: Credentials; apiUrl: string }> {
   const credentials = await requireCredentials(ctx);
-  const apiUrl = ctx.flags.apiUrl || ctx.io.env.STANDWISE_API_URL || credentials.apiUrl;
+  const apiUrl = ctx.flags.apiUrl || ctx.io.env.STANDCAST_API_URL || credentials.apiUrl;
   const effective = assertSafeUrl(apiUrl, ctx.lang);
   const stored = assertSafeUrl(credentials.apiUrl, ctx.lang);
   if (effective.origin !== stored.origin) {

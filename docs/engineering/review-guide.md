@@ -1,17 +1,17 @@
 # Review guide
 
-Patterns Standwise follows, code smells to flag and bugs that have actually happened here. Reviewers use it: people, the CodeRabbit bot (`.coderabbit.yaml` points here) and coding agents. Each item says what to look for and what the fix looks like.
+Patterns Standcast follows, code smells to flag and bugs that have actually happened here. Reviewers use it: people, the CodeRabbit bot (`.coderabbit.yaml` points here) and coding agents. Each item says what to look for and what the fix looks like.
 
 ## Architecture
 
 - **Business rules live in use cases** (`packages/orchestrator/src/use-cases`). They take `deps` and throw `DomainError` with a stable `code`.
 - **Routes, jobs, the CLI and the MCP server stay thin.** They parse input, call one use case and map the result.
   - Smell: a branch on business state, a database query or a GitHub/Slack/Linear call inside a route, a job or the CLI.
-- **Pure rules live in `@standwise/core`:** config parsing, calendar, fingerprints, URL parsing, CODEOWNERS, message builders.
+- **Pure rules live in `@standcast/core`:** config parsing, calendar, fingerprints, URL parsing, CODEOWNERS, message builders.
   - They have no I/O and no `Date.now()`. They take `now` as a parameter.
 - **Adapters** (`packages/adapters/*`) translate external APIs into small typed functions. They do not decide product behaviour.
 - **Dependencies.** A package may import only what it declares in its own `package.json` (`bun run check-deps` enforces this).
-  - Smell: an app importing `drizzle-orm` or `postgres` directly. Use a function from `@standwise/db` instead.
+  - Smell: an app importing `drizzle-orm` or `postgres` directly. Use a function from `@standcast/db` instead.
 
 ## Multi-tenant
 
@@ -80,7 +80,7 @@ Patterns Standwise follows, code smells to flag and bugs that have actually happ
 ## Time and dates
 
 - **Team times.** `remind_at` and `digest_at` are local times in the team's time zone. Use `localDate`, `localInstant` and `isDue` from core. Never compare local times as strings across time zones.
-- **Workdays** come from the team config. "Today" for a person follows their first team in `standwise.yml`.
+- **Workdays** come from the team config. "Today" for a person follows their first team in `standcast.yml`.
 - **Reminders** go out only while `remind_at ≤ now < digest_at`.
 
 ## i18n and copy

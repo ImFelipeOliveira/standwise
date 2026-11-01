@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentation
-    url: https://docs-standwise.usefachada.dev/
-    about: Install guide, standwise.yml reference, CLI, MCP and API
+    url: https://docs-standcast.usefachada.dev/
+    about: Install guide, standcast.yml reference, CLI, MCP and API
   - name: Support
-    url: https://docs-standwise.usefachada.dev/troubleshooting
+    url: https://docs-standcast.usefachada.dev/troubleshooting
     about: Common problems and the support email for questions about your installation

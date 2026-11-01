@@ -1,5 +1,5 @@
-import { type ApiKeyScope, resolveApiKey } from '@standwise/db';
-import { type Deps, DomainError } from '@standwise/orchestrator';
+import { type ApiKeyScope, resolveApiKey } from '@standcast/db';
+import { type Deps, DomainError } from '@standcast/orchestrator';
 import type { MiddlewareHandler } from 'hono';
 import {
   API_KEY_LIMIT,

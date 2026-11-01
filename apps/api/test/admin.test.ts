@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig } from '@standwise/core';
+import { parseConfig } from '@standcast/core';
 import {
   createApiKey,
   createSession,
@@ -9,8 +9,8 @@ import {
   setMemberInstallations,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
-import { csrfToken } from '@standwise/orchestrator';
+} from '@standcast/db';
+import { csrfToken } from '@standcast/orchestrator';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createTestApp, type FakeRequest } from './support';
 
@@ -64,8 +64,8 @@ async function harness() {
   const bobToken = await createSession(db, bob.id, 'web');
   return {
     app,
-    alice: { member: alice, token: aliceToken, cookie: `sw_web=${aliceToken}` },
-    bob: { member: bob, token: bobToken, cookie: `sw_web=${bobToken}` },
+    alice: { member: alice, token: aliceToken, cookie: `sc_web=${aliceToken}` },
+    bob: { member: bob, token: bobToken, cookie: `sc_web=${bobToken}` },
   };
 }
 
@@ -89,7 +89,7 @@ const post = (
     body: new URLSearchParams(fields).toString(),
   });
 
-const FULL_KEY = /swk_[A-Za-z0-9_-]{43}/;
+const FULL_KEY = /sck_[A-Za-z0-9_-]{43}/;
 
 const corrupt = (cookie: string) =>
   `${cookie.slice(0, 40)}${cookie[40] === 'A' ? 'B' : 'A'}${cookie.slice(41)}`;
@@ -100,7 +100,7 @@ const flashOf = (res: Response) =>
   res.headers
     .getSetCookie()
     .map((c) => c.split(';')[0] ?? '')
-    .find((c) => c.startsWith('sw_flash=')) ?? '';
+    .find((c) => c.startsWith('sc_flash=')) ?? '';
 
 async function createAndShow(app: App, user: User, headers: Record<string, string> = {}) {
   const csrf = csrfToken('sess', user.token);
@@ -111,7 +111,7 @@ async function createAndShow(app: App, user: User, headers: Record<string, strin
     ? await app.request(location, { headers: { cookie: `${user.cookie}; ${flash}`, ...headers } })
     : res;
   const html = await page.text();
-  return { res, page, html, flash, key: /swk_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '' };
+  return { res, page, html, flash, key: /sck_[A-Za-z0-9_-]{43}/.exec(html)?.[0] ?? '' };
 }
 
 const createFields = (csrf: string, extra: [string, string][] = []): [string, string][] => [
@@ -147,14 +147,14 @@ describe('creating keys', () => {
     expect(res.headers.get('location')).toBe(`/setup?installation_id=${INST}`);
     expect(res.headers.get('cache-control')).toBe('no-store');
     expect(await res.text()).not.toMatch(FULL_KEY);
-    const flashCookie = res.headers.getSetCookie().find((c) => c.startsWith('sw_flash=')) ?? '';
+    const flashCookie = res.headers.getSetCookie().find((c) => c.startsWith('sc_flash=')) ?? '';
     expect(flashCookie).toContain('HttpOnly');
     expect(flashCookie).toContain('Secure');
     expect(flashCookie).toContain('Path=/setup');
     expect(flashCookie).toContain('Max-Age=60');
     expect(flashCookie).not.toContain(key.slice(4));
     expect(page.headers.get('cache-control')).toBe('no-store');
-    expect(page.headers.getSetCookie().join(';')).toMatch(/sw_flash=;.*Max-Age=0/s);
+    expect(page.headers.getSetCookie().join(';')).toMatch(/sc_flash=;.*Max-Age=0/s);
     expect(key).not.toBe('');
     expect(html).toContain('Copy it now');
     expect(html).toContain('Revoke this key');

@@ -1,5 +1,5 @@
 import type { Octokit } from '@octokit/core';
-import { type ActivityItem, clampTitle } from '@standwise/core';
+import { type ActivityItem, clampTitle } from '@standcast/core';
 import { httpStatus } from './errors';
 
 const MAX_ITEMS = 50;

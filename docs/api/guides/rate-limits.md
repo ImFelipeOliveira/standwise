@@ -4,8 +4,8 @@ Limits use a fixed 60-second window.
 
 | Credential | Limit |
 | --- | --- |
-| Session token (`sw_`) | 120 requests per minute |
-| API key (`swk_`) | 600 requests per minute |
+| Session token (`sc_`) | 120 requests per minute |
+| API key (`sck_`) | 600 requests per minute |
 | Unauthenticated requests | Counted per IP address |
 | Starting a CLI session | 10 requests per minute per IP address |
 

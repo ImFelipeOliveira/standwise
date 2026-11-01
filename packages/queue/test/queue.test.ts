@@ -3,7 +3,7 @@ import { SQL } from 'bun';
 import { createMemoryQueue, createPgBossQueue, type JobQueue, logPgBossError } from '../src';
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgres://standwise:standwise@localhost:5433/standwise_test';
+  process.env.TEST_DATABASE_URL ?? 'postgres://standcast:standcast@localhost:5433/standcast_test';
 const PGBOSS_SCHEMA = 'pgboss_test';
 
 const admin = new SQL(TEST_DATABASE_URL);

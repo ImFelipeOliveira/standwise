@@ -8,7 +8,7 @@ import {
   listRecentWebhookDeliveries,
   markDeliverySent,
   upsertBetaRequest,
-} from '@standwise/db';
+} from '@standcast/db';
 import {
   ageDeliveries,
   insertAgedSessions,

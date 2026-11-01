@@ -1,4 +1,4 @@
-import type { Deps } from '@standwise/orchestrator';
+import type { Deps } from '@standcast/orchestrator';
 import { Hono } from 'hono';
 import { onError } from './http/errors';
 import type { GetClientIp } from './middleware/rate-limit';

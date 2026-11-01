@@ -3,7 +3,7 @@ import { EmailDeliveryError, type EmailMessage, sendEmail } from '../src';
 
 const KEY = 're_secret_key_123';
 const message: EmailMessage = {
-  from: 'Standwise <beta@sw.test>',
+  from: 'Standcast <beta@sw.test>',
   to: 'support@sw.test',
   replyTo: 'ana@acme.com',
   subject: 'Hello',

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getMemberById } from '@standwise/db';
+import { getMemberById } from '@standcast/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   createMembershipCheck,

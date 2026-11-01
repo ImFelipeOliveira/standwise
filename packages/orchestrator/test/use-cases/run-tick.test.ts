@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -7,8 +7,8 @@ import {
   markDeliverySent,
   setInstallationConfig,
   setMemberInstallations,
-} from '@standwise/db';
-import type { EnqueueOptions } from '@standwise/queue';
+} from '@standcast/db';
+import type { EnqueueOptions } from '@standcast/queue';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { runTick, scanOffsetSeconds } from '../../src';
 import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -24,7 +24,7 @@ const digestKey = (date: string, teamName = 'Alpha') => ({
   kind: 'digest' as const,
 });
 
-function twoTeams(): StandwiseConfig {
+function twoTeams(): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -49,7 +49,7 @@ teams:
 const digests = (f: { queue: { enqueued: { name: string; data: unknown }[] } }) =>
   f.queue.enqueued.filter((j) => j.name === 'send-digest');
 
-async function tickAt(at: Date, cfg: StandwiseConfig = config()) {
+async function tickAt(at: Date, cfg: StandcastConfig = config()) {
   await seedOrg(cfg);
   const fake = fakeDeps();
   fake.setNow(at);
@@ -72,7 +72,7 @@ describe('runTick', () => {
     ]);
   });
 
-  test('tick keeps the last valid config while standwise.yml is invalid', async () => {
+  test('tick keeps the last valid config while standcast.yml is invalid', async () => {
     await seedOrg();
     await setInstallationConfig(db, INST, {
       status: 'invalid',
@@ -207,7 +207,7 @@ describe('runTick', () => {
       await setMemberInstallations(db, alice.id, [INST]);
     }
 
-    function remindingAt(remindAt: string): StandwiseConfig {
+    function remindingAt(remindAt: string): StandcastConfig {
       const parsed = parseConfig(`
 teams:
   - name: Alpha

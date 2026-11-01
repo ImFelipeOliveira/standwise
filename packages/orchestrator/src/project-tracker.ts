@@ -1,4 +1,4 @@
-import type { ActivityItem, CardSnapshot, Ref } from '@standwise/core';
+import type { ActivityItem, CardSnapshot, Ref } from '@standcast/core';
 
 export type CardOwners = { blockers: string[]; assignee: string | null; creator: string | null };
 

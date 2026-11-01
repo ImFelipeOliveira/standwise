@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Item, Ref } from '@standwise/core';
+import type { Item, Ref } from '@standcast/core';
 
 export type DailySubmittedData = {
   id: string;

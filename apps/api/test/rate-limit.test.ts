@@ -75,7 +75,7 @@ describe('ip and authentication limits', () => {
     const { app } = createTestApp();
     const statuses: number[] = [];
     for (let i = 0; i < 25; i++) {
-      const token = `sw_${randomBytes(16).toString('hex')}`;
+      const token = `sc_${randomBytes(16).toString('hex')}`;
       statuses.push((await draft(app, '203.0.113.7', token)).status);
     }
     expect(statuses.filter((s) => s === 401)).toHaveLength(20);
@@ -88,12 +88,12 @@ describe('ip and authentication limits', () => {
     const { app } = createTestApp();
     for (let i = 0; i < 20; i++) {
       const res = await app.request('/openapi.internal.json', {
-        headers: { authorization: `Bearer sw_${i}`, 'x-test-ip': '203.0.113.8' },
+        headers: { authorization: `Bearer sc_${i}`, 'x-test-ip': '203.0.113.8' },
       });
       expect(res.status).toBe(401);
     }
     const res = await app.request('/openapi.internal.json', {
-      headers: { authorization: 'Bearer sw_x', 'x-test-ip': '203.0.113.8' },
+      headers: { authorization: 'Bearer sc_x', 'x-test-ip': '203.0.113.8' },
     });
     expect(res.status).toBe(429);
   });
@@ -118,7 +118,7 @@ describe('ip and authentication limits', () => {
     const { app } = createTestApp();
     const alice = await login(app, '203.0.113.4', 'gho_1');
     for (let i = 0; i < 20; i++) {
-      expect((await draft(app, '203.0.113.4', `sw_bad${i}`)).status).toBe(401);
+      expect((await draft(app, '203.0.113.4', `sc_bad${i}`)).status).toBe(401);
     }
     const valid = await app.request('/openapi.internal.json', {
       headers: { authorization: `Bearer ${alice}`, 'x-test-ip': '203.0.113.4' },
@@ -127,7 +127,7 @@ describe('ip and authentication limits', () => {
     const member = await draft(app, '203.0.113.4', alice);
     expect(member.status).not.toBe(429);
     expect(member.status).not.toBe(401);
-    const invalid = await draft(app, '203.0.113.4', 'sw_still_bad');
+    const invalid = await draft(app, '203.0.113.4', 'sc_still_bad');
     expect(invalid.status).toBe(429);
     expect(invalid.headers.get('Retry-After')).toBeTruthy();
   });
@@ -140,9 +140,9 @@ describe('ip and authentication limits', () => {
     expect(again.headers.get('RateLimit-Remaining')).toBe('118');
   });
 
-  test('swk_ looking tokens are not given a bigger budget', async () => {
+  test('sck_ looking tokens are not given a bigger budget', async () => {
     const { app } = createTestApp();
-    const res = await draft(app, '203.0.113.3', 'swk_abc');
+    const res = await draft(app, '203.0.113.3', 'sck_abc');
     expect(res.status).toBe(401);
     expect(res.headers.get('RateLimit-Limit')).not.toBe('600');
   });

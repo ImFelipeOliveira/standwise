@@ -5,11 +5,11 @@ outline: [2, 3]
 
 # Visão geral da API
 
-A API do Standwise permite que os seus sistemas leiam os dados da sua organização e recebam eventos. Ela é versionada em `/v1` e descrita por um documento OpenAPI 3.1.
+A API do Standcast permite que os seus sistemas leiam os dados da sua organização e recebam eventos. Ela é versionada em `/v1` e descrita por um documento OpenAPI 3.1.
 
-- URL base: `https://api.standwise.dev`
-- Documento OpenAPI: `https://api.standwise.dev/openapi.json`
-- Referência interativa, com cada operação, parâmetro, exemplo e erro: [referência da API](https://api.standwise.dev/reference) (em inglês)
+- URL base: `https://api.standcast.app`
+- Documento OpenAPI: `https://api.standcast.app/openapi.json`
+- Referência interativa, com cada operação, parâmetro, exemplo e erro: [referência da API](https://api.standcast.app/reference) (em inglês)
 
 ## O que a API oferece
 
@@ -17,7 +17,7 @@ A API do Standwise permite que os seus sistemas leiam os dados da sua organizaç
 
   | Operação | Escopo | Devolve |
   | --- | --- | --- |
-  | `GET /v1/org/teams` | `teams:read` | Os times do `standwise.yml`: nome, fuso, dias úteis, horários e membros |
+  | `GET /v1/org/teams` | `teams:read` | Os times do `standcast.yml`: nome, fuso, dias úteis, horários e membros |
   | `GET /v1/org/dailies` | `dailies:read` | Dailies confirmadas, filtradas por `date` e `team` |
   | `GET /v1/org/dailies/{id}` | `dailies:read` | Uma daily |
   | `GET /v1/org/digests` | `digests:read` | Entregas do consolidado, com quem não enviou a daily, filtradas por `team`, `from` e `to` |
@@ -32,13 +32,13 @@ A API devolve só o que as pessoas confirmaram e o que já aparece no consolidad
 
 **Não dá para enviar uma daily pela API pública.** Agentes de IA enviam dailies pelo [servidor MCP](/pt-BR/members/mcp) ou pela [skill do Claude Code](/pt-BR/members/claude-code), e scripts pela [CLI](/pt-BR/members/cli).
 
-Por quê: o Standwise nunca envia uma daily em nome de alguém sem a confirmação explícita da pessoa. Essa regra mora num lugar só, o servidor MCP e a skill, que mostram a daily para a pessoa e só enviam depois que ela confirma. Uma API key pertence à organização, não a uma pessoa, então não tem como carregar essa confirmação. As rotas que a CLI usa para enviar dailies são internas, autenticadas com a sessão de uma pessoa, e não fazem parte do contrato público.
+Por quê: o Standcast nunca envia uma daily em nome de alguém sem a confirmação explícita da pessoa. Essa regra mora num lugar só, o servidor MCP e a skill, que mostram a daily para a pessoa e só enviam depois que ela confirma. Uma API key pertence à organização, não a uma pessoa, então não tem como carregar essa confirmação. As rotas que a CLI usa para enviar dailies são internas, autenticadas com a sessão de uma pessoa, e não fazem parte do contrato público.
 
 ## Começo rápido
 
 ```bash
-curl -H "Authorization: Bearer $STANDWISE_API_KEY" \
-  https://api.standwise.dev/v1/org/teams
+curl -H "Authorization: Bearer $STANDCAST_API_KEY" \
+  https://api.standcast.app/v1/org/teams
 ```
 
 ```json
@@ -59,21 +59,21 @@ curl -H "Authorization: Bearer $STANDWISE_API_KEY" \
 
 ## Autenticação
 
-A API pública do Standwise autentica com uma **API key**. Mande a key como bearer token em toda requisição:
+A API pública do Standcast autentica com uma **API key**. Mande a key como bearer token em toda requisição:
 
 ```http
 GET /v1/{resource} HTTP/1.1
-Host: your-standwise-host
-Authorization: Bearer swk_xxxxxxxxxxxxxxxxxxxxxxxx
+Host: your-standcast-host
+Authorization: Bearer sck_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-As API keys começam com `swk_`. Toda operação em `/v1/org` exige uma. Só keys `swk_` são aceitas ali: um token de sessão (`sw_`) mandado para `/v1/org` falha com `401 unauthorized`, e uma API key mandada para uma rota só de sessão falha do mesmo jeito.
+As API keys começam com `sck_`. Toda operação em `/v1/org` exige uma. Só keys `sck_` são aceitas ali: um token de sessão (`sc_`) mandado para `/v1/org` falha com `401 unauthorized`, e uma API key mandada para uma rota só de sessão falha do mesmo jeito.
 
 ### Criar uma key
 
 Só um admin da organização cria keys. O admin entra com o GitHub, abre a página de setup da organização e usa a seção **API keys**: dá um nome, escolhe os escopos e cria. Numa conta pessoal, o dono da conta é o admin. Cada key pertence a uma organização e vê só os dados dela.
 
-O segredo completo aparece uma vez, quando a key é criada. O Standwise guarda só um hash e não consegue mostrar de novo, então copie na hora. A lista mostra o prefixo de cada key (os 8 primeiros caracteres depois de `swk_`), os escopos, a data de criação e o último uso, atualizado no máximo uma vez por minuto.
+O segredo completo aparece uma vez, quando a key é criada. O Standcast guarda só um hash e não consegue mostrar de novo, então copie na hora. A lista mostra o prefixo de cada key (os 8 primeiros caracteres depois de `sck_`), os escopos, a data de criação e o último uso, atualizado no máximo uma vez por minuto.
 
 ### Escopos
 
@@ -111,9 +111,9 @@ Um admin pode revogar uma key a qualquer momento. A revogação vale na hora, e 
 - Nunca registre o header `Authorization` em log.
 - Se uma key pode ter vazado, revogue na hora.
 
-### Tokens de sessão (`sw_`)
+### Tokens de sessão (`sc_`)
 
-Os tokens que começam com `sw_` são tokens de sessão emitidos para a CLI, a skill e o servidor MCP do Standwise depois de um login no GitHub. Eles não são um meio de integração, e as operações que liberam não fazem parte desta referência.
+Os tokens que começam com `sc_` são tokens de sessão emitidos para a CLI, a skill e o servidor MCP do Standcast depois de um login no GitHub. Eles não são um meio de integração, e as operações que liberam não fazem parte desta referência.
 
 ## Erros
 
@@ -130,9 +130,9 @@ O `code` é o contrato estável: decida pelo `code`, não pela `message`. A `mes
 | `unauthorized` | 401 | A credencial está ausente, inválida, expirada ou revogada. Autentique de novo ou use uma key válida. |
 | `invalid_request` | 422 | A requisição está malformada. Confira `issues` e corrija os campos listados. |
 | `invalid_daily` | 422 | O payload da daily falhou na validação. Confira `issues` contra o schema. |
-| `org_not_found` | 404 | A organização não existe ou o app do Standwise não está instalado nela. Confira o nome e a instalação. |
-| `org_not_configured` | 409 | A organização não tem um `standwise.yml` válido. Adicione ou corrija o arquivo no repositório `.github` e tente de novo. |
-| `not_in_team` | 422 | A pessoa não está em nenhum time desta organização. Adicione a pessoa a um time no `standwise.yml`. |
+| `org_not_found` | 404 | A organização não existe ou o app do Standcast não está instalado nela. Confira o nome e a instalação. |
+| `org_not_configured` | 409 | A organização não tem um `standcast.yml` válido. Adicione ou corrija o arquivo no repositório `.github` e tente de novo. |
+| `not_in_team` | 422 | A pessoa não está em nenhum time desta organização. Adicione a pessoa a um time no `standcast.yml`. |
 | `forbidden` | 403 | A credencial é válida, mas a pessoa ou a organização não pode fazer esta ação. |
 | `insufficient_scope` | 403 | Falta à API key o escopo de que esta operação precisa. O erro traz `required_scope`. Crie uma key com esse escopo. |
 | `not_found` | 404 | O recurso não existe na organização da key. |
@@ -170,8 +170,8 @@ Os limites usam uma janela fixa de 60 segundos.
 
 | Credencial | Limite |
 | --- | --- |
-| Token de sessão (`sw_`) | 120 requisições por minuto |
-| API key (`swk_`) | 600 requisições por minuto |
+| Token de sessão (`sc_`) | 120 requisições por minuto |
+| API key (`sck_`) | 600 requisições por minuto |
 | Requisições sem autenticação | Contadas por endereço IP |
 | Início de uma sessão da CLI | 10 requisições por minuto por endereço IP |
 
@@ -203,12 +203,12 @@ Espere `Retry-After` segundos antes de tentar de novo e espalhe as novas tentati
 
 ## Versionamento
 
-A API é versionada no caminho. `/v1` é a versão atual. O `info.version` do documento OpenAPI é a versão do Standwise (por exemplo `0.2.0`).
+A API é versionada no caminho. `/v1` é a versão atual. O `info.version` do documento OpenAPI é a versão do Standcast (por exemplo `0.2.0`).
 
-- **Beta público.** Enquanto o Standwise estiver na versão 0.x, a `/v1` ainda pode mudar de forma incompatível. Essas mudanças entram no changelog antes de sair, com a maior antecedência possível. O aviso de 90 dias abaixo vale a partir da 1.0.
+- **Beta público.** Enquanto o Standcast estiver na versão 0.x, a `/v1` ainda pode mudar de forma incompatível. Essas mudanças entram no changelog antes de sair, com a maior antecedência possível. O aviso de 90 dias abaixo vale a partir da 1.0.
 - Novos campos podem aparecer nas respostas a qualquer momento. Ignore os campos que você não conhece.
 - Novos parâmetros opcionais e novas operações podem entrar na `/v1` sem aviso.
 - Uma mudança que quebra clientes existentes só sai na `/v2`.
 - Antes de remover ou mudar de forma incompatível um comportamento da `/v1`, a mudança é anunciada no changelog com pelo menos 90 dias de antecedência.
 
-Veja o [changelog](/pt-BR/changelog) com todas as versões. Elas são as mesmas dos [releases no GitHub](https://github.com/ImFelipeOliveira/standwise/releases).
+Veja o [changelog](/pt-BR/changelog) com todas as versões. Elas são as mesmas dos [releases no GitHub](https://github.com/ImFelipeOliveira/standcast/releases).

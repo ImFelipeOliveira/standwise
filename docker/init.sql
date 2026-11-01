@@ -1,1 +1,1 @@
-CREATE DATABASE standwise_test;
+CREATE DATABASE standcast_test;

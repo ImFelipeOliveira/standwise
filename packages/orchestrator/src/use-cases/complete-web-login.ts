@@ -1,5 +1,5 @@
-import { createSession } from '@standwise/db';
-import { GitHubOAuthError } from '@standwise/github';
+import { createSession } from '@standcast/db';
+import { GitHubOAuthError } from '@standcast/github';
 import type { Deps } from '../deps';
 import { hashesMatch, hashNonce, verifyState } from '../state-token';
 import { DomainError } from './errors';

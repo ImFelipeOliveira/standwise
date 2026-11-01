@@ -42,7 +42,7 @@ describe('public openapi document', () => {
     expect(res.status).toBe(200);
     const doc = (await res.json()) as Doc;
     expect(doc.openapi).toBe('3.1.0');
-    expect(doc.info.title).toBe('Standwise API');
+    expect(doc.info.title).toBe('Standcast API');
     expect(doc.info.version).toBe(rootPackage.version);
     expect(doc.info.contact.email).toBe('help@sw.test');
     expect(doc.servers).toEqual([{ url: 'https://sw.test' }]);
@@ -206,7 +206,7 @@ describe('docs page', () => {
     expect(res.headers.get('content-type')).toContain('text/html');
     const html = await res.text();
     expect(html).toContain('/openapi.json');
-    expect(html).toContain('Standwise API');
+    expect(html).toContain('Standcast API');
   });
 });
 
@@ -261,7 +261,7 @@ describe('old docs urls', () => {
 describe('docs link', () => {
   test('the openapi overview links to the docs site', async () => {
     const doc = (await (await load('/openapi.json')).json()) as Doc;
-    expect(doc.info.description).toContain('[Standwise docs](https://docs.sw.test/)');
+    expect(doc.info.description).toContain('[Standcast docs](https://docs.sw.test/)');
     expect(doc.info.description).not.toContain('](/docs/)');
   });
 });

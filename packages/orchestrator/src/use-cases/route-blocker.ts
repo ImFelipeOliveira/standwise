@@ -8,9 +8,9 @@ import {
   parsePullRequestUrl,
   type Ref,
   type ResolvedTeam,
-  type StandwiseConfig,
+  type StandcastConfig,
   teamsForMember,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -20,7 +20,7 @@ import {
   getInstallation,
   operationalConfig,
   reserveBlockerRoute,
-} from '@standwise/db';
+} from '@standcast/db';
 import { chatUserIdsFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { blockerRouteId } from '../events';
@@ -45,7 +45,7 @@ type RouteTarget = { reason: BlockerRouteReason; logins: string[] };
 type RouteContext = {
   installationId: number;
   owner: string;
-  config: StandwiseConfig;
+  config: StandcastConfig;
   author: string;
   firstTeam: ResolvedTeam;
   blocker: Item;

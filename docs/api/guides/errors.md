@@ -14,9 +14,9 @@ Every error response uses the same envelope:
 | `invalid_signature` | 401 | Only on the GitHub webhook receiver: the `X-Hub-Signature-256` header is missing or does not match the body. Nothing was processed. |
 | `invalid_request` | 422 | The request is malformed. Check `issues` and fix the listed fields. A signed GitHub webhook body that is not JSON also returns this code. |
 | `invalid_daily` | 422 | The daily payload failed validation. Check `issues` against the schema. |
-| `org_not_found` | 404 | The organization does not exist or the Standwise app is not installed on it. Check the name and the installation. |
-| `org_not_configured` | 409 | The organization has no valid `standwise.yml`. Add or fix the file in the `.github` repository, then retry. |
-| `not_in_team` | 422 | The person is not listed in any team of this organization. Add them to a team in `standwise.yml`. |
+| `org_not_found` | 404 | The organization does not exist or the Standcast app is not installed on it. Check the name and the installation. |
+| `org_not_configured` | 409 | The organization has no valid `standcast.yml`. Add or fix the file in the `.github` repository, then retry. |
+| `not_in_team` | 422 | The person is not listed in any team of this organization. Add them to a team in `standcast.yml`. |
 | `forbidden` | 403 | The credential is valid but the person or organization is not allowed to perform this action. |
 | `insufficient_scope` | 403 | The API key lacks the scope this operation needs. The error carries `required_scope`. Create a key with that scope. |
 | `not_found` | 404 | The resource does not exist in the key's organization. |

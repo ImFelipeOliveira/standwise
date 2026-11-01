@@ -11,6 +11,6 @@ export const CLI_COMPILE_FLAGS = [
 export function cliDefineFlags(env: Record<string, string | undefined>): string[] {
   return [
     '--define',
-    `STANDWISE_DEFAULT_API_URL=${JSON.stringify(resolveDefaultApiUrl(env.STANDWISE_DEFAULT_API_URL))}`,
+    `STANDCAST_DEFAULT_API_URL=${JSON.stringify(resolveDefaultApiUrl(env.STANDCAST_DEFAULT_API_URL))}`,
   ];
 }

@@ -1,6 +1,6 @@
-import { type Language, type MessageKey, t as translate } from '@standwise/core';
-import type { ApiKeyScope, WebhookDeliveryStatus, WebhookEventType } from '@standwise/db';
-import type { SetupStatus, TrackerNotice } from '@standwise/orchestrator';
+import { type Language, type MessageKey, t as translate } from '@standcast/core';
+import type { ApiKeyScope, WebhookDeliveryStatus, WebhookEventType } from '@standcast/db';
+import type { SetupStatus, TrackerNotice } from '@standcast/orchestrator';
 
 export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
 

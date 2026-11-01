@@ -4,8 +4,8 @@ import {
   clampTitle,
   type Ref,
   type SignalKind,
-} from '@standwise/core';
-import { getLastDaily, listPendingSuggestions, type MemberRow } from '@standwise/db';
+} from '@standcast/core';
+import { getLastDaily, listPendingSuggestions, type MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { type MembershipCheck, type OrgContext, resolveOrgContext } from './org-context';

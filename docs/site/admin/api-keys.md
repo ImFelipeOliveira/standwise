@@ -11,9 +11,9 @@ Only admins manage keys: the owner of a personal account, or a member with the `
 3. Pick the scopes it needs.
 4. Click **Create key**.
 
-The page shows the full key, starting with `swk_`, **once**. Copy it right away. Standwise stores only a hash of it and cannot show it again. If you could not copy it, revoke it and create another.
+The page shows the full key, starting with `sck_`, **once**. Copy it right away. Standcast stores only a hash of it and cannot show it again. If you could not copy it, revoke it and create another.
 
-The list shows each key's name, prefix (the first 8 characters after `swk_`), scopes, creation date and last use. The last use is updated at most once per minute.
+The list shows each key's name, prefix (the first 8 characters after `sck_`), scopes, creation date and last use. The last use is updated at most once per minute.
 
 ## Scopes
 
@@ -31,8 +31,8 @@ Grant only what the integration needs. A request without the right scope fails w
 Send the key as a bearer token:
 
 ```bash
-curl -H "Authorization: Bearer $STANDWISE_API_KEY" \
-  "https://api.standwise.dev/v1/org/dailies?date=2026-10-28&team=backend"
+curl -H "Authorization: Bearer $STANDCAST_API_KEY" \
+  "https://api.standcast.app/v1/org/dailies?date=2026-10-28&team=backend"
 ```
 
 Each key is limited to 600 requests per minute. See the [API overview](/api/overview).

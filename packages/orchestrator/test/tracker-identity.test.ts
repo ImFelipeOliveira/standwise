@@ -6,8 +6,8 @@ import {
   setIdentity,
   setMemberInstallations,
   upsertMember,
-} from '@standwise/db';
-import { LinearRateLimitError } from '@standwise/linear';
+} from '@standcast/db';
+import { LinearRateLimitError } from '@standcast/linear';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   configPeople,

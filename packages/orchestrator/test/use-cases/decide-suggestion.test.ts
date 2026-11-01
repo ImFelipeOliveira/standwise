@@ -4,7 +4,7 @@ import {
   type MemberRow,
   setMemberInstallations,
   syncSuggestions,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, DomainError, decideDraftSuggestion } from '../../src';
 import { config, fakeDeps, INST, seedMember, seedOrg } from './fakes';

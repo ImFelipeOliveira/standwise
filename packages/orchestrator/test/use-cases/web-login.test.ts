@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { resolveSession } from '@standwise/db';
-import { GitHubOAuthError } from '@standwise/github';
+import { resolveSession } from '@standcast/db';
+import { GitHubOAuthError } from '@standcast/github';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { completeWebLogin, type DomainError, hashNonce, signState, startWebLogin } from '../../src';
 import { fakeDeps, INST, seedOrg } from './fakes';

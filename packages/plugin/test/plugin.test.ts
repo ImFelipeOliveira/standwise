@@ -25,15 +25,15 @@ describe('plugin manifests', () => {
   const rootPackage = readJson(join(repoRoot, 'package.json'));
 
   test('plugin.json is valid', () => {
-    expect(plugin.name).toBe('standwise');
+    expect(plugin.name).toBe('standcast');
     expect(plugin.version).toBe(rootPackage.version);
     expect(plugin.description).toBeString();
     expect(plugin.author.name).toBe('Felipe Oliveira');
   });
 
-  test('mcp server declaration runs standwise mcp', () => {
+  test('mcp server declaration runs standcast mcp', () => {
     const mcp = readJson(join(pluginRoot, '.mcp.json'));
-    expect(mcp.mcpServers.standwise).toEqual({ command: 'standwise', args: ['mcp'] });
+    expect(mcp.mcpServers.standcast).toEqual({ command: 'standcast', args: ['mcp'] });
   });
 
   test('marketplace.json lists the plugin by the same name', () => {
@@ -60,14 +60,14 @@ describe('daily skill', () => {
   });
 
   test('body drives the CLI', () => {
-    expect(skill).toContain('standwise_get_draft');
-    expect(skill).toContain('standwise_submit_daily');
-    expect(skill).toContain('standwise draft');
-    expect(skill).toContain('standwise submit');
-    expect(skill).toContain('standwise whoami');
+    expect(skill).toContain('standcast_get_draft');
+    expect(skill).toContain('standcast_submit_daily');
+    expect(skill).toContain('standcast draft');
+    expect(skill).toContain('standcast submit');
+    expect(skill).toContain('standcast whoami');
     expect(skill).toContain('mktemp');
     expect(skill).toContain('trap \'rm -f "$f"\' EXIT');
-    expect(skill).toContain("<<'STANDWISE_JSON'");
+    expect(skill).toContain("<<'STANDCAST_JSON'");
     expect(skill).toContain('exit code 127');
   });
 
@@ -76,9 +76,9 @@ describe('daily skill', () => {
     expect(block).not.toBeNull();
     const closing = (block?.[1] ?? '')
       .split('\n')
-      .filter((line) => line.trim() === 'STANDWISE_JSON');
+      .filter((line) => line.trim() === 'STANDCAST_JSON');
     expect(closing.length).toBe(1);
-    expect(closing[0]).toBe('STANDWISE_JSON');
+    expect(closing[0]).toBe('STANDCAST_JSON');
   });
 
   test('body handles exit codes 2, 3 and 4', () => {
@@ -100,8 +100,8 @@ describe('daily skill', () => {
   });
 
   test('suggestions are decided by the person', () => {
-    expect(skill).toContain('standwise_decide_suggestion');
-    expect(skill).toContain('standwise suggestion ignore');
+    expect(skill).toContain('standcast_decide_suggestion');
+    expect(skill).toContain('standcast suggestion ignore');
     expect(skill).toContain("Never add a suggestion without the person's answer");
   });
 });

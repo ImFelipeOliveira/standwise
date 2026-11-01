@@ -9,11 +9,11 @@ if (!supportEmail) {
   throw new Error('SUPPORT_EMAIL must be set to build the documentation site');
 }
 
-const publicUrl = resolvePublicUrl(process.env.STANDWISE_PUBLIC_URL?.trim());
+const publicUrl = resolvePublicUrl(process.env.STANDCAST_PUBLIC_URL?.trim());
 
 type ThemeConfig = DefaultTheme.Config & { supportEmail: string };
 
-const DOCS_DOMAIN = 'https://docs-standwise.usefachada.dev';
+const DOCS_DOMAIN = 'https://docs-standcast.usefachada.dev';
 
 const API_REFERENCE = { link: `${publicUrl}/reference`, target: '_self' };
 
@@ -74,7 +74,7 @@ const en = {
   privacy: 'Privacy',
   admins: 'For admins',
   install: 'Install',
-  configuration: 'standwise.yml reference',
+  configuration: 'standcast.yml reference',
   apiKeys: 'API keys',
   members: 'For members',
   gettingStarted: 'Getting started',
@@ -94,7 +94,7 @@ const ptBR = {
   privacy: 'Privacidade',
   admins: 'Para admins',
   install: 'Instalação',
-  configuration: 'Referência do standwise.yml',
+  configuration: 'Referência do standcast.yml',
   apiKeys: 'API keys',
   members: 'Para membros',
   gettingStarted: 'Primeiros passos',
@@ -107,7 +107,7 @@ const ptBR = {
 };
 
 export default defineConfigWithTheme<ThemeConfig>({
-  title: 'Standwise',
+  title: 'Standcast',
   base: '/',
   srcExclude: ['README.md'],
   lastUpdated: false,
@@ -137,7 +137,7 @@ export default defineConfigWithTheme<ThemeConfig>({
     root: {
       label: 'English',
       lang: 'en',
-      description: 'Standwise orchestrates your team daily standup from GitHub to Slack.',
+      description: 'Standcast orchestrates your team daily standup from GitHub to Slack.',
       themeConfig: {
         nav: [
           { text: 'Docs', link: '/' },
@@ -152,7 +152,7 @@ export default defineConfigWithTheme<ThemeConfig>({
       label: 'Português (Brasil)',
       lang: 'pt-BR',
       link: '/pt-BR/',
-      description: 'O Standwise orquestra a daily do seu time, do GitHub ao Slack.',
+      description: 'O Standcast orquestra a daily do seu time, do GitHub ao Slack.',
       themeConfig: {
         nav: [
           { text: 'Docs', link: '/pt-BR/' },
@@ -177,8 +177,8 @@ export default defineConfigWithTheme<ThemeConfig>({
   themeConfig: {
     supportEmail,
     logo: '/logo.svg',
-    siteTitle: 'Standwise',
-    socialLinks: [{ icon: 'github', link: 'https://github.com/ImFelipeOliveira/standwise' }],
+    siteTitle: 'Standcast',
+    socialLinks: [{ icon: 'github', link: 'https://github.com/ImFelipeOliveira/standcast' }],
     search: {
       provider: 'local',
       options: {

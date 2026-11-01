@@ -3,7 +3,7 @@ import { z } from 'zod';
 const schema = z
   .object({
     DATABASE_URL: z.string().min(1),
-    STANDWISE_ENCRYPTION_KEY: z
+    STANDCAST_ENCRYPTION_KEY: z
       .string()
       .transform((v) => Buffer.from(v, 'base64'))
       .refine((b) => b.length === 32, 'must be 32 bytes, base64'),

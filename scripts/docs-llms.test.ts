@@ -14,7 +14,7 @@ const exists = (path: string) =>
   );
 
 beforeAll(async () => {
-  outDir = join(await mkdtemp(join(tmpdir(), 'standwise-llms-')), 'dist');
+  outDir = join(await mkdtemp(join(tmpdir(), 'standcast-llms-')), 'dist');
   const build = Bun.spawnSync(['bun', 'run', 'docs:build', '--outDir', outDir], {
     cwd: ROOT,
     env: { ...process.env, SUPPORT_EMAIL: 'test@example.com' },
@@ -27,7 +27,7 @@ beforeAll(async () => {
 describe('docs llms files', () => {
   test('english llms.txt lists the english pages and points at the portuguese one', async () => {
     const text = await read('llms.txt');
-    expect(text.startsWith('# Standwise')).toBe(true);
+    expect(text.startsWith('# Standcast')).toBe(true);
     expect(text).toContain('/admin/configuration.md');
     expect(text).toContain('/pt-BR/llms.txt');
   });

@@ -1,4 +1,4 @@
-import { t } from '@standwise/core';
+import { t } from '@standcast/core';
 import { decideSuggestion, type SuggestionDecision } from '../api';
 import { type Ctx, EXIT, ExitError } from '../io';
 import { requireBoundCredentials, resolveOrg } from '../session';

@@ -1,4 +1,4 @@
-import type { Language } from '@standwise/core';
+import type { Language } from '@standcast/core';
 
 export type Io = {
   env: Record<string, string | undefined>;

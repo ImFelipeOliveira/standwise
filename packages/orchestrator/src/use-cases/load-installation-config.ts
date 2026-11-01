@@ -1,10 +1,10 @@
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   getConnectionInfo,
   getInstallation,
   setInstallationAccessWarning,
   setInstallationConfig,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { invalidateResolvedTeams } from '../teams';
 import { enqueueLinkTrackerIdentities } from '../tracker-identity';
@@ -65,7 +65,7 @@ export async function loadInstallationConfig(
 async function relinkTrackerIdentities(
   deps: ConfigDeps,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
 ): Promise<void> {
   if (!config.teams.some((team) => team.tracker?.provider === 'linear')) return;
   const connection = await getConnectionInfo(deps.db, installationId, 'linear');

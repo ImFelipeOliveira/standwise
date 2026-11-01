@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -9,8 +9,8 @@ import {
   setInstallationConfig,
   upsertDaily,
   upsertMember,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { runTick, sendReminder } from '../../src';
 import { config, daily, fakeChat, fakeDeps, INST, seedMember, seedOrg } from './fakes';
@@ -33,7 +33,7 @@ const digestKey = (teamName = 'Alpha') => ({
   kind: 'digest' as const,
 });
 
-function twoTeamsWithAlice(): StandwiseConfig {
+function twoTeamsWithAlice(): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -55,7 +55,7 @@ teams:
   return parsed.config;
 }
 
-async function setup(cfg: StandwiseConfig = config()) {
+async function setup(cfg: StandcastConfig = config()) {
   await seedOrg(cfg);
   const fake = fakeDeps();
   fake.setNow(local('2026-10-28T09:00:00'));

@@ -1,4 +1,4 @@
-import { decideSuggestion, type MemberRow } from '@standwise/db';
+import { decideSuggestion, type MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { DomainError } from './errors';
 import { type MembershipCheck, resolveOrgContext } from './org-context';

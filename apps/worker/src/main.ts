@@ -1,4 +1,4 @@
-import { createDb } from '@standwise/db';
+import { createDb } from '@standcast/db';
 import {
   createCheckRun,
   createGitHubApp,
@@ -11,8 +11,8 @@ import {
   listOpenPullRequestSnapshots,
   listPullRequestFiles,
   resolveTeamMembers,
-} from '@standwise/github';
-import { exchangeLinearCode, refreshLinearToken } from '@standwise/linear';
+} from '@standcast/github';
+import { exchangeLinearCode, refreshLinearToken } from '@standcast/linear';
 import {
   createChatFor,
   createTrackerFor,
@@ -27,9 +27,9 @@ import {
   SCAN_MEMBER_SIGNALS_JOB,
   VALIDATE_CONFIG_JOB,
   type WorkerDeps,
-} from '@standwise/orchestrator';
-import { createPgBossQueue } from '@standwise/queue';
-import { sendEmail } from '@standwise/resend';
+} from '@standcast/orchestrator';
+import { createPgBossQueue } from '@standcast/queue';
+import { sendEmail } from '@standcast/resend';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { linkTrackerIdentitiesJob } from './jobs/link-tracker-identities';
@@ -66,7 +66,7 @@ const deps: WorkerDeps = {
   db,
   queue,
   now: () => new Date(),
-  encryptionKey: env.STANDWISE_ENCRYPTION_KEY,
+  encryptionKey: env.STANDCAST_ENCRYPTION_KEY,
   github: {
     app,
     installationOctokit: (installationId) => app.getInstallationOctokit(installationId),
@@ -86,7 +86,7 @@ const deps: WorkerDeps = {
         code,
       }),
   },
-  chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
+  chatFor: createChatFor(db, env.STANDCAST_ENCRYPTION_KEY),
   trackerFor: (...args) => createTrackerFor(deps)(...args),
   linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
   email: resendApiKey ? { send: (message) => sendEmail(resendApiKey, message) } : null,

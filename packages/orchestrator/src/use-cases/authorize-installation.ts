@@ -5,7 +5,7 @@ import {
   listMemberInstallations,
   type MemberRow,
   removeMemberInstallation,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { isOwnGitHubInstallation } from '../github-installations';
 import { DomainError } from './errors';

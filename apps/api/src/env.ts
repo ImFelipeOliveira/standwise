@@ -8,17 +8,17 @@ const schema = z.object({
   DOCS_URL: z
     .url({ protocol: /^https$/ })
     .refine((url) => !url.endsWith('/'), 'must not end with a slash')
-    .default('https://docs.standwise.dev'),
+    .default('https://docs.standcast.app'),
   LANDING_URL: z
     .url({ protocol: /^https$/ })
     .refine((url) => !url.endsWith('/'), 'must not end with a slash')
-    .default('https://standwise.usefachada.dev'),
+    .default('https://standcast.usefachada.dev'),
   TRUST_PROXY: z
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).default(1),
-  STANDWISE_ENCRYPTION_KEY: z
+  STANDCAST_ENCRYPTION_KEY: z
     .string()
     .transform((v) => Buffer.from(v, 'base64'))
     .refine((b) => b.length === 32, 'must be 32 bytes, base64'),

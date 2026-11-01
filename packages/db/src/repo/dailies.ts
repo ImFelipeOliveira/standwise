@@ -1,4 +1,4 @@
-import type { StoredDaily } from '@standwise/core';
+import type { StoredDaily } from '@standcast/core';
 import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { dailies, members } from '../schema';

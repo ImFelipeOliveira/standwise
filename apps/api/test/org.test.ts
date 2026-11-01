@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addCalendarDays, parseConfig } from '@standwise/core';
+import { addCalendarDays, parseConfig } from '@standcast/core';
 import {
   type ApiKeyScope,
   claimDelivery,
@@ -11,7 +11,7 @@ import {
   upsertDaily,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
+} from '@standcast/db';
 import { Ajv2020 } from 'ajv/dist/2020';
 import { sql } from 'drizzle-orm';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
@@ -109,7 +109,7 @@ describe('org authentication', () => {
       expect(none.body).toEqual({
         error: { code: 'unauthorized', message: 'missing or invalid api key' },
       });
-      expect((await get(app, path, 'swk_nope')).res.status).toBe(401);
+      expect((await get(app, path, 'sck_nope')).res.status).toBe(401);
       expect((await get(app, path, 'garbage')).res.status).toBe(401);
     }
     expect((await get(app, '/v1/org/teams', key)).res.status).toBe(200);
@@ -137,7 +137,7 @@ describe('org authentication', () => {
   test('failed key attempts count against the ip, once per limiter', async () => {
     await seed();
     const { app } = createTestApp();
-    await get(app, '/v1/org/teams', 'swk_nope');
+    await get(app, '/v1/org/teams', 'sck_nope');
     const rows = await db.execute(sql`SELECT key FROM rate_limits ORDER BY key`);
     expect(rows.map((r) => (r as { key: string }).key)).toEqual([
       'api:ip:192.0.2.1',

@@ -8,7 +8,7 @@ import {
   type UrlToken,
 } from './docs-public-url';
 
-const INTERIM = 'https://api-standwise.usefachada.dev';
+const INTERIM = 'https://api-standcast.usefachada.dev';
 
 const token = (type: string, content: string, children: UrlToken[] | null = null): UrlToken => ({
   type,
@@ -78,9 +78,9 @@ describe('publicUrlPlugin in the vitepress renderer', () => {
       ].join('\n'),
     );
     disposeMdItInstance();
-    expect(html).not.toContain('api.standwise.dev');
+    expect(html).not.toContain('api.standcast.app');
     expect(html).toContain(`${INTERIM}/openapi.json`);
     expect(html).toContain(`href="${INTERIM}/health"`);
-    expect(html).toContain('api-standwise.usefachada.dev/install.sh');
+    expect(html).toContain('api-standcast.usefachada.dev/install.sh');
   });
 });

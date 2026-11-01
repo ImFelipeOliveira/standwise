@@ -1,24 +1,24 @@
-# Standwise: your daily standup, written in your AI agent
+# Standcast: your daily standup, written in your AI agent
 
 > Open source (MIT), free during the public beta. Works with GitHub and Slack today. Google Chat and Jira are next.
 
-Run `/daily` in Claude Code, Cursor or the terminal. Standwise drafts yesterday from your GitHub and Linear activity, you confirm, and your team gets one digest in Slack.
+Run `/daily` in Claude Code, Cursor or the terminal. Standcast drafts yesterday from your GitHub and Linear activity, you confirm, and your team gets one digest in Slack.
 
 ```sh
-curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh
+curl -fsSL https://api-standcast.usefachada.dev/install.sh | sh
 ```
 
-- [Join the beta](https://standwise.usefachada.dev/#beta)
-- [Install for your org](https://docs-standwise.usefachada.dev/admin/install)
-- [Documentation](https://docs-standwise.usefachada.dev/)
-- [GitHub](https://github.com/ImFelipeOliveira/standwise)
-- [Versão em português](https://standwise.usefachada.dev/pt-BR/index.md)
+- [Join the beta](https://standcast.usefachada.dev/#beta)
+- [Install for your org](https://docs-standcast.usefachada.dev/admin/install)
+- [Documentation](https://docs-standcast.usefachada.dev/)
+- [GitHub](https://github.com/ImFelipeOliveira/standcast)
+- [Versão em português](https://standcast.usefachada.dev/pt-BR/index.md)
 
 Write your daily where you already work: Claude Code, Cursor, Codex, Claude Desktop, VS Code and the terminal.
 
-## A day with Standwise
+## A day with Standcast
 
-Set two times in standwise.yml. Standwise runs the rest. This team has `remind_at: "09:30"` and `digest_at: "10:00"` in São Paulo time, Monday to Friday.
+Set two times in standcast.yml. Standcast runs the rest. This team has `remind_at: "09:30"` and `digest_at: "10:00"` in São Paulo time, Monday to Friday.
 
 - **08:50, draft.** Ana runs /daily. She edits the draft, adds a blocker that links a pull request and confirms. The reviewer gets a direct message.
 - **09:30, remind_at.** Davi hasn't written yet, so he gets one reminder. Never more than one a day.
@@ -38,7 +38,7 @@ Collects, consolidates and delivers. You only write.
 
 ## Privacy
 
-Built for teams, not for watching people. Standwise suggests blockers from your own signals. Those suggestions belong to you. A test in CI checks that they never leave your draft.
+Built for teams, not for watching people. Standcast suggests blockers from your own signals. Those suggestions belong to you. A test in CI checks that they never leave your draft.
 
 Your team sees:
 
@@ -56,14 +56,14 @@ No productivity metrics. No rankings. No commit counts. Nothing sent on anyone's
 
 ## Configuration as code
 
-One file in your .github repository. Teams, times, Slack channels and managers live in `standwise.yml`. Every change is reviewed like code.
+One file in your .github repository. Teams, times, Slack channels and managers live in `standcast.yml`. Every change is reviewed like code.
 
-- **Checked on every push.** A `Standwise config` check run points to the line with the error.
+- **Checked on every push.** A `Standcast config` check run points to the line with the error.
 - **Never breaks the team.** An invalid push keeps the last valid config in effect.
 - **Teams from GitHub.** Members can be logins or `@org/team`.
 
 ```yaml
-# .github/standwise.yml
+# .github/standcast.yml
 teams:
   - name: Backend
     timezone: America/Sao_Paulo
@@ -80,7 +80,7 @@ teams:
     members: ["@acme/backend"]
 ```
 
-See the [standwise.yml reference](https://docs-standwise.usefachada.dev/admin/configuration).
+See the [standcast.yml reference](https://docs-standcast.usefachada.dev/admin/configuration).
 
 ## Three ways to write
 
@@ -90,20 +90,20 @@ The `/daily` skill drafts, asks for today and blockers, and confirms with you.
 
 ```text
 /plugin marketplace add \
-  ImFelipeOliveira/standwise
-/plugin install standwise@standwise
+  ImFelipeOliveira/standcast
+/plugin install standcast@standcast
 /daily
 ```
 
 ### Any MCP client
 
-Cursor, Codex, Claude Desktop and VS Code run the local [MCP server](https://docs-standwise.usefachada.dev/members/mcp).
+Cursor, Codex, Claude Desktop and VS Code run the local [MCP server](https://docs-standcast.usefachada.dev/members/mcp).
 
 ```json
 {
   "mcpServers": {
-    "standwise": {
-      "command": "standwise",
+    "standcast": {
+      "command": "standcast",
       "args": ["mcp"]
     }
   }
@@ -115,9 +115,9 @@ Cursor, Codex, Claude Desktop and VS Code run the local [MCP server](https://doc
 One binary for macOS, Linux and Windows, checked against SHA256SUMS.
 
 ```sh
-standwise login
-standwise draft
-standwise submit
+standcast login
+standcast draft
+standcast submit
 ```
 
 ## FAQ
@@ -126,9 +126,9 @@ standwise submit
 
 Yes, during the public beta.
 
-### Does Standwise read our code?
+### Does Standcast read our code?
 
-No. The GitHub App reads pull requests, reviews, checks, commit metadata, standwise.yml and CODEOWNERS. It never reads source files.
+No. The GitHub App reads pull requests, reviews, checks, commit metadata, standcast.yml and CODEOWNERS. It never reads source files.
 
 ### What do I need?
 
@@ -140,10 +140,10 @@ No. Suggestions are visible only to you, in your own draft. They never reach the
 
 ### Can we self-host?
 
-Yes. Standwise is MIT licensed. The [self-hosting section of the README](https://github.com/ImFelipeOliveira/standwise#self-hosting) covers the API, the worker and Postgres.
+Yes. Standcast is MIT licensed. The [self-hosting section of the README](https://github.com/ImFelipeOliveira/standcast#self-hosting) covers the API, the worker and Postgres.
 
 ## Public beta
 
-Try it with your team. We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up. Request access with the form at [standwise.usefachada.dev/#beta](https://standwise.usefachada.dev/#beta).
+Try it with your team. We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up. Request access with the form at [standcast.usefachada.dev/#beta](https://standcast.usefachada.dev/#beta).
 
-Support: support.standwise@usefachada.dev
+Support: support.standcast@usefachada.dev

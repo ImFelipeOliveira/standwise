@@ -8,7 +8,7 @@ import {
   type Language,
   stripUnsafeChars,
   t,
-} from '@standwise/core';
+} from '@standcast/core';
 import { z } from 'zod';
 import {
   ApiError,
@@ -41,7 +41,7 @@ const org = z
   .min(1)
   .optional()
   .describe('Organization login. Optional when the person belongs to a single organization.');
-const team = z.string().min(1).describe('Team name as written in standwise.yml.');
+const team = z.string().min(1).describe('Team name as written in standcast.yml.');
 const cursor = z.string().optional().describe('next_cursor of the previous page.');
 
 const itemOut = z.looseObject({
@@ -152,7 +152,7 @@ function success(data: Record<string, unknown>, options: Options = {}): CallTool
     content: [
       {
         type: 'text',
-        text: `${UNTRUSTED_PREFACE}\n<untrusted-data source="standwise">\n${json}\n</untrusted-data>`,
+        text: `${UNTRUSTED_PREFACE}\n<untrusted-data source="standcast">\n${json}\n</untrusted-data>`,
       },
       ...notes,
     ],
@@ -269,10 +269,10 @@ async function session(io: Io, orgLogin?: string) {
 
 export function registerTools(server: McpServer, io: Io): void {
   server.registerTool(
-    'standwise_whoami',
+    'standcast_whoami',
     {
       title: 'Who am I',
-      description: 'Returns the GitHub login signed in to Standwise and the organizations.',
+      description: 'Returns the GitHub login signed in to Standcast and the organizations.',
       inputSchema: {},
       outputSchema: {
         login: z.string(),
@@ -288,7 +288,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_get_draft',
+    'standcast_get_draft',
     {
       title: 'Get the daily draft',
       description:
@@ -308,11 +308,11 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_submit_daily',
+    'standcast_submit_daily',
     {
       title: 'Submit the daily',
       description:
-        "Submits the person's daily to their teams. Before calling, you MUST show the final daily to the person and get their explicit confirmation. When the client supports elicitation, Standwise also asks the person directly and sends nothing unless they accept. Otherwise, call with confirmed: true only after the person explicitly confirmed. Send each item exactly as the person wrote or approved it: never translate or rewrite it. Submitting again on the same day replaces the previous daily.",
+        "Submits the person's daily to their teams. Before calling, you MUST show the final daily to the person and get their explicit confirmation. When the client supports elicitation, Standcast also asks the person directly and sends nothing unless they accept. Otherwise, call with confirmed: true only after the person explicitly confirmed. Send each item exactly as the person wrote or approved it: never translate or rewrite it. Submitting again on the same day replaces the previous daily.",
       inputSchema: {
         org,
         yesterday: DailySubmissionSchema.shape.yesterday.describe('What the person did.'),
@@ -371,7 +371,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_decide_suggestion',
+    'standcast_decide_suggestion',
     {
       title: 'Confirm or ignore a suggested blocker',
       description:
@@ -401,7 +401,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_list_teams',
+    'standcast_list_teams',
     {
       title: 'List the teams I can read',
       description:
@@ -421,7 +421,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_get_digest',
+    'standcast_get_digest',
     {
       title: 'Get a team digest',
       description:
@@ -447,7 +447,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_list_dailies',
+    'standcast_list_dailies',
     {
       title: 'List team dailies',
       description:
@@ -479,7 +479,7 @@ export function registerTools(server: McpServer, io: Io): void {
   );
 
   server.registerTool(
-    'standwise_list_blockers',
+    'standcast_list_blockers',
     {
       title: 'List team blockers',
       description:

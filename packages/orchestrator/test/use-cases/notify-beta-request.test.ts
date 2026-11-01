@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { getBetaRequest, upsertBetaRequest } from '@standwise/db';
-import type { EmailMessage } from '@standwise/resend';
+import { getBetaRequest, upsertBetaRequest } from '@standcast/db';
+import type { EmailMessage } from '@standcast/resend';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { notifyBetaRequest, type WorkerDeps } from '../../src';
 
@@ -41,7 +41,7 @@ function build(send?: (m: EmailMessage) => Promise<void>) {
       linearClientId: 'lid',
       linearClientSecret: 'lsecret',
       supportEmail: 'support@sw.test',
-      betaEmailFrom: 'Standwise <beta@sw.test>',
+      betaEmailFrom: 'Standcast <beta@sw.test>',
     },
   };
   return { deps, sent };
@@ -68,7 +68,7 @@ describe('notifyBetaRequest', () => {
     await notifyBetaRequest(deps, { requestId: id });
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({
-      from: 'Standwise <beta@sw.test>',
+      from: 'Standcast <beta@sw.test>',
       to: 'support@sw.test',
       replyTo: EMAIL,
       subject: 'Beta request: Ana Souza (6-15, slack, linear)',

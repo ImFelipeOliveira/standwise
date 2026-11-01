@@ -1,6 +1,6 @@
-# standwise.yml reference
+# standcast.yml reference
 
-Standwise reads its whole configuration from one file: `standwise.yml` at the **root** of the `.github` repository of the organization (or personal account), on the default branch. There is no other place to configure teams.
+Standcast reads its whole configuration from one file: `standcast.yml` at the **root** of the `.github` repository of the organization (or personal account), on the default branch. There is no other place to configure teams.
 
 Every `yaml` example on this page is checked against the real parser when the docs are built.
 
@@ -102,7 +102,7 @@ The language of the digest and of the late dailies posted in its thread: `en` or
 
 GitHub logins of the team managers. Managers can read the team's digests, dailies and blockers through the [MCP manager tools](/members/mcp#manager-tools). Organization admins can read every team without being listed. Blockers with no one else to route to go to the managers.
 
-Each entry must be a plain login. Names starting with `@`, such as `@acme/leads`, are not accepted: Standwise does not expand GitHub teams, so list the logins one by one. A team entry is rejected with an error.
+Each entry must be a plain login. Names starting with `@`, such as `@acme/leads`, are not accepted: Standcast does not expand GitHub teams, so list the logins one by one. A team entry is rejected with an error.
 
 ### `members`
 
@@ -111,7 +111,7 @@ Who writes dailies in this team. Each entry is either:
 - a GitHub login, such as `alice`; or
 - a GitHub team, written `"@org/team-slug"`, such as `"@acme/backend"`. Quote it, because YAML does not allow a value to start with `@`.
 
-GitHub teams are resolved every time Standwise needs the team, so changes on GitHub apply without editing the file. Standwise reads the first 100 members of each GitHub team. Logins are matched without case.
+GitHub teams are resolved every time Standcast needs the team, so changes on GitHub apply without editing the file. Standcast reads the first 100 members of each GitHub team. Logins are matched without case.
 
 A person can be in several teams. Their daily appears in every team's digest, and their standup date uses the time zone and workdays of the **first** team that lists them.
 
@@ -120,7 +120,7 @@ A person can be in several teams. Their daily appears in every team's digest, an
 Where the digest goes.
 
 - `provider`: `slack`. `google-chat` is accepted by the parser but not supported yet: digests for such a team fail with `unsupported_provider`.
-- `channel`: the Slack channel, as `"#name"` (quoted, because `#` starts a comment in YAML) or as a channel id such as `C0123456789`. For a private channel, invite the Standwise bot first. See [Slack](/admin/slack).
+- `channel`: the Slack channel, as `"#name"` (quoted, because `#` starts a comment in YAML) or as a channel id such as `C0123456789`. For a private channel, invite the Standcast bot first. See [Slack](/admin/slack).
 
 ### `tracker`
 
@@ -132,7 +132,7 @@ tracker:
   team: BE
 ```
 
-- `provider: linear`: Standwise reads the cards of the Linear workspace that an admin connected on the setup page. `team` is the Linear team key, such as `BE`, and limits the activity and the signals to that Linear team. See [Install](/admin/install#5-connect-linear-optional).
+- `provider: linear`: Standcast reads the cards of the Linear workspace that an admin connected on the setup page. `team` is the Linear team key, such as `BE`, and limits the activity and the signals to that Linear team. See [Install](/admin/install#5-connect-linear-optional).
 - `provider: jira` is accepted by the parser, but Jira is still coming soon. The setup page shows a notice and nothing else happens.
 - If a team uses Linear and Linear is not connected, the setup page warns about it. Nothing breaks: the draft just has no cards.
 
@@ -193,7 +193,7 @@ teams:
 
 ## Identity mapping
 
-Standwise mentions people in Slack by matching the primary verified email of their GitHub account with the email of their Slack user. When the emails differ, map the person by hand under the top-level `members` key, using their GitHub login:
+Standcast mentions people in Slack by matching the primary verified email of their GitHub account with the email of their Slack user. When the emails differ, map the person by hand under the top-level `members` key, using their GitHub login:
 
 ```yaml
 teams:
@@ -214,12 +214,12 @@ members:
 | --- | --- | --- |
 | `slack` | yes | Slack member id, such as `U0456`. In Slack, open the person's profile, click the three dots and **Copy member ID**. |
 | `google_chat` | coming soon | Google Chat user |
-| `linear` | yes | Email of the person in Linear. Optional: without it, Standwise uses their primary verified GitHub email. It must be an email |
+| `linear` | yes | Email of the person in Linear. Optional: without it, Standcast uses their primary verified GitHub email. It must be an email |
 | `jira` | coming soon | Jira account |
 
-A `slack` mapping is used from the next digest on, even for people who have never signed in. People without a mapping are linked by email when they sign in with `standwise login` or on the setup page. If you connect a different Slack workspace, the email links are cleared and made again at the next sign-in.
+A `slack` mapping is used from the next digest on, even for people who have never signed in. People without a mapping are linked by email when they sign in with `standcast login` or on the setup page. If you connect a different Slack workspace, the email links are cleared and made again at the next sign-in.
 
-The `linear` email has priority over the GitHub email. Linear links are made when the person signs in, right after Linear is connected, and whenever `standwise.yml` changes, including people who are in a team through a GitHub team (`@org/team`). Standwise stores the Linear user id, never the email. If you connect a different Linear workspace, the Linear links are cleared.
+The `linear` email has priority over the GitHub email. Linear links are made when the person signs in, right after Linear is connected, and whenever `standcast.yml` changes, including people who are in a team through a GitHub team (`@org/team`). Standcast stores the Linear user id, never the email. If you connect a different Linear workspace, the Linear links are cleared.
 
 ## Common validation errors
 
@@ -245,4 +245,4 @@ These are the messages the setup page shows, as `path: message`. `teams.0` is th
 | `: Invalid input: expected object, received null` | The file is empty | Add at least one team |
 | A YAML syntax message with a line and column | Broken indentation, an unclosed `[` or quote | Fix the YAML at that line |
 
-While the file is invalid, Standwise keeps using the last valid version until you fix it. See [Configuration states](/admin/install#configuration-states).
+While the file is invalid, Standcast keeps using the last valid version until you fix it. See [Configuration states](/admin/install#configuration-states).

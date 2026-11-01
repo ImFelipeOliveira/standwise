@@ -1,4 +1,4 @@
-import { runTick, type WorkerDeps } from '@standwise/orchestrator';
+import { runTick, type WorkerDeps } from '@standcast/orchestrator';
 
 export function tickJob(deps: WorkerDeps): () => Promise<void> {
   return () => runTick(deps);

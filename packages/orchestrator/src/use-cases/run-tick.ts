@@ -6,7 +6,7 @@ import {
   localDate,
   localInstant,
   type TeamConfig,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   getDelivery,
   getInstallationMemberIds,
@@ -14,7 +14,7 @@ import {
   listOperationalInstallations,
   listPersonDeliveries,
   MAX_DELIVERY_ATTEMPTS,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { resolveTeams } from '../teams';

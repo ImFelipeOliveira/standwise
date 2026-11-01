@@ -1,16 +1,20 @@
 <p align="center">
-  <img src="docs/site/public/logo.svg" alt="Standwise" width="72">
+  <img src="docs/site/public/logo.svg" alt="Standcast" width="72">
 </p>
 
-<h1 align="center">Standwise</h1>
+<h1 align="center">Standcast</h1>
 
 <p align="center">
   <strong>Your team's daily standup, written with your AI agent and delivered to Slack.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml"><img src="https://github.com/ImFelipeOliveira/standwise/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/ImFelipeOliveira/standwise/releases"><img src="https://img.shields.io/github/v/release/ImFelipeOliveira/standwise?include_prereleases" alt="Latest release"></a>
+  <em>Standcast was previously called Standwise.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ImFelipeOliveira/standcast/actions/workflows/ci.yml"><img src="https://github.com/ImFelipeOliveira/standcast/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/ImFelipeOliveira/standcast/releases"><img src="https://img.shields.io/github/v/release/ImFelipeOliveira/standcast?include_prereleases" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/status-public%20beta-orange.svg" alt="Status: public beta">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white" alt="TypeScript"></a>
@@ -20,24 +24,24 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
-  <a href="https://standwise.usefachada.dev">Landing</a> ·
-  <a href="https://docs-standwise.usefachada.dev/">Documentation</a> ·
-  <a href="https://docs-standwise.usefachada.dev/admin/configuration">Configuration</a> ·
+  <a href="https://standcast.usefachada.dev">Landing</a> ·
+  <a href="https://docs-standcast.usefachada.dev/">Documentation</a> ·
+  <a href="https://docs-standcast.usefachada.dev/admin/configuration">Configuration</a> ·
   <a href="#roadmap">Roadmap</a>
 </p>
 
 ---
 
 > [!WARNING]
-> **Public beta.** Standwise is being tested with its first teams. Expect rough edges and changes to behaviour, configuration and the API before 1.0. Report problems in [GitHub issues](https://github.com/ImFelipeOliveira/standwise/issues) or at support.standwise@usefachada.dev.
+> **Public beta.** Standcast is being tested with its first teams. Expect rough edges and changes to behaviour, configuration and the API before 1.0. Report problems in [GitHub issues](https://github.com/ImFelipeOliveira/standcast/issues) or at support.standcast@usefachada.dev.
 
-Each person runs `/daily` in their AI agent (Claude Code, Cursor, Codex, Claude Desktop, VS Code). Standwise drafts the daily from what they did on GitHub; the person edits it, adds today's plan and blockers, and **confirms before anything is sent**. At the time set in `standwise.yml`, Standwise posts one digest per team to Slack.
+Each person runs `/daily` in their AI agent (Claude Code, Cursor, Codex, Claude Desktop, VS Code). Standcast drafts the daily from what they did on GitHub; the person edits it, adds today's plan and blockers, and **confirms before anything is sent**. At the time set in `standcast.yml`, Standcast posts one digest per team to Slack.
 
 It is built for teams, not for watching people: **no productivity metrics, no rankings, nothing sent on anyone's behalf.**
 
 ## Table of contents
 
-- [Why Standwise](#why-standwise)
+- [Why Standcast](#why-standcast)
 - [Features](#features)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
@@ -51,7 +55,7 @@ It is built for teams, not for watching people: **no productivity metrics, no ra
 - [Support](#support)
 - [License](#license)
 
-## Why Standwise
+## Why Standcast
 
 Once a team writes dailies with AI, three problems show up:
 
@@ -59,7 +63,7 @@ Once a team writes dailies with AI, three problems show up:
 - **No consolidated view.** The manager reads scattered messages and has no single picture of the team.
 - **Nobody orchestrates.** No one tracks who sent the daily, and blockers sit until someone notices.
 
-Standwise keeps the writing where people already work, inside their agent, and takes care of collecting, consolidating and delivering.
+Standcast keeps the writing where people already work, inside their agent, and takes care of collecting, consolidating and delivering.
 
 ## Features
 
@@ -72,9 +76,9 @@ Standwise keeps the writing where people already work, inside their agent, and t
 - **Linear cards.** Connect one Linear workspace (read-only) and your own cards that started or finished appear in your draft. A blocker that links a card goes to the people who own the blocking card.
 - **Suggested blockers, only for you.** A pull request waiting too long for review, CI failing for a day or a card in progress for days shows up in your own draft. You confirm or ignore it; nobody else ever sees it.
 - **Several teams, one daily.** People in two teams write once and appear in both digests.
-- **Configuration as code.** A single `standwise.yml` in your `.github` repository. Every push and pull request that changes `standwise.yml` is validated by a `Standwise config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
+- **Configuration as code.** A single `standcast.yml` in your `.github` repository. Every push and pull request that changes `standcast.yml` is validated by a `Standcast config` check run with the error on the right line, and an invalid push never breaks anything: the last valid version stays in effect.
 - **Manager tools.** Managers read their team's dailies, digests and blockers from their own AI agent.
-- **Read-only API and webhooks.** API keys (`swk_…`), an OpenAPI reference, and signed outgoing webhooks such as `daily.submitted` and `blocker.opened`.
+- **Read-only API and webhooks.** API keys (`sck_…`), an OpenAPI reference, and signed outgoing webhooks such as `daily.submitted` and `blocker.opened`.
 - **Bilingual.** English and Brazilian Portuguese across the CLI, Slack messages, web pages and documentation.
 
 ## How it works
@@ -84,12 +88,12 @@ flowchart LR
     subgraph Member["Each member"]
         A["AI agent<br/>/daily · MCP · CLI"]
     end
-    subgraph SW["Standwise"]
+    subgraph SW["Standcast"]
         API["API"]
         W["Worker"]
         DB[("Postgres")]
     end
-    GH["GitHub<br/>activity · standwise.yml"]
+    GH["GitHub<br/>activity · standcast.yml"]
     SL["Slack<br/>#daily-team"]
 
     A -- "1. draft" --> API
@@ -106,47 +110,47 @@ A day with `remind_at: "09:30"` and `digest_at: "10:00"`:
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 08:50 | Alice runs `/daily`. Her agent fetches a draft of yesterday's GitHub work; she edits it, writes today and one blocker, and confirms. Her blocker links a pull request, so its reviewer gets a direct message. |
 | 09:30 | Bob has not sent yet, so he gets a reminder.                                                                                                                                                                  |
-| 10:00 | Standwise posts the team digest to `#daily-backend`: blockers first, then each person's yesterday and today, then who did not send.                                                                           |
+| 10:00 | Standcast posts the team digest to `#daily-backend`: blockers first, then each person's yesterday and today, then who did not send.                                                                           |
 | 10:40 | Bob sends a late daily. It is posted as a reply in the digest thread.                                                                                                                                         |
 
-The full walkthrough is in [How it works](https://docs-standwise.usefachada.dev/how-it-works).
+The full walkthrough is in [How it works](https://docs-standcast.usefachada.dev/how-it-works).
 
 ## Quick start
 
-New here? The [landing page](https://standwise.usefachada.dev) has the overview and the beta request form. Agents can read [llms.txt](https://standwise.usefachada.dev/llms.txt).
+New here? The [landing page](https://standcast.usefachada.dev) has the overview and the beta request form. Agents can read [llms.txt](https://standcast.usefachada.dev/llms.txt).
 
 ### For admins
 
 You need to own the GitHub organization (or personal account).
 
-1. [Install the Standwise GitHub App](https://github.com/apps/standwise-daily/installations/new) on your organization.
+1. [Install the Standcast GitHub App](https://github.com/apps/standcast/installations/new) on your organization.
 2. Open the setup page that GitHub sends you to, sign in, and click **Connect Slack**.
-3. Create `standwise.yml` at the root of your `.github` repository, from the template on the setup page.
+3. Create `standcast.yml` at the root of your `.github` repository, from the template on the setup page.
 
-Step by step: [Install](https://docs-standwise.usefachada.dev/admin/install).
+Step by step: [Install](https://docs-standcast.usefachada.dev/admin/install).
 
 ### For members
 
 Install the CLI (macOS and Linux) and sign in:
 
 ```sh
-curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh
-standwise login
+curl -fsSL https://api-standcast.usefachada.dev/install.sh | sh
+standcast login
 ```
 
-The script downloads the latest release for your system, checks it against `SHA256SUMS` and installs it to `~/.local/bin/standwise`. Windows binaries are on the [releases page](https://github.com/ImFelipeOliveira/standwise/releases/latest).
+The script downloads the latest release for your system, checks it against `SHA256SUMS` and installs it to `~/.local/bin/standcast`. Windows binaries are on the [releases page](https://github.com/ImFelipeOliveira/standcast/releases/latest).
 
 Then pick how you write your daily:
 
 | Client                                     | Setup                                                                                                               |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **Claude Code**                            | `/plugin marketplace add ImFelipeOliveira/standwise`, then `/plugin install standwise@standwise`, then run `/daily` |
-| **Cursor, Codex, Claude Desktop, VS Code** | Add the MCP server (`standwise mcp`): [MCP guide](https://docs-standwise.usefachada.dev/members/mcp)                |
-| **Terminal**                               | `standwise draft` and `standwise submit`: [CLI reference](https://docs-standwise.usefachada.dev/members/cli)        |
+| **Claude Code**                            | `/plugin marketplace add ImFelipeOliveira/standcast`, then `/plugin install standcast@standcast`, then run `/daily` |
+| **Cursor, Codex, Claude Desktop, VS Code** | Add the MCP server (`standcast mcp`): [MCP guide](https://docs-standcast.usefachada.dev/members/mcp)                |
+| **Terminal**                               | `standcast draft` and `standcast submit`: [CLI reference](https://docs-standcast.usefachada.dev/members/cli)        |
 
 ## Configuration
 
-All configuration lives in `standwise.yml` at the root of the `.github` repository, on the default branch:
+All configuration lives in `standcast.yml` at the root of the `.github` repository, on the default branch:
 
 ```yaml
 teams:
@@ -161,17 +165,17 @@ teams:
       channel: "#daily-backend"
 ```
 
-Every key is documented in the [configuration reference](https://docs-standwise.usefachada.dev/admin/configuration).
+Every key is documented in the [configuration reference](https://docs-standcast.usefachada.dev/admin/configuration).
 
 ## Privacy principles
 
-- **Your code is never read.** Standwise reads `standwise.yml`, team and organization membership, and the titles, links and dates of your own pull requests, reviews and commits. If you connect Linear, it also reads card titles, links, states and dates, never descriptions or comments.
+- **Your code is never read.** Standcast reads `standcast.yml`, team and organization membership, and the titles, links and dates of your own pull requests, reviews and commits. If you connect Linear, it also reads card titles, links, states and dates, never descriptions or comments.
 - **Nothing is sent without your confirmation.**
 - **No rankings, scores or productivity metrics**, in any plan, ever.
-- **No AI model processes your data on the Standwise servers.** The writing happens in your own agent.
+- **No AI model processes your data on the Standcast servers.** The writing happens in your own agent.
 - **Secrets are encrypted at rest** with AES-256-GCM.
 
-Details: [Privacy](https://docs-standwise.usefachada.dev/privacy).
+Details: [Privacy](https://docs-standcast.usefachada.dev/privacy).
 
 ## Architecture
 
@@ -181,7 +185,7 @@ A Bun + TypeScript monorepo. Business rules live in use cases; HTTP routes, jobs
 apps/
 ├── api/            Hono HTTP API, GitHub and Slack webhooks, setup pages, /reference
 ├── worker/         pg-boss jobs: tick, digests, late dailies, webhook delivery
-└── cli/            standwise CLI and MCP server (compiled to a single binary)
+└── cli/            standcast CLI and MCP server (compiled to a single binary)
 packages/
 ├── core/           pure domain: config, calendar, digest builders, i18n
 ├── orchestrator/   use cases: drafts, submissions, digests, org reads
@@ -200,11 +204,11 @@ Dependency direction: `apps → orchestrator → core`, with `db`, `queue` and t
 
 ## Self-hosting
 
-Standwise ships as one Docker image containing the api and the worker. `APP` (`api` or `worker`) selects the default command. The documentation site is not part of the image: it is a static site on Cloudflare Pages, see [docs/cloudflare-pages.md](docs/cloudflare-pages.md).
+Standcast ships as one Docker image containing the api and the worker. `APP` (`api` or `worker`) selects the default command. The documentation site is not part of the image: it is a static site on Cloudflare Pages, see [docs/cloudflare-pages.md](docs/cloudflare-pages.md).
 
 ```sh
-docker build --build-arg APP=api -t standwise-api .
-docker build --build-arg APP=worker -t standwise-worker .
+docker build --build-arg APP=api -t standcast-api .
+docker build --build-arg APP=worker -t standcast-worker .
 ```
 
 - The api runs the migrations on startup, so run a single api replica. Both services need Postgres.
@@ -223,7 +227,7 @@ bun run lint                # Biome, CI-enforced
 bun run typecheck           # tsc, CI-enforced
 ```
 
-Documentation site, served at the root of its own domain (`https://docs-standwise.usefachada.dev` for now). `STANDWISE_PUBLIC_URL` sets the api address shown in the examples and the API reference link:
+Documentation site, served at the root of its own domain (`https://docs-standcast.usefachada.dev` for now). `STANDCAST_PUBLIC_URL` sets the api address shown in the examples and the API reference link:
 
 ```sh
 SUPPORT_EMAIL=you@example.com bun run docs:dev
@@ -249,13 +253,13 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for commit co
 - [x] Reminder for people who have not sent their daily
 - [x] Blocker routing to reviewers, CODEOWNERS or managers
 - [x] Suggested blockers (pull request without review, failing CI), visible only to you
-- [x] `standwise.yml` validation as a GitHub check run
+- [x] `standcast.yml` validation as a GitHub check run
 - [x] Linear integration: cards in the draft, card blocker routing and stale card suggestions
 - [ ] Jira and Google Chat
 
 ## Support
 
-Questions and problems: [support.standwise@usefachada.dev](mailto:support.standwise@usefachada.dev).
+Questions and problems: [support.standcast@usefachada.dev](mailto:support.standcast@usefachada.dev).
 
 ## License
 

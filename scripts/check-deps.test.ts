@@ -5,7 +5,7 @@ describe('check-deps', () => {
   test('resolves package names from specifiers', () => {
     expect(packageNameOf('drizzle-orm')).toBe('drizzle-orm');
     expect(packageNameOf('drizzle-orm/postgres-js')).toBe('drizzle-orm');
-    expect(packageNameOf('@standwise/db')).toBe('@standwise/db');
+    expect(packageNameOf('@standcast/db')).toBe('@standcast/db');
     expect(packageNameOf('@hono/zod-openapi/sub')).toBe('@hono/zod-openapi');
     expect(packageNameOf('./local')).toBeNull();
     expect(packageNameOf('node:crypto')).toBeNull();
@@ -16,13 +16,13 @@ describe('check-deps', () => {
   test('finds static, type and dynamic imports and re-exports', () => {
     const source = [
       "import { sql } from 'drizzle-orm';",
-      "import type { Db } from '@standwise/db';",
+      "import type { Db } from '@standcast/db';",
       "export { x } from 'hono/html';",
       "const m = await import('postgres');",
       "import { a } from './a';",
     ].join('\n');
     expect(importedPackages(source).sort()).toEqual([
-      '@standwise/db',
+      '@standcast/db',
       'drizzle-orm',
       'hono',
       'postgres',
@@ -31,8 +31,8 @@ describe('check-deps', () => {
 
   test('reports imports missing from dependencies', () => {
     expect(
-      undeclared(['drizzle-orm', 'hono', '@standwise/api'], {
-        name: '@standwise/api',
+      undeclared(['drizzle-orm', 'hono', '@standcast/api'], {
+        name: '@standcast/api',
         dependencies: { hono: '^4' },
       }),
     ).toEqual(['drizzle-orm']);

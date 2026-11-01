@@ -12,7 +12,7 @@ import {
   type WebhookDeliverySummary,
   type WebhookEndpointSummary,
   type WebhookEventType,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { isPublicAddress } from '../safe-fetch';
 import { enqueueEnvelope } from './emit-event';

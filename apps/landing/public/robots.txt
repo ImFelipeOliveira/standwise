@@ -19,4 +19,4 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
-Sitemap: https://standwise.usefachada.dev/sitemap.xml
+Sitemap: https://standcast.usefachada.dev/sitemap.xml

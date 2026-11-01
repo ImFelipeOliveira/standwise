@@ -1,4 +1,4 @@
-import { memberOverrides, type StandwiseConfig } from '@standwise/core';
+import { memberOverrides, type StandcastConfig } from '@standcast/core';
 import {
   findMemberByIdentity,
   getConnectionExternalId,
@@ -7,8 +7,8 @@ import {
   listInstallationMembers,
   operationalConfig,
   writeIdentityIfConnected,
-} from '@standwise/db';
-import { findUserByEmail, LinearAuthError, LinearRateLimitError } from '@standwise/linear';
+} from '@standcast/db';
+import { findUserByEmail, LinearAuthError, LinearRateLimitError } from '@standcast/linear';
 import type { Deps, WorkerDeps } from './deps';
 import { type LinearAccess, linearClientFor } from './linear-access';
 import { logError } from './log-error';
@@ -81,7 +81,7 @@ export async function configPeople(
   deps: Pick<Deps, 'github' | 'now'>,
   installationId: number,
   owner: string,
-  config: StandwiseConfig,
+  config: StandcastConfig,
 ): Promise<Set<string>> {
   const teams = await resolveTeams(deps, installationId, owner, config);
   const people = new Set<string>();
@@ -95,7 +95,7 @@ async function linkOne(
   deps: LinkDeps,
   access: LinearAccess,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   member: { id: string; login: string },
   githubEmail: string | null,
 ): Promise<void> {
@@ -191,7 +191,7 @@ export async function linkTrackerIdentities(
 export async function loginForLinearUser(
   deps: Pick<Deps, 'db'>,
   installationId: number,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   logins: ReadonlySet<string>,
   user: { id: string; email: string | null },
 ): Promise<string | null> {

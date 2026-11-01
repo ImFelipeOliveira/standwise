@@ -1,5 +1,5 @@
-import type { Item } from '@standwise/core';
-import { type DailyRecord, getDailyById, listDailiesPage } from '@standwise/db';
+import type { Item } from '@standcast/core';
+import { type DailyRecord, getDailyById, listDailiesPage } from '@standcast/db';
 import type { Deps } from '../deps';
 import { DomainError } from './errors';
 import { loadOrgTeams, requireTeam, teamNames } from './org-teams';

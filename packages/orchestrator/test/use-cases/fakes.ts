@@ -4,18 +4,18 @@ import {
   type MessageRef,
   type PullRequestSnapshot,
   parseConfig,
-  type StandwiseConfig,
-} from '@standwise/core';
-import { setInstallationConfig, upsertInstallation, upsertMember } from '@standwise/db';
-import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
-import type { LinearOrganization, LinearTokens } from '@standwise/linear';
-import { createMemoryQueue } from '@standwise/queue';
+  type StandcastConfig,
+} from '@standcast/core';
+import { setInstallationConfig, upsertInstallation, upsertMember } from '@standcast/db';
+import type { CheckRunInput, PullRequestDetail } from '@standcast/github';
+import type { LinearOrganization, LinearTokens } from '@standcast/linear';
+import { createMemoryQueue } from '@standcast/queue';
 import { db } from '../../../db/test/setup';
 import { createTrackerFor, type Deps, type WorkerDeps } from '../../src';
 
 export const INST = 11;
 
-export function config(members = '[alice, bob]', extra = ''): StandwiseConfig {
+export function config(members = '[alice, bob]', extra = ''): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -273,7 +273,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
     trackerFor: (...args) => createTrackerFor(deps)(...args),
     email: null,
     env: {
-      betaEmailFrom: 'Standwise <beta@sw.test>',
+      betaEmailFrom: 'Standcast <beta@sw.test>',
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
       docsUrl: 'https://docs.sw.test',
@@ -310,7 +310,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
 }
 
 export async function seedOrg(
-  cfg: StandwiseConfig | null = config(),
+  cfg: StandcastConfig | null = config(),
   install: { id?: number; accountLogin?: string; accountType?: 'Organization' | 'User' } = {},
 ): Promise<void> {
   const id = install.id ?? INST;

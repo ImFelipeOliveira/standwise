@@ -1,4 +1,4 @@
-import { type BetaLocale, upsertBetaRequest } from '@standwise/db';
+import { type BetaLocale, upsertBetaRequest } from '@standcast/db';
 import { z } from 'zod';
 import type { Deps } from '../deps';
 import { DomainError } from './errors';

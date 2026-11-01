@@ -2,15 +2,15 @@
 
 ## Supported versions
 
-Standwise is in public beta. Only the latest release of the CLI and the hosted service at `https://api-standwise.usefachada.dev` receive security fixes.
+Standcast is in public beta. Only the latest release of the CLI and the hosted service at `https://api-standcast.usefachada.dev` receive security fixes.
 
 ## Reporting a vulnerability
 
 Please **do not** open a public issue for security problems. Use GitHub's private vulnerability reporting:
 
-https://github.com/ImFelipeOliveira/standwise/security/advisories/new
+https://github.com/ImFelipeOliveira/standcast/security/advisories/new
 
-or email support.standwise@usefachada.dev. You should get a response within a week. Include reproduction steps and, if relevant, the CLI version (`standwise --version`).
+or email support.standcast@usefachada.dev. You should get a response within a week. Include reproduction steps and, if relevant, the CLI version (`standcast --version`).
 
 ## Scope
 
@@ -23,4 +23,4 @@ Reports about these are especially welcome:
 - the GitHub, Slack and Linear webhooks and the outgoing webhooks;
 - the CLI installer and release integrity (`SHA256SUMS`).
 
-Standwise never reads repository code, and the GitHub App asks only for the permissions listed in [docs/github-app.md](docs/github-app.md).
+Standcast never reads repository code, and the GitHub App asks only for the permissions listed in [docs/github-app.md](docs/github-app.md).

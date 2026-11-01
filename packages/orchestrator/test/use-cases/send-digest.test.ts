@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import type { StandwiseConfig } from '@standwise/core';
+import type { StandcastConfig } from '@standcast/core';
 import {
   getDelivery,
   setIdentity,
   setInstallationConfig,
   upsertDaily,
   upsertMember,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { DIGEST_POST_DEADLINE_MS, sendDigest, sendLateDaily } from '../../src';
 import { config, daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
@@ -18,7 +18,7 @@ const DATE = '2026-10-28';
 const job = { installationId: INST, teamName: 'Alpha', date: DATE };
 const key = { installationId: INST, teamName: 'Alpha', date: DATE, kind: 'digest' as const };
 
-async function setup(cfg: StandwiseConfig = config()) {
+async function setup(cfg: StandcastConfig = config()) {
   await seedOrg(cfg);
   const alice = await seedMember();
   await setIdentity(db, INST, alice.id, 'slack', 'UALICE');
@@ -47,7 +47,7 @@ describe('sendDigest', () => {
     expect(row?.ref).toEqual({ channel: 'C1', id: '1.0' });
   });
 
-  test('digest uses the last valid config while standwise.yml is invalid', async () => {
+  test('digest uses the last valid config while standcast.yml is invalid', async () => {
     const { deps, posted } = await setup();
     await setInstallationConfig(db, INST, {
       status: 'invalid',
