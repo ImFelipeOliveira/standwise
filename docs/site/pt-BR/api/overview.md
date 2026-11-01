@@ -203,11 +203,12 @@ Espere `Retry-After` segundos antes de tentar de novo e espalhe as novas tentati
 
 ## Versionamento
 
-A API é versionada no caminho. `/v1` é a versão estável atual.
+A API é versionada no caminho. `/v1` é a versão atual. O `info.version` do documento OpenAPI é a versão do Standwise (por exemplo `0.2.0`).
 
+- **Beta público.** Enquanto o Standwise estiver na versão 0.x, a `/v1` ainda pode mudar de forma incompatível. Essas mudanças entram no changelog antes de sair, com a maior antecedência possível. O aviso de 90 dias abaixo vale a partir da 1.0.
 - Novos campos podem aparecer nas respostas a qualquer momento. Ignore os campos que você não conhece.
 - Novos parâmetros opcionais e novas operações podem entrar na `/v1` sem aviso.
 - Uma mudança que quebra clientes existentes só sai na `/v2`.
 - Antes de remover ou mudar de forma incompatível um comportamento da `/v1`, a mudança é anunciada no changelog com pelo menos 90 dias de antecedência.
 
-Veja o [changelog](/pt-BR/changelog) com todas as versões.
+Veja o [changelog](/pt-BR/changelog) com todas as versões. Elas são as mesmas dos [releases no GitHub](https://github.com/ImFelipeOliveira/standwise/releases).

@@ -11,6 +11,7 @@ import {
   upsertMember,
 } from '@standwise/db';
 import { csrfToken } from '@standwise/orchestrator';
+import rootPackage from '../../../package.json' with { type: 'json' };
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createTestApp, type FakeRequest } from './support';
 
@@ -298,7 +299,7 @@ describe('openapi webhooks', () => {
         }
       >;
     };
-    expect(doc.info.version).toBe('1.2.0');
+    expect(doc.info.version).toBe(rootPackage.version);
     for (const event of ['daily.submitted', 'blocker.opened', 'digest.sent']) {
       const op = doc.webhooks[event]?.post;
       expect(op?.tags).toEqual(['Webhooks']);

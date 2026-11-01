@@ -1,8 +1,14 @@
 # API changelog
 
-Breaking changes are announced here at least 90 days before they take effect. See the versioning guide.
+Versions match the GitHub releases. During the public beta (0.x), incompatible changes are listed here before they ship; from 1.0 they are announced at least 90 days in advance. See the versioning guide.
 
 ## Unreleased
+
+## 0.2.0 — 2026-10-31
+
+First public beta.
+
+### Agents, CLI and configuration
 
 - The interactive API reference moved from `/docs/api` to `/reference`. `/docs/api` answers with a permanent redirect. The documentation site moved to its own domain (`DOCS_URL`); `/docs` and `/docs/*` on the api redirect there. Deploy requirement: the api accepts `DOCS_URL` (https, no trailing slash, default `https://docs.standwise.dev`).
 - Linear integration. The draft `activity` can include `card_started` and `card_done` items for your own Linear cards (`repo` is the Linear team key, `url` the card link), and `suggestions` can have `kind: "card_stale"`. Both are additive: clients must ignore kinds they do not know. Blocker `ref` accepts a Linear card URL.
@@ -21,20 +27,20 @@ Breaking changes are announced here at least 90 days before they take effect. Se
 - Internal: the GitHub webhook receiver answers a signed body that is not JSON with `422 invalid_request` instead of `400`, and rejects bodies over 1 MB with `413 payload_too_large`.
 - Internal: `GET /v1/today` returns the standup date for an organization, and `POST /v1/dailies` accepts an optional `X-Standwise-Confirmation: human|agent` header that is stored with the daily. Neither changes the public API.
 
-## 1.2.0
+### Webhooks
 
 - Outbound webhooks: an organization admin registers HTTPS endpoints on the setup page and picks the events `daily.submitted`, `blocker.opened` and `digest.sent`. A `ping` test event can be sent from the setup page.
 - Every delivery is a signed `POST` with the headers `Standwise-Signature` (`t=<unix seconds>,v1=<hex HMAC-SHA256>`), `Standwise-Event`, `Standwise-Delivery` and `User-Agent: Standwise-Webhooks/1`. Failed deliveries are retried up to 8 attempts; an endpoint with 20 failed deliveries in a row is disabled.
 - The OpenAPI document has a `webhooks` section with the payload of each event. See the webhooks guide.
 
-## 1.1.0
+### Organization API
 
 - API keys (`swk_`) created by an organization admin on the setup page, with the scopes `teams:read`, `dailies:read`, `digests:read` and `blockers:read`.
 - Read-only organization operations: `GET /v1/org/teams`, `GET /v1/org/dailies`, `GET /v1/org/dailies/{id}`, `GET /v1/org/digests` and `GET /v1/org/blockers`, paginated by cursor.
 - New error codes `insufficient_scope` (HTTP 403, with `required_scope`) and `not_found` (HTTP 404).
 
-## 1.0.0
+### Foundation
 
-- OpenAPI 3.1 document at `/openapi.json` and interactive reference at `/docs/api`.
+- OpenAPI 3.1 document at `/openapi.json` and interactive reference at `/reference`.
 - `GET /health`.
 - Rate limits with `RateLimit-*` and `Retry-After` headers; new error code `rate_limited` (HTTP 429).

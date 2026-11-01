@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!.superpowers", "!.remember", "!docs", "!packages/plugin/skills/**/*.md"]
+    "includes": [
+      "**",
+      "!CHANGELOG.md",
+      "!.superpowers",
+      "!.remember",
+      "!docs",
+      "!packages/plugin/skills/**/*.md"
+    ]
   },
   "formatter": {
     "enabled": true,
