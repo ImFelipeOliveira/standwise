@@ -1,4 +1,4 @@
-import { githubAuthorizeUrl } from '@standwise/github';
+import { githubAuthorizeUrl } from '@standcast/github';
 import type { Deps } from '../deps';
 import { hashNonce, newNonce, signState } from '../state-token';
 

@@ -1,29 +1,29 @@
 # Privacy
 
-What Standwise reads, what it stores, what it never does and who sees what. This page describes the service as it runs today.
+What Standcast reads, what it stores, what it never does and who sees what. This page describes the service as it runs today.
 
 ## No AI on our side
 
-No LLM processes your data on the Standwise servers. The draft is built with plain GitHub searches, and the digest is assembled from what people confirmed. When you write your daily with an AI agent, that agent runs on your machine, under your own account with its provider. Standwise does not see that conversation.
+No LLM processes your data on the Standcast servers. The draft is built with plain GitHub searches, and the digest is assembled from what people confirmed. When you write your daily with an AI agent, that agent runs on your machine, under your own account with its provider. Standcast does not see that conversation.
 
-## What Standwise reads
+## What Standcast reads
 
 ### GitHub
 
-Standwise uses the permissions of its GitHub App: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read) and the account permission Email addresses (read). With them it reads:
+Standcast uses the permissions of its GitHub App: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read) and the account permission Email addresses (read). With them it reads:
 
-- `standwise.yml` from the `.github` repository of the installation owner;
-- the members of the GitHub teams you reference in `standwise.yml` (`@org/team`);
+- `standcast.yml` from the `.github` repository of the installation owner;
+- the members of the GitHub teams you reference in `standcast.yml` (`@org/team`);
 - organization membership and role, to check who belongs to the organization and who is an admin;
 - for the person asking for a draft: titles, links, repositories and dates of the pull requests they opened, merged and reviewed, and of the commits they authored, in the organization;
 - for suggested blockers and blocker routing, on pull requests of the organization: title, url, draft state, the time it was ready for review, review states (only counted), the conclusions of check runs on the head commit, the paths of changed files (only to find code owners) and the `CODEOWNERS` file;
 - when you sign in: your GitHub user id, your login, your primary verified email and the installations you can access.
 
-It does not read the contents of your code or your files other than `standwise.yml` and `CODEOWNERS`. Checks (write) is used only to create the `Standwise config` check run on `standwise.yml`. Standwise does not write to your repositories.
+It does not read the contents of your code or your files other than `standcast.yml` and `CODEOWNERS`. Checks (write) is used only to create the `Standcast config` check run on `standcast.yml`. Standcast does not write to your repositories.
 
 ### Slack
 
-The bot token of the Slack app lets Standwise:
+The bot token of the Slack app lets Standcast:
 
 - look up a Slack user by email, to mention people in the digest;
 - list channels, to turn `#channel` into a channel id;
@@ -34,7 +34,7 @@ It does not read messages in any channel or conversation.
 
 ### Linear
 
-If an admin connects Linear, Standwise uses an OAuth app that acts as itself (`actor=app`) with the read-only scope `read`, for one Linear workspace per installation. It reads:
+If an admin connects Linear, Standcast uses an OAuth app that acts as itself (`actor=app`) with the read-only scope `read`, for one Linear workspace per installation. It reads:
 
 - for the person asking for the draft and for the card signals: the issue identifier, title, url, state type, started and completed dates, assignee, creator, the "blocks" relations and the team key;
 - to route a card blocker: the assignee and the creator of the referenced card, and the assignees of the cards blocking it, only to find who to notify;
@@ -44,13 +44,13 @@ It never reads descriptions or comments, and it never writes to Linear. Cards fr
 
 ### Jira <Badge type="info" text="coming soon" />
 
-Standwise does not connect to Jira yet, so it reads nothing from it.
+Standcast does not connect to Jira yet, so it reads nothing from it.
 
-## What Standwise stores
+## What Standcast stores
 
 | Data | What is kept | Protection |
 | --- | --- | --- |
-| Installation | GitHub installation id, account login, type and id, configuration status, the parsed `standwise.yml` and its validation errors | |
+| Installation | GitHub installation id, account login, type and id, configuration status, the parsed `standcast.yml` and its validation errors | |
 | Person | GitHub user id, login and primary verified email | |
 | Organization membership | Which installations each person belongs to | |
 | Slack identity | The Slack user id of each person, per installation | |
@@ -61,14 +61,23 @@ Standwise does not connect to Jira yet, so it reads nothing from it.
 | Dailies | Date, submission time, the yesterday, today and blocker items with their links, and whether the person (`human`) or the agent (`agent`) confirmed it | |
 | Suggestions | For each suggested blocker: the pull request link and title (or the card link and title), the kind, when it was noticed and your decision | Visible only to you |
 | Deliveries | For each digest, late daily, reminder and routed blocker: team, date, status, attempts, the Slack channel and message id, and the error if it failed | |
-| API keys | Name, the first 8 characters after `swk_`, scopes, who created it, creation, last use and revocation times | Only a SHA-256 hash of the secret |
+| API keys | Name, the first 8 characters after `sck_`, scopes, who created it, creation, last use and revocation times | Only a SHA-256 hash of the secret |
 | Webhook endpoints | URL, events, status and failure count | Signing secret encrypted with AES-256-GCM |
 | Webhook deliveries | The event payload sent (which can contain daily text), status, attempts, last response code or error | |
 | Rate limits | A counter per credential or IP address per minute | Rows are deleted after about 10 minutes |
 
 The GitHub token from your login is used once to identify you and is not stored. Encryption keys live in the server environment, not in the database.
 
-## What Standwise never does
+## Beta requests
+
+When someone asks for beta access on the Standcast landing page, the form collects a name, a work email, the team size, the chat and the tracker the team uses, and the language of the page. This is separate from installing the app and from the data above.
+
+- **Why:** to contact the team after they install, and to check it is going well.
+- **Where it goes:** it is stored by Standcast and emailed to the Standcast support inbox through Resend, an email provider. It is never shared otherwise.
+- **How long:** it is deleted 12 months after the request.
+- **Earlier deletion:** email <SupportEmail /> and the request is deleted sooner.
+
+## What Standcast never does
 
 - Sends a daily without the person's explicit confirmation.
 - Shows anyone a draft or a suggestion that the person did not confirm.
@@ -77,7 +86,7 @@ The GitHub token from your login is used once to identify you and is not stored.
 - Reads your code, your Slack messages or your direct messages.
 - Writes to your repositories.
 - Sends your data to an AI model.
-- Sells or shares your data with third parties.
+- Sells your data, or shares it with anyone other than the providers that run the service (such as Resend, for beta request emails).
 
 ## Who sees what
 
@@ -93,7 +102,7 @@ The GitHub token from your login is used once to identify you and is not stored.
 
 ## Retention
 
-Standwise does not delete dailies on a schedule today. Dailies and digest deliveries stay while the app is installed. Some data is removed automatically:
+Standcast does not delete dailies on a schedule today. Dailies and digest deliveries stay while the app is installed. Some data is removed automatically:
 
 - outgoing webhook delivery logs: after 30 days;
 - expired sessions: removed;
@@ -106,8 +115,8 @@ CLI sessions stop working after 90 days without use, and web sessions after 7 da
 
 ## Removing your data
 
-- **Uninstall the GitHub App.** Standwise deletes the installation and everything that belongs to it: configuration, dailies, deliveries, Slack connection and identities, API keys, webhook endpoints and their deliveries.
-- **Sign out.** `standwise logout` revokes your CLI session on the server and deletes the local credentials file.
+- **Uninstall the GitHub App.** Standcast deletes the installation and everything that belongs to it: configuration, dailies, deliveries, Slack connection and identities, API keys, webhook endpoints and their deliveries.
+- **Sign out.** `standcast logout` revokes your CLI session on the server and deletes the local credentials file.
 - **Your person record.** Your GitHub user id, login and email are not tied to one installation, so uninstalling does not remove them. To delete them, email support.
 
 ## Contact

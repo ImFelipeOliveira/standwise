@@ -4,7 +4,8 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "standwise",
+      "package-name": "standcast",
+      "last-release-sha": "1ad41e9dd15df36a5de09409f4159c23c5d483f1",
       "changelog-sections": [
         {
           "type": "feat",

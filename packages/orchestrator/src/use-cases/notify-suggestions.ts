@@ -2,9 +2,9 @@ import {
   buildSuggestionDm,
   localDate,
   type Message,
-  type StandwiseConfig,
+  type StandcastConfig,
   type TeamConfig,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -12,7 +12,7 @@ import {
   failDelivery,
   markSuggestionNotified,
   type SuggestionRow,
-} from '@standwise/db';
+} from '@standcast/db';
 import { chatUserIdFor, forgetStaleChatIdentity } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
@@ -22,7 +22,7 @@ export const CI_FAILING_HOURS = 24;
 
 export type NotifySuggestionsInput = {
   installationId: number;
-  config: StandwiseConfig;
+  config: StandcastConfig;
   memberId: string;
   login: string;
   team: TeamConfig;

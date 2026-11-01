@@ -3,7 +3,7 @@ import {
   getInstallation,
   operationalConfig,
   upsertInstallation,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { logError } from '../log-error';
 import { enqueueLoadConfig } from './load-installation-config';

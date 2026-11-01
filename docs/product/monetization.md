@@ -1,9 +1,9 @@
-# Standwise — Monetização
+# Standcast — Monetização
 
 > Status: **direção, não decisão final** · 2026-10-28 · Dono: Felipe Oliveira
 > Público: pessoas e agentes de IA trabalhando neste repositório. Leia antes de propor
 > planos, limites, paywalls, tabelas de billing ou qualquer recurso "premium".
-> Relacionado: `docs/superpowers/specs/2026-10-27-standwise-design.md` (§3 anti-objetivos, §7 hospedagem, §8 faseamento).
+> Relacionado: `docs/superpowers/specs/2026-10-27-standcast-design.md` (§3 anti-objetivos, §7 hospedagem, §8 faseamento).
 
 ## Modelo
 
@@ -17,7 +17,7 @@ GitHub App, Slack App e Google Chat app. O valor está em ninguém precisar oper
 |---|---|---|---|
 | Grátis | times pequenos, adoção inicial | US$ 0 | até 5 pessoas, 1 time, histórico de 30 dias, Slack + Linear |
 | Pago | organizações | US$ 2–4 por pessoa **ativa**/mês | vários times e organizações, histórico além de 30 dias com busca, painel web (tendências do time, edição de config por PR), Jira, Google Chat, depois Teams, mais sinais de impedimento sugerido e roteamento avançado |
-| (fase 2) Análise com IA | organizações no plano pago | incluso no Pago (BYOK); opção com chave do Standwise a definir | classificação de impedimentos, PRs/branches que precisam de atenção e dependências, com relatórios no Slack, Google Chat e Linear/Jira (spec §8.1) |
+| (fase 2) Análise com IA | organizações no plano pago | incluso no Pago (BYOK); opção com chave do Standcast a definir | classificação de impedimentos, PRs/branches que precisam de atenção e dependências, com relatórios no Slack, Google Chat e Linear/Jira (spec §8.1) |
 | Empresarial | contratos maiores | negociado | SSO, retenção configurável, auditoria, DPA/LGPD, suporte com SLA |
 
 Referência de mercado: Geekbot, DailyBot e Range custam ~US$ 2,50–4 por usuário/mês.

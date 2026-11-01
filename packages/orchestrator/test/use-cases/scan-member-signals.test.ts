@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { type PullRequestSnapshot, parseConfig, type StandwiseConfig } from '@standwise/core';
+import { type PullRequestSnapshot, parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   decideSuggestion,
   deleteIdentityByLogin,
@@ -11,9 +11,9 @@ import {
   saveConnection,
   setIdentity,
   setMemberInstallations,
-} from '@standwise/db';
-import { GitHubRateLimitError } from '@standwise/github';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { GitHubRateLimitError } from '@standcast/github';
+import { ChatDeliveryError } from '@standcast/slack';
 import { suggestions } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { nullTracker, scanMemberSignals } from '../../src';
@@ -32,7 +32,7 @@ function teamConfig(
   members = '[alice, bob]',
   tracker = '',
   staleDays = 5,
-): StandwiseConfig {
+): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha

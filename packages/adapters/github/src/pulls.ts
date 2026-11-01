@@ -1,5 +1,5 @@
 import type { Octokit } from '@octokit/core';
-import type { GitHubPullRef, PullRequestSnapshot } from '@standwise/core';
+import type { GitHubPullRef, PullRequestSnapshot } from '@standcast/core';
 import { asRateLimitError, httpStatus } from './errors';
 
 const PER_PAGE = 100;

@@ -1,5 +1,5 @@
 {
-  "name": "@standwise/slack",
+  "name": "@standcast/slack",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
   "types": "src/index.ts",
   "dependencies": {
     "@slack/web-api": "^8.2.0",
-    "@standwise/core": "workspace:*"
+    "@standcast/core": "workspace:*"
   }
 }

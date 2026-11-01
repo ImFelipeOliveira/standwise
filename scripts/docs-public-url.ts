@@ -1,4 +1,4 @@
-export const CANONICAL_PUBLIC_URL = 'https://api.standwise.dev';
+export const CANONICAL_PUBLIC_URL = 'https://api.standcast.app';
 
 export type UrlToken = {
   type: string;
@@ -16,13 +16,13 @@ export function resolvePublicUrl(value: string | undefined): string {
   try {
     url = new URL(value);
   } catch {
-    throw new Error(`STANDWISE_PUBLIC_URL is not a valid URL: ${value}`);
+    throw new Error(`STANDCAST_PUBLIC_URL is not a valid URL: ${value}`);
   }
   if (url.protocol !== 'https:') {
-    throw new Error(`STANDWISE_PUBLIC_URL must use https: ${value}`);
+    throw new Error(`STANDCAST_PUBLIC_URL must use https: ${value}`);
   }
   if (value.endsWith('/')) {
-    throw new Error(`STANDWISE_PUBLIC_URL must not end with a slash: ${value}`);
+    throw new Error(`STANDCAST_PUBLIC_URL must not end with a slash: ${value}`);
   }
   return value;
 }
@@ -45,7 +45,7 @@ export function rewritePublicUrl(tokens: UrlToken[], publicUrl: string): void {
 
 export function publicUrlPlugin(publicUrl: string) {
   return (md: { core: { ruler: CoreRuler } }): void => {
-    md.core.ruler.push('standwise_public_url', (state) =>
+    md.core.ruler.push('standcast_public_url', (state) =>
       rewritePublicUrl(state.tokens, publicUrl),
     );
   };

@@ -1,11 +1,11 @@
-import type { DailyConfirmation, DailySubmission } from '@standwise/core';
+import type { DailyConfirmation, DailySubmission } from '@standcast/core';
 
 import { resolveDefaultApiUrl } from './default-api-url';
 
-declare const STANDWISE_DEFAULT_API_URL: string | undefined;
+declare const STANDCAST_DEFAULT_API_URL: string | undefined;
 
 export const DEFAULT_API_URL = resolveDefaultApiUrl(
-  typeof STANDWISE_DEFAULT_API_URL === 'string' ? STANDWISE_DEFAULT_API_URL : undefined,
+  typeof STANDCAST_DEFAULT_API_URL === 'string' ? STANDCAST_DEFAULT_API_URL : undefined,
 );
 
 export class ApiError extends Error {
@@ -83,7 +83,7 @@ export const postDaily = (
     method: 'POST',
     token,
     body: daily,
-    headers: confirmation ? { 'x-standwise-confirmation': confirmation } : {},
+    headers: confirmation ? { 'x-standcast-confirmation': confirmation } : {},
   });
 
 export type SuggestionDecision = 'confirmed' | 'ignored';

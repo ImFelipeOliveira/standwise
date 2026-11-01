@@ -6,7 +6,7 @@ import {
   revokeSession,
   setMemberInstallations,
   upsertMember,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { rememberGitHubInstallations } from '../github-installations';
 import { linkChatIdentities } from '../identity';

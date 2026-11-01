@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { parseConfig, type Ref, type StandwiseConfig } from '@standwise/core';
-import { getConnection, saveConnection, setIdentity, upsertMember } from '@standwise/db';
-import { LinearAuthError } from '@standwise/linear';
+import { parseConfig, type Ref, type StandcastConfig } from '@standcast/core';
+import { getConnection, saveConnection, setIdentity, upsertMember } from '@standcast/db';
+import { LinearAuthError } from '@standcast/linear';
 import { db, useCleanDb } from '../../db/test/setup';
 import { nullTracker, type ProjectTracker } from '../src';
 import { fakeDeps, INST, seedOrg } from './use-cases/fakes';
@@ -61,7 +61,7 @@ function issue(overrides: Record<string, unknown> = {}) {
 
 const card = (url = 'https://linear.app/acme/issue/ENG-1/fix'): Ref => ({ kind: 'card', url });
 
-async function setup(cfg: StandwiseConfig = trackerConfig(), connected = true) {
+async function setup(cfg: StandcastConfig = trackerConfig(), connected = true) {
   await seedOrg(cfg);
   if (connected) await connect();
   const fake = fakeDeps();
@@ -74,7 +74,7 @@ async function setup(cfg: StandwiseConfig = trackerConfig(), connected = true) {
       truncatedTeams: [],
     };
   };
-  const team = cfg.teams[0] as StandwiseConfig['teams'][number];
+  const team = cfg.teams[0] as StandcastConfig['teams'][number];
   const build = (): Promise<ProjectTracker> => fake.deps.trackerFor(INST, 'acme', cfg, team);
   return { ...fake, cfg, build, resolved };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -15,17 +15,17 @@ import {
   syncSuggestions,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
-import { type Deps, nullTracker } from '@standwise/orchestrator';
-import { createMemoryQueue } from '@standwise/queue';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { type Deps, nullTracker } from '@standcast/orchestrator';
+import { createMemoryQueue } from '@standcast/queue';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { createApp } from '../src/app';
 
 const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
 
-function config(extra = ''): StandwiseConfig {
+function config(extra = ''): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -40,7 +40,7 @@ ${extra}`);
   return parsed.config;
 }
 
-function outsider(): StandwiseConfig {
+function outsider(): StandcastConfig {
   const base = config();
   return { ...base, teams: base.teams.map((t) => ({ ...t, members: ['zed'] })) };
 }
@@ -146,6 +146,7 @@ function harness(
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
       docsUrl: 'https://docs.sw.test',
+      landingUrl: 'https://landing.sw.test',
       githubClientId: 'cid',
       githubClientSecret: 'secret',
       sessionSecret: 'sess',
@@ -169,7 +170,7 @@ function harness(
   };
 }
 
-async function seed(cfg: StandwiseConfig | null = config()): Promise<void> {
+async function seed(cfg: StandcastConfig | null = config()): Promise<void> {
   await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
   await setInstallationConfig(
     db,
@@ -231,7 +232,7 @@ describe('sessions', () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { token: string; login: string; orgs: unknown[] };
-    expect(body.token.startsWith('sw_')).toBe(true);
+    expect(body.token.startsWith('sc_')).toBe(true);
     expect(body.login).toBe('Alice');
     expect(body.orgs).toEqual([{ installationId: INST, login: 'acme' }]);
     expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U9');
@@ -244,7 +245,7 @@ describe('sessions', () => {
     expect((await getIdentities(db, INST, 'slack')).get('alice')).toBe('U0CONF');
   });
 
-  test('sessions link slack with the last valid config while standwise.yml is invalid', async () => {
+  test('sessions link slack with the last valid config while standcast.yml is invalid', async () => {
     await seed();
     await setInstallationConfig(db, INST, {
       status: 'invalid',
@@ -427,7 +428,7 @@ describe('draft', () => {
     );
   });
 
-  test('draft and submit use the last valid config while standwise.yml is invalid', async () => {
+  test('draft and submit use the last valid config while standcast.yml is invalid', async () => {
     await seed();
     await setInstallationConfig(db, INST, {
       status: 'invalid',
@@ -457,7 +458,7 @@ describe('draft', () => {
     );
   });
 
-  test('draft is not configured when standwise.yml was never valid', async () => {
+  test('draft is not configured when standcast.yml was never valid', async () => {
     await seed(null);
     await setInstallationConfig(db, INST, {
       status: 'invalid',
@@ -519,7 +520,7 @@ describe('dailies', () => {
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
-          ...(value ? { 'x-standwise-confirmation': value } : {}),
+          ...(value ? { 'x-standcast-confirmation': value } : {}),
         },
         body: JSON.stringify(daily),
       });
@@ -600,7 +601,7 @@ describe('dailies', () => {
 
   test('submit requires auth', async () => {
     const h = harness();
-    expect((await post(h, 'sw_nope', daily)).status).toBe(401);
+    expect((await post(h, 'sc_nope', daily)).status).toBe(401);
   });
 
   test('submit replaces same day', async () => {

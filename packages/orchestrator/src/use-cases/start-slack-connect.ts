@@ -1,5 +1,5 @@
-import type { MemberRow } from '@standwise/db';
-import { slackAuthorizeUrl } from '@standwise/slack';
+import type { MemberRow } from '@standcast/db';
+import { slackAuthorizeUrl } from '@standcast/slack';
 import type { Deps } from '../deps';
 import { hashSessionToken, signState } from '../state-token';
 import type { MembershipCheck } from './org-context';

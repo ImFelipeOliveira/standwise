@@ -1,10 +1,10 @@
 # Slack
 
-Standwise posts each team's digest to a Slack channel. One Slack workspace is connected per installation.
+Standcast posts each team's digest to a Slack channel. One Slack workspace is connected per installation.
 
 ## Connect
 
-Only an organization admin can connect or reconnect Slack: a GitHub organization admin, or the account owner for a personal account. Standwise checks the role with GitHub when the connection starts and again when Slack sends the admin back. Other members see the connection on the setup page read-only.
+Only an organization admin can connect or reconnect Slack: a GitHub organization admin, or the account owner for a personal account. Standcast checks the role with GitHub when the connection starts and again when Slack sends the admin back. Other members see the connection on the setup page read-only.
 
 On the setup page, click **Connect Slack** and approve the app. The Slack step then shows "Connected to" and the workspace name.
 
@@ -22,33 +22,33 @@ To connect again, for example after the app was removed from Slack or to move th
 | `users:read.email` | Find a person's Slack user by their email, to mention them |
 | `im:write` | Send direct messages: reminders, routed blockers and suggested blockers |
 
-Standwise does not read messages.
+Standcast does not read messages.
 
 ## Channels
 
-Set the channel in `standwise.yml` under `chat.channel`:
+Set the channel in `standcast.yml` under `chat.channel`:
 
 - `"#daily-backend"`: a channel name. Quote it.
 - `C0123456789`: a channel id. In Slack, open the channel details; the id is at the bottom.
 
 **Public channels** work right away: the bot posts without being invited.
 
-**Private channels** need the bot as a member. In the channel, run `/invite` and pick the Standwise app, or add it from the channel details under **Integrations**. Until then, the digest fails with `channel_not_found`.
+**Private channels** need the bot as a member. In the channel, run `/invite` and pick the Standcast app, or add it from the channel details under **Integrations**. Until then, the digest fails with `channel_not_found`.
 
 Archived channels are not found.
 
 ## How people are mentioned
 
-The digest mentions each person with their Slack user when Standwise knows it, and shows `@` followed by their GitHub login as plain text otherwise. A person is linked to their Slack user when they sign in (with `standwise login` or on the setup page), if Slack is already connected and `standwise.yml` has a valid version:
+The digest mentions each person with their Slack user when Standcast knows it, and shows `@` followed by their GitHub login as plain text otherwise. A person is linked to their Slack user when they sign in (with `standcast login` or on the setup page), if Slack is already connected and `standcast.yml` has a valid version:
 
-1. If `standwise.yml` has `members.<login>.slack`, that id is used.
-2. Otherwise, Standwise looks up the Slack user with the primary verified email of the person's GitHub account.
+1. If `standcast.yml` has `members.<login>.slack`, that id is used.
+2. Otherwise, Standcast looks up the Slack user with the primary verified email of the person's GitHub account.
 
 If neither works, the digest still goes out with `@login`. To fix it, see [My name shows as @login](/troubleshooting#my-name-shows-as-login).
 
 ## Delivery errors
 
-When a post fails, the setup page lists it under "Latest failed deliveries" with the team, the date and the error as `code: message`. Standwise tries each message up to 3 times in total. A digest is retried only within 120 minutes after `digest_at`. A reminder is sent at most 60 minutes late and never at or after `digest_at`.
+When a post fails, the setup page lists it under "Latest failed deliveries" with the team, the date and the error as `code: message`. Standcast tries each message up to 3 times in total. A digest is retried only within 120 minutes after `digest_at`. A reminder is sent at most 60 minutes late and never at or after `digest_at`.
 
 | Error code | Meaning | Fix |
 | --- | --- | --- |
@@ -56,10 +56,10 @@ When a post fails, the setup page lists it under "Latest failed deliveries" with
 | `not_in_channel` | The bot is not a member of the channel. | Invite the bot to the channel. |
 | `is_archived` | The channel is archived. | Unarchive it or pick another channel. |
 | `invalid_auth`, `token_revoked`, `account_inactive` | The Slack token no longer works, usually because the app was removed from the workspace. | An admin clicks **Reconnect Slack**. |
-| `missing_scope` | The token lacks a permission Standwise needs. | An admin clicks **Reconnect Slack** and approves all permissions. |
-| `ratelimited` | Slack asked Standwise to slow down. | Nothing to do; it is retried. |
+| `missing_scope` | The token lacks a permission Standcast needs. | An admin clicks **Reconnect Slack** and approves all permissions. |
+| `ratelimited` | Slack asked Standcast to slow down. | Nothing to do; it is retried. |
 | `no_chat_connection` | Slack is not connected for this installation. | An admin clicks **Connect Slack** on the setup page. |
-| `no_chat_identity` | A reminder or routed blocker could not be sent because the person, or the manager it fell back to, has no Slack user. The setup page shows their login. | Ask the person to run `standwise login` after Slack is connected, or add `members.<login>.slack` to `standwise.yml`. |
+| `no_chat_identity` | A reminder or routed blocker could not be sent because the person, or the manager it fell back to, has no Slack user. The setup page shows their login. | Ask the person to run `standcast login` after Slack is connected, or add `members.<login>.slack` to `standcast.yml`. |
 | `no_route_target` | A blocker was reported but there was no recipient at all, for example because the author is the team's only manager. | Add another manager to the team. |
 | `unsupported_provider` | The team uses `chat.provider: google-chat`, which is coming soon. | Use `slack`. |
 | `worker_died` | The worker stopped three times while sending. | Contact support if it repeats. |

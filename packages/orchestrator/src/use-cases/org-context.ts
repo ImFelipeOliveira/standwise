@@ -1,11 +1,11 @@
-import { dailyDateFor, type ResolvedTeam, teamsForMember } from '@standwise/core';
+import { dailyDateFor, type ResolvedTeam, teamsForMember } from '@standcast/core';
 import {
   getInstallation,
   listMemberInstallations,
   type MemberRow,
   operationalConfig,
   removeMemberInstallation,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import type { createMembershipCheck } from '../membership';
 import { resolveTeams } from '../teams';

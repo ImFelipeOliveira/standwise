@@ -85,6 +85,13 @@
       "when": 1793408242039,
       "tag": "0011_rich_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793561111636,
+      "tag": "0012_bright_hiroim",
+      "breakpoints": true
     }
   ]
 }

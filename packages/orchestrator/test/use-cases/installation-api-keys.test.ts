@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createApiKey, listApiKeys, resolveApiKey, setMemberInstallations } from '@standwise/db';
+import { createApiKey, listApiKeys, resolveApiKey, setMemberInstallations } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   createInstallationApiKey,
@@ -36,7 +36,7 @@ describe('createInstallationApiKey', () => {
       name: '  CI  ',
       scopes: ['teams:read', 'dailies:read', 'teams:read'],
     });
-    expect(key).toStartWith('swk_');
+    expect(key).toStartWith('sck_');
     expect(await resolveApiKey(db, key)).toEqual({
       id,
       installationId: INST,

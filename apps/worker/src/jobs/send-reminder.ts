@@ -1,4 +1,4 @@
-import { sendReminder, type WorkerDeps } from '@standwise/orchestrator';
+import { sendReminder, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({

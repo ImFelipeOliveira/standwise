@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Deps } from '@standwise/orchestrator';
+import type { Deps } from '@standcast/orchestrator';
 import { db } from '../../../packages/db/test/setup';
 import { gracefulShutdown } from '../src/shutdown';
 import { createTestApp } from './support';

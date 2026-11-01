@@ -1,4 +1,4 @@
-import { buildLateDaily, type MessageRef, teamsForMember } from '@standwise/core';
+import { buildLateDaily, type MessageRef, teamsForMember } from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -9,7 +9,7 @@ import {
   getMemberById,
   listDailies,
   operationalConfig,
-} from '@standwise/db';
+} from '@standcast/db';
 import { chatUserIdFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';

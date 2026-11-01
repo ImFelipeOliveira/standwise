@@ -1,4 +1,4 @@
-import { routeBlocker, type WorkerDeps } from '@standwise/orchestrator';
+import { routeBlocker, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({

@@ -1,4 +1,4 @@
-import { pruneData, type WorkerDeps } from '@standwise/orchestrator';
+import { pruneData, type WorkerDeps } from '@standcast/orchestrator';
 
 export function pruneDataJob(deps: WorkerDeps): () => Promise<void> {
   return async () => {

@@ -8,12 +8,12 @@ const OVERVIEW_PAGE = 'index.md';
 const IGNORED_DIRS = new Set(['.vitepress', 'public', 'node_modules']);
 
 const OVERVIEW_SECTIONS: Record<string, string[]> = {
-  [OVERVIEW_PAGE]: ['What it is', 'Who it is for', 'How it works', 'What Standwise does not do'],
+  [OVERVIEW_PAGE]: ['What it is', 'Who it is for', 'How it works', 'What Standcast does not do'],
   [`${PT_BR}/${OVERVIEW_PAGE}`]: [
     'O que é',
     'Para quem é',
     'Como funciona',
-    'O que o Standwise não faz',
+    'O que o Standcast não faz',
   ],
 };
 
@@ -136,8 +136,8 @@ export async function checkRootLinks(siteDir: string): Promise<string[]> {
   return problems;
 }
 
-const CANONICAL_INSTALL_URL = 'https://api.standwise.dev/install.sh';
-export const PUBLISHED_INSTALL_URL = 'https://api-standwise.usefachada.dev/install.sh';
+const CANONICAL_INSTALL_URL = 'https://api.standcast.app/install.sh';
+export const PUBLISHED_INSTALL_URL = 'https://api-standcast.usefachada.dev/install.sh';
 const PUBLISHED_FILES = ['README.md', 'packages/plugin/skills/daily/SKILL.md'];
 
 async function markdownFiles(dir: string): Promise<string[]> {
@@ -160,7 +160,7 @@ export function installUrlProblems(
       problems.push(`${file}: install url must be ${expected}, found ${match[0]}`);
     }
   }
-  if (text.includes('<standwise-host>')) problems.push(`${file}: placeholder <standwise-host>`);
+  if (text.includes('<standcast-host>')) problems.push(`${file}: placeholder <standcast-host>`);
   return problems;
 }
 

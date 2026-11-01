@@ -1,6 +1,6 @@
-import type { Language } from '@standwise/core';
+import type { Language } from '@standcast/core';
 
-export function standwiseYmlTemplate(login: string, teamName: string, lang: Language): string {
+export function standcastYmlTemplate(login: string, teamName: string, lang: Language): string {
   return `teams:
   - name: ${teamName}
     language: ${lang}
@@ -16,7 +16,7 @@ export function standwiseYmlTemplate(login: string, teamName: string, lang: Lang
 }
 
 export function newConfigFileUrl(owner: string, branch: string, template: string): string {
-  return `https://github.com/${encodeURIComponent(owner)}/.github/new/${encodeURIComponent(branch)}?filename=standwise.yml&value=${encodeURIComponent(template)}`;
+  return `https://github.com/${encodeURIComponent(owner)}/.github/new/${encodeURIComponent(branch)}?filename=standcast.yml&value=${encodeURIComponent(template)}`;
 }
 
 export function newConfigRepoUrl(): string {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getIdentities, saveConnection, setIdentity } from '@standwise/db';
+import { getIdentities, saveConnection, setIdentity } from '@standcast/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import { forgetChatIdentity, linkChatIdentities } from '../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './use-cases/fakes';

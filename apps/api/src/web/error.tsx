@@ -1,4 +1,4 @@
-import { type Language, type MessageKey, t as translate } from '@standwise/core';
+import { type Language, type MessageKey, t as translate } from '@standcast/core';
 import { Layout } from './layout';
 import { ButtonLink, Card, Icon, type IconName } from './ui';
 

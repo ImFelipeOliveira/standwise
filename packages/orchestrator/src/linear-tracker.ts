@@ -2,10 +2,10 @@ import {
   type ActivityItem,
   parseLinearIssueUrl,
   type Ref,
-  type StandwiseConfig,
+  type StandcastConfig,
   type TeamConfig,
-} from '@standwise/core';
-import { getIdentityByLogin } from '@standwise/db';
+} from '@standcast/core';
+import { getIdentityByLogin } from '@standcast/db';
 import {
   getIssue,
   LinearAuthError,
@@ -13,7 +13,7 @@ import {
   type LinearUser,
   listCardActivity,
   listStaleInProgress,
-} from '@standwise/linear';
+} from '@standcast/linear';
 import type { Deps } from './deps';
 import { type LinearAccess, type LinearAccessDeps, linearClientFor } from './linear-access';
 import { logError } from './log-error';
@@ -30,7 +30,7 @@ export type TrackerDeps = LinearAccessDeps & Pick<Deps, 'github'>;
 export type TrackerFor = (
   installationId: number,
   owner: string,
-  config: StandwiseConfig,
+  config: StandcastConfig,
   team: TeamConfig,
 ) => Promise<ProjectTracker>;
 
@@ -43,7 +43,7 @@ class LinearTracker implements ProjectTracker {
     private readonly access: LinearAccess,
     private readonly installationId: number,
     private readonly owner: string,
-    private readonly config: StandwiseConfig,
+    private readonly config: StandcastConfig,
     private readonly teamKey: string,
   ) {}
 

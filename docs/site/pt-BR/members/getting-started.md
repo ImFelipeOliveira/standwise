@@ -1,51 +1,51 @@
 # Primeiros passos
 
-Envie a sua primeira daily em poucos minutos. Antes de começar, o admin precisa ter [instalado o Standwise](/pt-BR/admin/install) e colocado você num time do `standwise.yml`.
+Envie a sua primeira daily em poucos minutos. Antes de começar, o admin precisa ter [instalado o Standcast](/pt-BR/admin/install) e colocado você num time do `standcast.yml`.
 
 ## 1. Instale a CLI
 
-A CLI `standwise` é um binário único. Ela também roda o servidor MCP e é o que a skill do Claude Code chama.
+A CLI `standcast` é um binário único. Ela também roda o servidor MCP e é o que a skill do Claude Code chama.
 
-Baixe o binário do seu sistema na [última release](https://github.com/ImFelipeOliveira/standwise/releases/latest):
+Baixe o binário do seu sistema na [última release](https://github.com/ImFelipeOliveira/standcast/releases/latest):
 
 | Sistema | Arquivo |
 | --- | --- |
-| macOS, Apple silicon | `standwise-bun-darwin-arm64` |
-| macOS, Intel | `standwise-bun-darwin-x64` |
-| Linux, x64 | `standwise-bun-linux-x64` |
-| Linux, ARM64 | `standwise-bun-linux-arm64` |
-| Windows, x64 | `standwise-bun-windows-x64.exe` |
+| macOS, Apple silicon | `standcast-bun-darwin-arm64` |
+| macOS, Intel | `standcast-bun-darwin-x64` |
+| Linux, x64 | `standcast-bun-linux-x64` |
+| Linux, ARM64 | `standcast-bun-linux-arm64` |
+| Windows, x64 | `standcast-bun-windows-x64.exe` |
 
-No macOS ou no Linux, coloque o binário no `PATH` com o nome `standwise`. Por exemplo, num Mac com Apple silicon:
+No macOS ou no Linux, coloque o binário no `PATH` com o nome `standcast`. Por exemplo, num Mac com Apple silicon:
 
 ```bash
 mkdir -p ~/.local/bin
-curl -fsSL -o ~/.local/bin/standwise \
-  https://github.com/ImFelipeOliveira/standwise/releases/latest/download/standwise-bun-darwin-arm64
-chmod +x ~/.local/bin/standwise
-standwise --version
+curl -fsSL -o ~/.local/bin/standcast \
+  https://github.com/ImFelipeOliveira/standcast/releases/latest/download/standcast-bun-darwin-arm64
+chmod +x ~/.local/bin/standcast
+standcast --version
 ```
 
-Cada release também traz um arquivo `SHA256SUMS` para conferir o download. Ou use o script de instalação, que baixa o binário certo, confere com o `SHA256SUMS` e instala em `~/.local/bin/standwise`:
+Cada release também traz um arquivo `SHA256SUMS` para conferir o download. Ou use o script de instalação, que baixa o binário certo, confere com o `SHA256SUMS` e instala em `~/.local/bin/standcast`:
 
 ```bash
-curl -fsSL https://api.standwise.dev/install.sh | sh
+curl -fsSL https://api.standcast.app/install.sh | sh
 ```
 
 ## 2. Entre
 
 ```bash
-standwise login
+standcast login
 ```
 
-A CLI mostra um código e abre o GitHub no navegador. Digite o código e autorize o Standwise. A CLI então mostra "Autenticado como" e o seu login.
+A CLI mostra um código e abre o GitHub no navegador. Digite o código e autorize o Standcast. A CLI então mostra "Autenticado como" e o seu login.
 
-Entrar também liga você ao seu usuário do Slack, para o consolidado poder mencionar você. Se o admin conectar o Slack ou mudar o `standwise.yml` depois que você entrou, rode `standwise login` de novo.
+Entrar também liga você ao seu usuário do Slack, para o consolidado poder mencionar você. Se o admin conectar o Slack ou mudar o `standcast.yml` depois que você entrou, rode `standcast login` de novo.
 
 Confira quem você é e para quais organizações pode escrever dailies:
 
 ```bash
-standwise whoami
+standcast whoami
 ```
 
 ```json
@@ -57,12 +57,12 @@ standwise whoami
 Escolha o jeito que combina com as suas ferramentas:
 
 - **Claude Code:** instale o plugin e rode `/daily`. Veja [Skill do Claude Code](/pt-BR/members/claude-code).
-- **Cursor, Codex, Claude Desktop, VS Code ou outro cliente MCP:** adicione o `standwise mcp` ao cliente e peça a sua daily. Veja [Servidor MCP](/pt-BR/members/mcp).
-- **Só o terminal:** use `standwise draft` e `standwise submit`. Veja [CLI](/pt-BR/members/cli).
+- **Cursor, Codex, Claude Desktop, VS Code ou outro cliente MCP:** adicione o `standcast mcp` ao cliente e peça a sua daily. Veja [Servidor MCP](/pt-BR/members/mcp).
+- **Só o terminal:** use `standcast draft` e `standcast submit`. Veja [CLI](/pt-BR/members/cli).
 
 Em todos os casos, o fluxo é o mesmo:
 
-1. O Standwise monta um rascunho do ontem a partir da sua atividade no GitHub desde a última daily, mais os seus cards do Linear se a sua organização conectou o Linear.
+1. O Standcast monta um rascunho do ontem a partir da sua atividade no GitHub desde a última daily, mais os seus cards do Linear se a sua organização conectou o Linear.
 2. Você corrige o ontem e escreve o hoje e os impedimentos.
 3. Você vê a daily final e confirma. Nada é enviado antes disso.
 

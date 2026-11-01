@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { getInstallation, upsertInstallation } from '@standwise/db';
+import { getInstallation, upsertInstallation } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { handleGitHubEvent, loadConfig, scanMemberSignals } from '../../src';
 import { config, fakeDeps, seedOrg } from './fakes';
@@ -89,14 +89,14 @@ describe('handleGitHubEvent', () => {
     expect(queue.enqueued).toEqual([]);
   });
 
-  test('push touching standwise.yml on the default branch validates and loads', async () => {
+  test('push touching standcast.yml on the default branch validates and loads', async () => {
     await upsertInstallation(db, { id: INST, accountLogin: 'acme', accountType: 'Organization' });
     const { deps, calls, queue } = fakeDeps({ source: { found: true, source: VALID } });
     noGitHub(deps);
     await handleGitHubEvent(
       deps,
       'push',
-      push('.github', 'refs/heads/main', { added: ['standwise.yml'] }),
+      push('.github', 'refs/heads/main', { added: ['standcast.yml'] }),
     );
     expect(calls.config).toEqual([]);
     expect(configJobs(queue)).toEqual([
@@ -115,7 +115,7 @@ describe('handleGitHubEvent', () => {
     await handleGitHubEvent(
       deps,
       'push',
-      push('.github', 'refs/heads/feature', { modified: ['standwise.yml'] }),
+      push('.github', 'refs/heads/feature', { modified: ['standcast.yml'] }),
     );
     expect(configJobs(queue)).toEqual([
       {
@@ -167,29 +167,29 @@ describe('handleGitHubEvent', () => {
     await handleGitHubEvent(
       deps,
       'push',
-      push('app', 'refs/heads/main', { modified: ['standwise.yml'] }),
+      push('app', 'refs/heads/main', { modified: ['standcast.yml'] }),
     );
     await handleGitHubEvent(
       deps,
       'push',
       push('.github', 'refs/heads/dev', { modified: ['README.md'] }),
     );
-    const ownerless = push('.github', 'refs/heads/main', { modified: ['standwise.yml'] });
+    const ownerless = push('.github', 'refs/heads/main', { modified: ['standcast.yml'] });
     await handleGitHubEvent(deps, 'push', {
       ...ownerless,
       repository: { name: '.github', default_branch: 'main' },
     });
-    const foreign = push('.github', 'refs/heads/main', { modified: ['standwise.yml'] });
+    const foreign = push('.github', 'refs/heads/main', { modified: ['standcast.yml'] });
     await handleGitHubEvent(deps, 'push', {
       ...foreign,
       repository: { ...foreign.repository, owner: { login: 'evil' } },
     });
     await handleGitHubEvent(deps, 'push', {
-      ...push('.github', 'refs/heads/main', { modified: ['standwise.yml'] }),
+      ...push('.github', 'refs/heads/main', { modified: ['standcast.yml'] }),
       deleted: true,
     });
     await handleGitHubEvent(deps, 'push', {
-      ...push('.github', 'refs/heads/main', { modified: ['standwise.yml'] }),
+      ...push('.github', 'refs/heads/main', { modified: ['standcast.yml'] }),
       installation: { id: 404 },
     });
     expect(calls.config).toEqual([]);

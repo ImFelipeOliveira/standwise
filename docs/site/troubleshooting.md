@@ -8,7 +8,7 @@ Reminders go only to people who have not sent the daily, at most once per day, a
 
 ## `no_chat_identity`
 
-Standwise has no Slack user for you, so it cannot send you a reminder or a routed blocker. The failed delivery shows on the setup page. Sign in again with `standwise login` after Slack was connected, or ask your admin to add `members.<your-login>.slack` to `standwise.yml`. See [My name shows as @login](#my-name-shows-as-login).
+Standcast has no Slack user for you, so it cannot send you a reminder or a routed blocker. The failed delivery shows on the setup page. Sign in again with `standcast login` after Slack was connected, or ask your admin to add `members.<your-login>.slack` to `standcast.yml`. See [My name shows as @login](#my-name-shows-as-login).
 
 ## `no_route_target`
 
@@ -23,23 +23,23 @@ A blocker was reported but there was nobody to send it to at all. This happens, 
 
 ## My name shows as @login
 
-The digest shows `@` and your GitHub login, as plain text, when Standwise does not know your Slack user. Your Slack user is linked when you sign in, so check:
+The digest shows `@` and your GitHub login, as plain text, when Standcast does not know your Slack user. Your Slack user is linked when you sign in, so check:
 
-1. **You signed in after Slack was connected.** Run `standwise login` again.
-2. **`standwise.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standwise login` again after it is fixed.
-3. **Your emails match.** Standwise looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standwise.yml` (see [Identity mapping](/admin/configuration#identity-mapping)). The mapping is used from the next digest on.
+1. **You signed in after Slack was connected.** Run `standcast login` again.
+2. **`standcast.yml` had a valid version when you signed in.** If it was missing or had never been valid, run `standcast login` again after it is fixed.
+3. **Your emails match.** Standcast looks up your Slack user by the primary verified email of your GitHub account. If your Slack account uses another email, ask your admin to add `members.<your-login>.slack` with your Slack member id to `standcast.yml` (see [Identity mapping](/admin/configuration#identity-mapping)). The mapping is used from the next digest on.
 
 ## The setup page shows a notice about a GitHub team
 
-The notice says that a GitHub team named in `standwise.yml` was not found, or is too large. For a team that was not found, check the name in `members` and that the GitHub App has the **Members** organization permission, which an owner of the organization must approve. For a team that is too large, only the first 5,000 members are used; list the rest by login. The notice goes away once the next configuration load no longer finds the problem.
+The notice says that a GitHub team named in `standcast.yml` was not found, or is too large. For a team that was not found, check the name in `members` and that the GitHub App has the **Members** organization permission, which an owner of the organization must approve. For a team that is too large, only the first 5,000 members are used; list the rest by login. The notice goes away once the next configuration load no longer finds the problem.
 
 ## How do I sign out of the setup page?
 
-Use **Sign out** at the top of the setup page. It ends the web session on the server. The CLI session is separate: run `standwise logout`.
+Use **Sign out** at the top of the setup page. It ends the web session on the server. The CLI session is separate: run `standcast logout`.
 
 ## Slack stopped finding me
 
-When Slack answers `user_not_found` or `user_disabled` for a person, Standwise removes the stored Slack identity automatically, so it does not keep sending messages to the wrong place. Sign in again with `standwise login` to link your current Slack user.
+When Slack answers `user_not_found` or `user_disabled` for a person, Standcast removes the stored Slack identity automatically, so it does not keep sending messages to the wrong place. Sign in again with `standcast login` to link your current Slack user.
 
 ## The setup page says the Linear connection stopped working
 
@@ -48,15 +48,15 @@ The setup page says that the connection to your Linear workspace "stopped workin
 ## My cards do not show in the draft
 
 1. **Linear is connected.** Check the setup page. If it says the connection to the workspace "stopped working", ask an admin to reconnect. The **Reconnect Linear** button is always there for admins, so its presence alone does not mean anything is wrong.
-2. **Your first team uses Linear.** Cards come from the tracker of your first team in `standwise.yml`, the first one that lists you. Check `tracker: { provider: linear, team: <KEY> }` on that team. The team key limits the cards to that Linear team.
-3. **You are linked to your Linear user.** Standwise uses `members.<your-login>.linear` (an email) or, without it, your primary verified GitHub email. If your Linear email is different, ask your admin to set `members.<your-login>.linear`. Links are made when you sign in after Linear is connected, so run `standwise login` again.
+2. **Your first team uses Linear.** Cards come from the tracker of your first team in `standcast.yml`, the first one that lists you. Check `tracker: { provider: linear, team: <KEY> }` on that team. The team key limits the cards to that Linear team.
+3. **You are linked to your Linear user.** Standcast uses `members.<your-login>.linear` (an email) or, without it, your primary verified GitHub email. If your Linear email is different, ask your admin to set `members.<your-login>.linear`. Links are made when you sign in after Linear is connected, so run `standcast login` again.
 4. **The card moved in the window.** Only cards you own that moved to in progress, or were completed, since your last daily show up. Cards from another Linear workspace are never read.
 
 ## The digest did not arrive
 
 Open the setup page and check, in order:
 
-1. **The configuration state.** If it is not configured, or invalid with no valid version in use, Standwise does not run. If it is invalid after a valid version, Standwise keeps using the last valid version, so a change you just pushed is not applied yet. See [Configuration states](/admin/install#configuration-states).
+1. **The configuration state.** If it is not configured, or invalid with no valid version in use, Standcast does not run. If it is invalid after a valid version, Standcast keeps using the last valid version, so a change you just pushed is not applied yet. See [Configuration states](/admin/install#configuration-states).
 2. **Slack is connected.** Otherwise the delivery fails with `no_chat_connection`. Only an admin can connect Slack.
 3. **"Latest failed deliveries"** for the team and date. The error code tells what happened; see [Delivery errors](/admin/slack#delivery-errors). A private channel needs the bot invited, or the error is `channel_not_found`.
 4. **Today is a workday** in the team's `workdays`, and `digest_at` is in the team's `timezone`. A digest is not sent more than 120 minutes after `digest_at`.
@@ -64,29 +64,29 @@ Open the setup page and check, in order:
 
 ## "More than one organization" or exit code 3
 
-You belong to more than one organization with Standwise. Pass `--org` to the CLI (for example `standwise draft --org acme`) or tell your agent which organization to use. If the message says no organization has Standwise installed, see the next problem.
+You belong to more than one organization with Standcast. Pass `--org` to the CLI (for example `standcast draft --org acme`) or tell your agent which organization to use. If the message says no organization has Standcast installed, see the next problem.
 
 ## My organization is missing, or `org_not_found`
 
-Your saved session lists the organizations from when you signed in. If the app was installed in your organization after that, or you just joined it, run `standwise login` again. If it still fails, check that you are a member of the organization on GitHub.
+Your saved session lists the organizations from when you signed in. If the app was installed in your organization after that, or you just joined it, run `standcast login` again. If it still fails, check that you are a member of the organization on GitHub.
 
 ## `org_not_configured`
 
-The organization has no valid `standwise.yml` in use: the file is missing, or it has been invalid since it was created or since it was deleted. An invalid push right after a valid version does not cause this error, because Standwise keeps using the last valid version. Ask your admin to check the setup page.
+The organization has no valid `standcast.yml` in use: the file is missing, or it has been invalid since it was created or since it was deleted. An invalid push right after a valid version does not cause this error, because Standcast keeps using the last valid version. Ask your admin to check the setup page.
 
 ## `not_in_team`
 
-You are not in any team of `standwise.yml`. Ask your admin to add your GitHub login, or a GitHub team you belong to, to `members`.
+You are not in any team of `standcast.yml`. Ask your admin to add your GitHub login, or a GitHub team you belong to, to `members`.
 
 ## My token expired, or exit code 2
 
 The CLI session expired (after 90 days without use) or was revoked. Run:
 
 ```bash
-standwise login
+standcast login
 ```
 
-If the message says the stored credentials belong to another API, you are using a different API URL than the one you signed in with. Sign in again with that URL: `standwise login --api-url <url>`.
+If the message says the stored credentials belong to another API, you are using a different API URL than the one you signed in with. Sign in again with that URL: `standcast login --api-url <url>`.
 
 ## The daily is invalid, or exit code 4
 
@@ -105,6 +105,6 @@ You sent too many requests in a minute. Wait the number of seconds in the messag
 
 It failed 20 deliveries in a row. Fix the receiver, add the endpoint again on the setup page and use the new secret. Use **Send test event** to check it. See [Webhooks](/admin/webhooks).
 
-## The `Standwise config` check failed
+## The `Standcast config` check failed
 
-A push or pull request in the `.github` repository changed `standwise.yml` and it has errors. Open the check: each error is an annotation on its line, and the summary lists all of them. Fix them and push again. The last valid version stays in effect meanwhile. If the file does not exist, there is no check.
+A push or pull request in the `.github` repository changed `standcast.yml` and it has errors. Open the check: each error is an annotation on its line, and the summary lists all of them. Fix them and push again. The last valid version stays in effect meanwhile. If the file does not exist, there is no check.

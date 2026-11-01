@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { upsertInstallation } from '@standwise/db';
+import { upsertInstallation } from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { isInstallationAdmin } from '../../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './fakes';

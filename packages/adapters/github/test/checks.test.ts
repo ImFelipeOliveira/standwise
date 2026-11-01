@@ -26,7 +26,7 @@ const base = {
   owner: 'acme',
   repo: 'api',
   headSha: 'abc123',
-  name: 'Standwise',
+  name: 'Standcast',
   title: 'Blocked',
   summary: 'Summary',
 };
@@ -44,7 +44,7 @@ describe('createCheckRun', () => {
         method: 'POST',
         path: '/repos/acme/api/check-runs',
         body: {
-          name: 'Standwise',
+          name: 'Standcast',
           head_sha: 'abc123',
           status: 'completed',
           conclusion: 'failure',

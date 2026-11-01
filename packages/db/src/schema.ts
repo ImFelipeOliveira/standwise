@@ -3,9 +3,9 @@ import type {
   MessageRef,
   Ref,
   SignalKind,
-  StandwiseConfig,
+  StandcastConfig,
   StoredDaily,
-} from '@standwise/core';
+} from '@standcast/core';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -37,7 +37,7 @@ export const installations = pgTable('installations', {
     .$type<'unconfigured' | 'configured' | 'invalid'>()
     .notNull()
     .default('unconfigured'),
-  config: jsonb('config').$type<StandwiseConfig>(),
+  config: jsonb('config').$type<StandcastConfig>(),
   configErrors: jsonb('config_errors').$type<ConfigError[]>(),
   unconfiguredReason: text('unconfigured_reason'),
   accessWarning: text('access_warning'),
@@ -251,5 +251,24 @@ export const rateLimits = pgTable(
   (t) => [
     primaryKey({ columns: [t.key, t.windowStart] }),
     index('rate_limits_window_start_idx').on(t.windowStart),
+  ],
+);
+
+export const betaRequests = pgTable(
+  'beta_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    teamSize: text('team_size').notNull(),
+    chat: text('chat').notNull(),
+    tracker: text('tracker').notNull(),
+    locale: text('locale').notNull(),
+    createdAt: createdAt(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('beta_requests_email_idx').on(t.email),
+    index('beta_requests_created_at_idx').on(t.createdAt),
   ],
 );

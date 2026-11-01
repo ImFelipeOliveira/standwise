@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { stripUnsafeChars, t } from '@standwise/core';
+import { stripUnsafeChars, t } from '@standcast/core';
 import pkg from '../../../package.json';
 import { ApiError, NetworkError } from './api';
 import { draft } from './commands/draft';

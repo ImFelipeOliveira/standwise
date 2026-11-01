@@ -14,7 +14,7 @@ type Env = Record<string, string | undefined>;
 
 export function credentialsPath(env: Env): string {
   const base = env.XDG_CONFIG_HOME || join(env.HOME || '.', '.config');
-  return join(base, 'standwise', 'credentials.json');
+  return join(base, 'standcast', 'credentials.json');
 }
 
 export async function readCredentials(env: Env): Promise<Credentials | null> {

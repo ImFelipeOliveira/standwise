@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { DailySubmissionSchema as CoreDailySubmission } from '@standwise/core';
+import { DailySubmissionSchema as CoreDailySubmission } from '@standcast/core';
 import { STATUS } from '../http/errors';
 
 const errorCodes = ['internal', ...Object.keys(STATUS)];
@@ -61,7 +61,7 @@ export const HealthSchema = z
 export const MetaSchema = z
   .object({
     githubClientId: z.string().openapi({ example: 'Iv1.0123456789abcdef' }),
-    supportEmail: z.string().openapi({ example: 'support@standwise.dev' }),
+    supportEmail: z.string().openapi({ example: 'support.standcast@usefachada.dev' }),
   })
   .openapi('Meta');
 
@@ -72,14 +72,14 @@ export const SessionRequestSchema = z
   .openapi('SessionRequest');
 
 export const SESSION_EXAMPLE = {
-  token: 'sw_Zm9vYmFyYmF6cXV4',
+  token: 'sc_Zm9vYmFyYmF6cXV4',
   login: 'alice',
   orgs: [{ installationId: 11, login: 'acme' }],
 };
 
 export const SessionSchema = z
   .object({
-    token: z.string().openapi({ example: 'sw_Zm9vYmFyYmF6cXV4' }),
+    token: z.string().openapi({ example: 'sc_Zm9vYmFyYmF6cXV4' }),
     login: z.string().openapi({ example: 'alice' }),
     orgs: z.array(
       z.object({

@@ -6,8 +6,8 @@ import {
   rotateConnectionSecret,
   saveConnection,
   setMemberInstallations,
-} from '@standwise/db';
-import { getOrganization, LinearAuthError, type LinearTokens } from '@standwise/linear';
+} from '@standcast/db';
+import { getOrganization, LinearAuthError, type LinearTokens } from '@standcast/linear';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, getSetupStatus, linearClientFor } from '../../src';
 import { fakeDeps, INST, seedMember, seedOrg } from './fakes';

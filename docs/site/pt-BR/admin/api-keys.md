@@ -11,9 +11,9 @@ Só admins gerenciam as keys: o dono de uma conta pessoal, ou um membro com o pa
 3. Escolha os escopos de que ela precisa.
 4. Clique em **Criar chave**.
 
-A página mostra a key completa, começando com `swk_`, **uma vez só**. Copie na hora. O Standwise guarda só um hash dela e não consegue mostrá-la de novo. Se não conseguiu copiar, revogue e crie outra.
+A página mostra a key completa, começando com `sck_`, **uma vez só**. Copie na hora. O Standcast guarda só um hash dela e não consegue mostrá-la de novo. Se não conseguiu copiar, revogue e crie outra.
 
-A lista mostra o nome, o prefixo (os 8 primeiros caracteres depois de `swk_`), os escopos, a data de criação e o último uso de cada key. O último uso é atualizado no máximo uma vez por minuto.
+A lista mostra o nome, o prefixo (os 8 primeiros caracteres depois de `sck_`), os escopos, a data de criação e o último uso de cada key. O último uso é atualizado no máximo uma vez por minuto.
 
 ## Escopos
 
@@ -31,8 +31,8 @@ Dê só o que a integração precisa. Uma requisição sem o escopo certo falha 
 Mande a key como bearer token:
 
 ```bash
-curl -H "Authorization: Bearer $STANDWISE_API_KEY" \
-  "https://api.standwise.dev/v1/org/dailies?date=2026-10-28&team=backend"
+curl -H "Authorization: Bearer $STANDCAST_API_KEY" \
+  "https://api.standcast.app/v1/org/dailies?date=2026-10-28&team=backend"
 ```
 
 Cada key tem limite de 600 requisições por minuto. Veja a [visão geral da API](/pt-BR/api/overview).

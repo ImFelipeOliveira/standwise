@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { DailyConfirmation } from '@standwise/core';
+import type { DailyConfirmation } from '@standcast/core';
 import {
   createMembershipCheck,
   type Deps,
@@ -10,7 +10,7 @@ import {
   getToday,
   startSession,
   submitDaily,
-} from '@standwise/orchestrator';
+} from '@standcast/orchestrator';
 import { HTTPException } from 'hono/http-exception';
 import { onError } from '../http/errors';
 import {
@@ -52,7 +52,7 @@ const ORG_ERRORS = {
     org_not_found: 'organization not found',
   }),
   409: errorResponse('The organization is not ready to use.', {
-    org_not_configured: 'organization has no valid standwise.yml',
+    org_not_configured: 'organization has no valid standcast.yml',
     installation_pending: 'installation is still being processed',
   }),
 };
@@ -72,7 +72,7 @@ const meta = createRoute({
           schema: MetaSchema,
           example: {
             githubClientId: 'Iv1.0123456789abcdef',
-            supportEmail: 'support@standwise.dev',
+            supportEmail: 'support.standcast@usefachada.dev',
           },
         },
       },
@@ -86,7 +86,7 @@ const sessions = createRoute({
   tags: ['Session'],
   summary: 'Start a CLI session',
   description:
-    'Exchanges a GitHub user token for a Standwise session token (`sw_`). Limited to 10 requests per minute per IP address.\n\nTroca um token de usuário do GitHub por um token de sessão do Standwise (`sw_`). Limitado a 10 requisições por minuto por IP.',
+    'Exchanges a GitHub user token for a Standcast session token (`sc_`). Limited to 10 requests per minute per IP address.\n\nTroca um token de usuário do GitHub por um token de sessão do Standcast (`sc_`). Limitado a 10 requisições por minuto por IP.',
   request: {
     body: {
       required: true,
@@ -207,7 +207,7 @@ const dailies = createRoute({
   tags: ['Daily'],
   summary: 'Submit the daily',
   description:
-    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply. The optional `X-Standwise-Confirmation` header (`human` or `agent`) records who confirmed it; other values are ignored. It is self-reported by the client and informational only, not a security control.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread. O cabeçalho opcional `X-Standwise-Confirmation` (`human` ou `agent`) registra quem confirmou; outros valores são ignorados. Ele é informado pelo próprio cliente e serve só como informação, não como controle de segurança.',
+    'Submits the confirmed daily. Sending again on the same day replaces the previous one. If the digest was already posted, the daily is posted as a thread reply. The optional `X-Standcast-Confirmation` header (`human` or `agent`) records who confirmed it; other values are ignored. It is self-reported by the client and informational only, not a security control.\n\nEnvia a daily confirmada. Reenviar no mesmo dia substitui a anterior. Se o consolidado já foi publicado, a daily vai como resposta na thread. O cabeçalho opcional `X-Standcast-Confirmation` (`human` ou `agent`) registra quem confirmou; outros valores são ignorados. Ele é informado pelo próprio cliente e serve só como informação, não como controle de segurança.',
   security: [{ session: [] }],
   request: {
     body: {
@@ -282,7 +282,7 @@ const suggestionDecision = createRoute({
       not_found: 'suggestion not found',
     }),
     409: errorResponse('The organization is not ready, or the suggestion was decided otherwise.', {
-      org_not_configured: 'organization has no valid standwise.yml',
+      org_not_configured: 'organization has no valid standcast.yml',
       suggestion_already_decided: 'suggestion was already decided',
     }),
     422: errorResponse('The request is not valid.', {
@@ -293,7 +293,7 @@ const suggestionDecision = createRoute({
   },
 });
 
-const CONFIRMATION_HEADER = 'x-standwise-confirmation';
+const CONFIRMATION_HEADER = 'x-standcast-confirmation';
 
 function confirmationOf(value: string | undefined): DailyConfirmation | undefined {
   return value === 'agent' || value === 'human' ? value : undefined;

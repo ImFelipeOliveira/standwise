@@ -2,7 +2,7 @@ import {
   MAX_CHECK_SUITE_LOOKUPS,
   resolveCheckSuite,
   type WorkerDeps,
-} from '@standwise/orchestrator';
+} from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({

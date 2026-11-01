@@ -32,7 +32,7 @@ describe('api keys repo', () => {
       scopes: ['teams:read', 'dailies:read'],
       createdBy: member.id,
     });
-    expect(key).toMatch(/^swk_[A-Za-z0-9_-]{43}$/);
+    expect(key).toMatch(/^sck_[A-Za-z0-9_-]{43}$/);
     const stored = await rows();
     expect(stored).toHaveLength(1);
     expect(JSON.stringify(stored)).not.toContain(key);
@@ -54,9 +54,9 @@ describe('api keys repo', () => {
       scopes: ['teams:read'],
       createdBy: member.id,
     });
-    expect(await resolveApiKey(db, 'swk_nope')).toBeNull();
+    expect(await resolveApiKey(db, 'sck_nope')).toBeNull();
     expect(await resolveApiKey(db, '')).toBeNull();
-    expect(await resolveApiKey(db, key.replace('swk_', 'sw_'))).toBeNull();
+    expect(await resolveApiKey(db, key.replace('sck_', 'sc_'))).toBeNull();
     expect(await revokeApiKey(db, 11, id)).toBe(true);
     expect(await resolveApiKey(db, key)).toBeNull();
   });

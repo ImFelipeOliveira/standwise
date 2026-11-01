@@ -1,4 +1,4 @@
-import { errorFields } from '@standwise/core';
+import { errorFields } from '@standcast/core';
 
 export { errorFields };
 

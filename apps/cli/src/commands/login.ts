@@ -1,4 +1,4 @@
-import { stripUnsafeChars, t } from '@standwise/core';
+import { stripUnsafeChars, t } from '@standcast/core';
 import { createSession, getMeta } from '../api';
 import { writeCredentials } from '../credentials';
 import {
@@ -19,7 +19,7 @@ function deviceMessage(ctx: Ctx, error: DeviceFlowError): string {
 }
 
 function githubOverride(ctx: Ctx): string | undefined {
-  const value = ctx.io.env.STANDWISE_GITHUB_URL;
+  const value = ctx.io.env.STANDCAST_GITHUB_URL;
   if (!value) return undefined;
   try {
     const parsed = new URL(value);

@@ -1,4 +1,4 @@
-import { errorFields } from '@standwise/core';
+import { errorFields } from '@standcast/core';
 import { PgBoss } from 'pg-boss';
 import {
   DEFAULT_RETRY_LIMIT,

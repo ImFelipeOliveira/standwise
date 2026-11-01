@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import type { Deps } from '../src';
 import { invalidateResolvedTeams, resolveTeams, TEAMS_CACHE_TTL_MS } from '../src';
 
@@ -72,7 +72,7 @@ describe('resolveTeams', () => {
     return { deps, resolved, advance };
   }
 
-  function parsed(): StandwiseConfig {
+  function parsed(): StandcastConfig {
     const result = parseConfig(source);
     if (!result.ok) throw new Error('bad config');
     return result.config;

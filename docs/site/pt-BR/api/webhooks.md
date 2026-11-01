@@ -5,9 +5,9 @@ outline: [2, 3]
 
 # Guia de webhooks
 
-Como receber os eventos do Standwise: payloads, headers, verificação da assinatura, novas tentativas e testes. Para adicionar um endpoint na página de setup, veja [Webhooks para admins](/pt-BR/admin/webhooks).
+Como receber os eventos do Standcast: payloads, headers, verificação da assinatura, novas tentativas e testes. Para adicionar um endpoint na página de setup, veja [Webhooks para admins](/pt-BR/admin/webhooks).
 
-O Standwise manda eventos para os seus sistemas na hora em que acontecem. Um admin da organização cadastra um endpoint HTTPS na página de setup, escolhe os eventos e recebe um segredo de assinatura. A partir daí, o Standwise manda um `POST` assinado com um corpo JSON para cada evento.
+O Standcast manda eventos para os seus sistemas na hora em que acontecem. Um admin da organização cadastra um endpoint HTTPS na página de setup, escolhe os eventos e recebe um segredo de assinatura. A partir daí, o Standcast manda um `POST` assinado com um corpo JSON para cada evento.
 
 ## Cadastrar um endpoint
 
@@ -18,9 +18,9 @@ A URL do endpoint tem que:
 - usar `https://`;
 - usar a porta padrão (443);
 - não ter usuário nem senha;
-- apontar para um endereço público. O Standwise resolve o nome do host antes de cada entrega e recusa endereços privados, de loopback, link-local, NAT de operadora, multicast, reservados e de metadados de nuvem, em IPv4 e IPv6. Depois ele conecta no endereço que conferiu, então uma mudança de DNS entre a checagem e a requisição não desvia a entrega.
+- apontar para um endereço público. O Standcast resolve o nome do host antes de cada entrega e recusa endereços privados, de loopback, link-local, NAT de operadora, multicast, reservados e de metadados de nuvem, em IPv4 e IPv6. Depois ele conecta no endereço que conferiu, então uma mudança de DNS entre a checagem e a requisição não desvia a entrega.
 
-O segredo de assinatura (`whsec_...`) aparece uma vez, quando o endpoint é criado. O Standwise guarda o segredo criptografado e não consegue mostrar de novo. Se você perder o segredo, desative o endpoint e crie outro. Uma organização pode ter até 10 endpoints ativos.
+O segredo de assinatura (`whsec_...`) aparece uma vez, quando o endpoint é criado. O Standcast guarda o segredo criptografado e não consegue mostrar de novo. Se você perder o segredo, desative o endpoint e crie outro. Uma organização pode ter até 10 endpoints ativos.
 
 ## Eventos
 
@@ -122,10 +122,10 @@ O `ref` só aparece quando o item aponta para um pull request, issue, commit ou 
 | Header | Valor |
 | --- | --- |
 | `Content-Type` | `application/json` |
-| `User-Agent` | `Standwise-Webhooks/1` |
-| `Standwise-Event` | O nome do evento, igual ao `type` do corpo. |
-| `Standwise-Delivery` | Id da entrega (UUID). Um por endpoint e evento; continua o mesmo nas novas tentativas. |
-| `Standwise-Signature` | `t=<segundos unix>,v1=<assinatura>` |
+| `User-Agent` | `Standcast-Webhooks/1` |
+| `Standcast-Event` | O nome do evento, igual ao `type` do corpo. |
+| `Standcast-Delivery` | Id da entrega (UUID). Um por endpoint e evento; continua o mesmo nas novas tentativas. |
+| `Standcast-Signature` | `t=<segundos unix>,v1=<assinatura>` |
 
 ## Verificar a assinatura
 
@@ -138,7 +138,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const TOLERANCE_SECONDS = 300;
 
-export function verifyStandwiseSignature(
+export function verifyStandcastSignature(
   secret: string,
   rawBody: string,
   header: string,
@@ -158,15 +158,15 @@ export function verifyStandwiseSignature(
   return signatures.some((signature) => timingSafeEqual(expected, signature));
 }
 
-const secret = process.env.STANDWISE_WEBHOOK_SECRET ?? '';
+const secret = process.env.STANDCAST_WEBHOOK_SECRET ?? '';
 const seen = new Set<string>();
 
 Bun.serve({
   port: 3000,
   async fetch(request) {
     const rawBody = await request.text();
-    const header = request.headers.get('standwise-signature') ?? '';
-    if (!verifyStandwiseSignature(secret, rawBody, header)) {
+    const header = request.headers.get('standcast-signature') ?? '';
+    if (!verifyStandcastSignature(secret, rawBody, header)) {
       return new Response('invalid signature', { status: 401 });
     }
     const event = JSON.parse(rawBody) as { id: string; type: string; data: unknown };
@@ -196,7 +196,7 @@ from flask import Flask, request
 TOLERANCE_SECONDS = 300
 
 
-def verify_standwise_signature(
+def verify_standcast_signature(
     secret: str, raw_body: bytes, header: str, now: Optional[int] = None
 ) -> bool:
     timestamp = None
@@ -218,15 +218,15 @@ def verify_standwise_signature(
 
 
 app = Flask(__name__)
-secret = os.environ["STANDWISE_WEBHOOK_SECRET"]
+secret = os.environ["STANDCAST_WEBHOOK_SECRET"]
 seen = set()
 
 
-@app.post("/standwise")
-def standwise_webhook():
+@app.post("/standcast")
+def standcast_webhook():
     raw_body = request.get_data()
-    header = request.headers.get("Standwise-Signature", "")
-    if not verify_standwise_signature(secret, raw_body, header):
+    header = request.headers.get("Standcast-Signature", "")
+    if not verify_standcast_signature(secret, raw_body, header):
         return "invalid signature", 401
     event = json.loads(raw_body)
     if event["id"] in seen:
@@ -245,11 +245,11 @@ Uma entrega pode chegar mais de uma vez, por exemplo quando o seu endpoint proce
 - Qualquer resposta `2xx` conta como entregue. O corpo da resposta é ignorado.
 - Todo o resto conta como falha: outros códigos de status, redirecionamentos (nunca seguidos), erros de conexão e nenhuma resposta em **10 segundos**.
 - Uma entrega com falha é tentada de novo, até 8 tentativas no total, esperando 1 minuto, 5 minutos, 30 minutos, 2 horas, 6 horas, 12 horas e 24 horas entre elas. Depois da 8ª falha, a entrega fica marcada como falha e não é tentada de novo.
-- Depois de **20 entregas seguidas com falha**, o Standwise desativa o endpoint. A página de setup mostra o endpoint como desativado após falhas. Uma entrega com sucesso zera a contagem. Para voltar, crie o endpoint de novo.
+- Depois de **20 entregas seguidas com falha**, o Standcast desativa o endpoint. A página de setup mostra o endpoint como desativado após falhas. Uma entrega com sucesso zera a contagem. Para voltar, crie o endpoint de novo.
 - Responda rápido: confirme com `2xx` e faça o trabalho lento em segundo plano.
 
 A ordem de chegada dos eventos não é garantida. Use o `created_at` quando a ordem importar.
 
 ## Testar um endpoint
 
-Na página de setup, clique em **Enviar evento de teste** ao lado do endpoint. O Standwise manda um evento `ping` assinado só para esse endpoint. A tabela **Últimas 20 entregas** mostra cada entrega com o evento, o estado, as tentativas e o último status de resposta ou erro, para você confirmar que o endpoint respondeu com `2xx` e que a sua verificação de assinatura passa.
+Na página de setup, clique em **Enviar evento de teste** ao lado do endpoint. O Standcast manda um evento `ping` assinado só para esse endpoint. A tabela **Últimas 20 entregas** mostra cada entrega com o evento, o estado, as tentativas e o último status de resposta ou erro, para você confirmar que o endpoint respondeu com `2xx` e que a sua verificação de assinatura passa.

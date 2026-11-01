@@ -1,5 +1,7 @@
 import { type DefaultTheme, defineConfigWithTheme } from 'vitepress';
+import llmstxt from 'vitepress-plugin-llms';
 import { writeSiteHeaders } from '../../../scripts/docs-headers';
+import { writeLocaleLlms } from '../../../scripts/docs-llms';
 import { publicUrlPlugin, resolvePublicUrl } from '../../../scripts/docs-public-url';
 
 const supportEmail = process.env.SUPPORT_EMAIL?.trim();
@@ -7,9 +9,11 @@ if (!supportEmail) {
   throw new Error('SUPPORT_EMAIL must be set to build the documentation site');
 }
 
-const publicUrl = resolvePublicUrl(process.env.STANDWISE_PUBLIC_URL?.trim());
+const publicUrl = resolvePublicUrl(process.env.STANDCAST_PUBLIC_URL?.trim());
 
 type ThemeConfig = DefaultTheme.Config & { supportEmail: string };
+
+const DOCS_DOMAIN = 'https://docs-standcast.usefachada.dev';
 
 const API_REFERENCE = { link: `${publicUrl}/reference`, target: '_self' };
 
@@ -70,7 +74,7 @@ const en = {
   privacy: 'Privacy',
   admins: 'For admins',
   install: 'Install',
-  configuration: 'standwise.yml reference',
+  configuration: 'standcast.yml reference',
   apiKeys: 'API keys',
   members: 'For members',
   gettingStarted: 'Getting started',
@@ -90,7 +94,7 @@ const ptBR = {
   privacy: 'Privacidade',
   admins: 'Para admins',
   install: 'Instalação',
-  configuration: 'Referência do standwise.yml',
+  configuration: 'Referência do standcast.yml',
   apiKeys: 'API keys',
   members: 'Para membros',
   gettingStarted: 'Primeiros passos',
@@ -103,13 +107,25 @@ const ptBR = {
 };
 
 export default defineConfigWithTheme<ThemeConfig>({
-  title: 'Standwise',
+  title: 'Standcast',
   base: '/',
   srcExclude: ['README.md'],
   lastUpdated: false,
   ignoreDeadLinks: false,
   buildEnd: async (siteConfig) => {
+    await writeLocaleLlms(siteConfig.outDir, DOCS_DOMAIN);
     await writeSiteHeaders(siteConfig.outDir);
+  },
+  vite: {
+    plugins: [
+      llmstxt({
+        domain: DOCS_DOMAIN,
+        injectLLMHint: false,
+        ignoreFiles: ['pt-BR/index.md'],
+        ignoreFilesPerOutput: { llmsTxt: ['pt-BR/**'], llmsFullTxt: ['pt-BR/**'] },
+        customLLMsTxtTemplate: `# {title}\n\n> {description}\n\n## Table of Contents\n\n{toc}\n\n## Optional\n\n- [Português (Brasil)](${DOCS_DOMAIN}/pt-BR/llms.txt): the documentation in Portuguese\n`,
+      }),
+    ],
   },
   markdown: {
     config: (md) => {
@@ -121,7 +137,7 @@ export default defineConfigWithTheme<ThemeConfig>({
     root: {
       label: 'English',
       lang: 'en',
-      description: 'Standwise orchestrates your team daily standup from GitHub to Slack.',
+      description: 'Standcast orchestrates your team daily standup from GitHub to Slack.',
       themeConfig: {
         nav: [
           { text: 'Docs', link: '/' },
@@ -136,7 +152,7 @@ export default defineConfigWithTheme<ThemeConfig>({
       label: 'Português (Brasil)',
       lang: 'pt-BR',
       link: '/pt-BR/',
-      description: 'O Standwise orquestra a daily do seu time, do GitHub ao Slack.',
+      description: 'O Standcast orquestra a daily do seu time, do GitHub ao Slack.',
       themeConfig: {
         nav: [
           { text: 'Docs', link: '/pt-BR/' },
@@ -161,8 +177,8 @@ export default defineConfigWithTheme<ThemeConfig>({
   themeConfig: {
     supportEmail,
     logo: '/logo.svg',
-    siteTitle: 'Standwise',
-    socialLinks: [{ icon: 'github', link: 'https://github.com/ImFelipeOliveira/standwise' }],
+    siteTitle: 'Standcast',
+    socialLinks: [{ icon: 'github', link: 'https://github.com/ImFelipeOliveira/standcast' }],
     search: {
       provider: 'local',
       options: {

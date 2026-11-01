@@ -4,14 +4,14 @@ import {
   markConnectionInvalid,
   rotateConnectionSecret,
   updateConnectionDetails,
-} from '@standwise/db';
+} from '@standcast/db';
 import {
   createLinearClient,
   getOrganization,
   LinearAuthError,
   type LinearClient,
   type LinearTokens,
-} from '@standwise/linear';
+} from '@standcast/linear';
 import type { Deps } from './deps';
 import { logError } from './log-error';
 
