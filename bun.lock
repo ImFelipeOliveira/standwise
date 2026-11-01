@@ -44,6 +44,10 @@
         "zod": "^4.6.7",
       },
     },
+    "apps/landing": {
+      "name": "@standwise/landing",
+      "version": "0.0.0",
+    },
     "apps/worker": {
       "name": "@standwise/worker",
       "version": "0.0.0",
@@ -423,6 +427,8 @@
     "@standwise/db": ["@standwise/db@workspace:packages/db"],
 
     "@standwise/github": ["@standwise/github@workspace:packages/adapters/github"],
+
+    "@standwise/landing": ["@standwise/landing@workspace:apps/landing"],
 
     "@standwise/linear": ["@standwise/linear@workspace:packages/adapters/linear"],
 

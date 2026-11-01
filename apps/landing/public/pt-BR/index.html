@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Standwise: a sua daily, escrita no seu agente de IA</title>
+<meta name="description" content="O Standwise rascunha a sua daily a partir do GitHub e do Linear no seu agente de IA, envia só depois que você confirma e publica um consolidado por time no Slack.">
+<link rel="canonical" href="https://standwise.usefachada.dev/pt-BR/">
+<link rel="alternate" hreflang="en" href="https://standwise.usefachada.dev/">
+<link rel="alternate" hreflang="pt-BR" href="https://standwise.usefachada.dev/pt-BR/">
+<link rel="alternate" hreflang="x-default" href="https://standwise.usefachada.dev/">
+<link rel="alternate" type="text/markdown" href="/pt-BR/index.md">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1022" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Standwise">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:url" content="https://standwise.usefachada.dev/pt-BR/">
+<meta property="og:title" content="Standwise: a sua daily, escrita no seu agente de IA">
+<meta property="og:description" content="Rascunha a sua daily a partir do GitHub e do Linear no Claude Code, no Cursor ou no terminal, envia depois que você confirma e publica um consolidado por time no Slack.">
+<meta property="og:image" content="https://standwise.usefachada.dev/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Standwise: your daily standup, written in your AI agent">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Standwise: a sua daily, escrita no seu agente de IA">
+<meta name="twitter:description" content="Rascunha a sua daily a partir do GitHub e do Linear no seu agente de IA, envia depois que você confirma e publica um consolidado por time no Slack.">
+<meta name="twitter:image" content="https://standwise.usefachada.dev/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="/app.js" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Standwise","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","description":"Orquestrador de daily: rascunha a daily de cada pessoa a partir da atividade no GitHub e no Linear dentro do agente de IA dela (Claude Code, Cursor, Codex, MCP), envia só depois da confirmação e publica um consolidado por time no Slack.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Grátis durante o beta público"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/ImFelipeOliveira/standwise","url":"https://standwise.usefachada.dev/pt-BR/","inLanguage":"pt-BR","image":"https://standwise.usefachada.dev/og.png"}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"pt-BR","mainEntity":[
+{"@type":"Question","name":"É grátis?","acceptedAnswer":{"@type":"Answer","text":"Sim, durante o beta público. Os times que entrarem no beta mantêm condições especiais quando os planos pagos chegarem."}},
+{"@type":"Question","name":"O Standwise lê o nosso código?","acceptedAnswer":{"@type":"Answer","text":"Não. O GitHub App lê pull requests, reviews, checks, metadados de commits, o standwise.yml e o CODEOWNERS. Ele nunca lê arquivos de código."}},
+{"@type":"Question","name":"Do que eu preciso?","acceptedAnswer":{"@type":"Answer","text":"Uma organização ou conta pessoal no GitHub e um workspace no Slack. O Linear é opcional. Google Chat e Jira estão em desenvolvimento."}},
+{"@type":"Question","name":"O meu gestor vê os impedimentos sugeridos para mim?","acceptedAnswer":{"@type":"Answer","text":"Não. As sugestões aparecem só para você, no seu rascunho. Elas nunca chegam ao consolidado, à API, aos webhooks nem aos gestores."}},
+{"@type":"Question","name":"Dá para hospedar por conta própria?","acceptedAnswer":{"@type":"Answer","text":"Sim. O Standwise tem licença MIT. O guia de self-hosting cobre a API, o worker e o Postgres."}}
+]}
+</script>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Standwise, início"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Standwise</a>
+    <nav aria-label="Principal"><ul>
+      <li><a href="#how">Como funciona</a></li>
+      <li><a href="#privacy">Privacidade</a></li>
+      <li><a href="https://docs-standwise.usefachada.dev/pt-BR/">Documentação</a></li>
+      <li><a href="https://github.com/ImFelipeOliveira/standwise">GitHub</a></li>
+    </ul></nav>
+    <div class="nav-end">
+      <a class="lang" href="/" hreflang="en" lang="en">English</a>
+      <a class="btn btn-primary" href="#beta">Entrar no beta</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="pill"><b>Beta</b> Código aberto · MIT · grátis durante o beta</span>
+      <h1>A sua daily, escrita no <em>seu agente de IA</em>.</h1>
+      <p class="lede">Rode <code>/daily</code> no Claude Code, no Cursor ou no terminal. O Standwise rascunha o seu ontem a partir da sua atividade no GitHub e no Linear, você confirma e o seu time recebe um consolidado no Slack.</p>
+      <div class="install">
+        <code id="cmd" data-copy="curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh"><span>$</span> curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh</code>
+        <button class="copy" id="copy" type="button" aria-describedby="cmd" data-done="Copiado">Copiar</button>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#beta">Entrar no beta</a>
+        <a class="btn btn-ghost" href="https://docs-standwise.usefachada.dev/pt-BR/admin/install">Instalar na sua organização</a>
+      </div>
+      <p class="fine">Funciona hoje com GitHub e Slack. Google Chat e Jira vêm a seguir.</p>
+    </div>
+
+    <figure class="stage" aria-label="Exemplo: uma daily rascunhada no terminal e o consolidado publicado no Slack">
+      <div class="terminal">
+        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">~/work · claude</span><button class="replay" id="replay" type="button" hidden>Repetir</button></div>
+        <div class="term-body"><pre id="term"><span class="ln"><span class="t-acc">&gt; </span><span class="typed t-acc">/daily</span></span>
+<span class="ln t-dim">Rascunhando do GitHub e do Linear desde seg 09:12<span class="dots"></span></span>
+<span class="ln"> </span>
+<span class="ln"><b>Ontem</b></span>
+<span class="ln">  • Mergeou <span class="t-acc">api#412</span> rate limit por API key</span>
+<span class="ln">  • Revisou <span class="t-acc">web#88</span> checklist de setup</span>
+<span class="ln">  • Moveu <span class="t-acc">BE-231</span> para In review</span>
+<span class="ln"><b>Hoje</b></span>
+<span class="ln">  • Retentativas de webhook com backoff</span>
+<span class="ln"><b>Impedimentos</b></span>
+<span class="ln">  <span class="t-warn">!</span> <span class="t-acc">api#415</span> esperando review desde qui</span>
+<span class="ln">    <span class="t-dim">sugerido só para você · confirme ou ignore</span></span>
+<span class="ln"> </span>
+<span class="ln"><span class="t-ok">✓</span> Confirmada. Enviada para #daily-backend às 10:00.</span></pre></div>
+      </div>
+      <div class="slack">
+        <div class="slack-head">
+          <div class="avatar"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></div>
+          <div><b>Standwise</b><span class="tag">APP</span><br><small>#daily-backend · 10:00</small></div>
+        </div>
+        <p class="title">Backend · ter, 3 de nov</p>
+        <p class="blk">1 impedimento</p>
+        <ul><li>Ana: api#415 esperando review → enviado para @bruno</li></ul>
+        <p class="title">Atualizações</p>
+        <ul><li>Ana: mergeou rate limit; hoje, retentativas de webhook</li><li>Caio: correções no sync do Linear; hoje, paginação</li></ul>
+        <p class="who">Ainda não enviou: Davi</p>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<div class="agents">
+  <div class="wrap">
+    <p>Escreva a sua daily onde você já trabalha</p>
+    <ul aria-label="Clientes compatíveis"><li>Claude Code</li><li>Cursor</li><li>Codex</li><li>Claude Desktop</li><li>VS Code</li><li>Terminal</li></ul>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Um dia com o Standwise</span>
+      <h2>Defina dois horários no standwise.yml. O Standwise cuida do resto.</h2>
+      <p class="lede">Este time tem <code>remind_at: "09:30"</code> e <code>digest_at: "10:00"</code> no horário de São Paulo, de segunda a sexta.</p>
+    </div>
+    <ol class="day" aria-label="Linha do tempo de um dia">
+      <li class="slot"><span class="k">Rascunho</span><time datetime="08:50">08:50</time><p><b>Ana roda /daily.</b> Ela edita o rascunho, adiciona um impedimento com link para um pull request e confirma. Quem revisa recebe uma mensagem direta.</p></li>
+      <li class="slot"><span class="k">remind_at</span><time datetime="09:30">09:30</time><p><b>Davi ainda não escreveu,</b> então recebe um lembrete. Nunca mais de um por dia.</p></li>
+      <li class="slot"><span class="k">digest_at</span><time datetime="10:00">10:00</time><p><b>Um consolidado por time</b> no #daily-backend: primeiro os impedimentos, depois as atualizações, depois quem não enviou.</p></li>
+      <li class="slot"><span class="k">Atrasada</span><time datetime="10:40">10:40</time><p><b>Davi envia atrasado.</b> A daily dele vai para a thread do consolidado, e ninguém perde nada.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">O que ele faz</span>
+      <h2>Coleta, consolida e entrega. Você só escreve.</h2>
+    </div>
+    <div class="features">
+      <article class="feat"><h3>Um rascunho do trabalho real</h3><p>Pull requests abertos, mergeados e revisados, commits por repositório e cards do Linear que começaram ou terminaram. Na segunda, o rascunho cobre o fim de semana.</p></article>
+      <article class="feat"><h3>Impedimentos chegam a quem pode ajudar</h3><p>Um impedimento com link para um pull request vai para os reviewers, depois para o CODEOWNERS, depois para os gestores do time. Um card do Linear vai para o responsável pelo card que está bloqueando.</p></article>
+      <article class="feat"><h3>Nada sai sem você</h3><p>A tool de envio do MCP exige <code>confirmed: true</code>, que o agente só passa depois que você aprova o texto.</p></article>
+      <article class="feat"><h3>Vários times, uma daily</h3><p>Escreva uma vez e apareça no consolidado de todos os seus times, cada um no próprio fuso horário e nos próprios dias úteis.</p></article>
+      <article class="feat"><h3>Gestores leem pelo próprio agente</h3><p>Consolidados, dailies e impedimentos dos últimos 90 dias, pelas tools de leitura do MCP. Só conteúdo confirmado.</p></article>
+      <article class="feat"><h3>API e webhooks</h3><p>API keys somente leitura com escopos, uma referência OpenAPI e webhooks assinados <code>daily.submitted</code> e <code>blocker.opened</code>.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="privacy">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Privacidade</span>
+      <h2>Feito para times, não para vigiar pessoas.</h2>
+      <p class="lede">O Standwise sugere impedimentos a partir dos seus próprios sinais. Essas sugestões são suas. Um teste na CI garante que elas nunca saem do seu rascunho.</p>
+    </div>
+    <div class="privacy-grid">
+      <div class="col"><h3>O seu time vê</h3><ul>
+        <li>As dailies que você confirmou, no consolidado do time</li>
+        <li>Os impedimentos que você confirmou, encaminhados para quem pode ajudar</li>
+        <li>Quem ainda não enviou a daily de hoje</li>
+      </ul></div>
+      <div class="col only"><h3>Só você vê</h3><ul>
+        <li>Um pull request esperando review há dias</li>
+        <li>A CI falhando na sua branch há um dia</li>
+        <li>Um card do Linear parado em andamento</li>
+      </ul></div>
+    </div>
+    <p class="never">Sem métricas de produtividade. Sem rankings. Sem contagem de commits. Nada enviado em nome de ninguém.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split">
+    <div>
+      <div class="head tight">
+        <span class="eyebrow">Configuração como código</span>
+        <h2>Um arquivo no seu repositório .github.</h2>
+        <p class="lede">Times, horários, canais do Slack e gestores ficam no <code>standwise.yml</code>. Toda mudança passa por review, como código.</p>
+      </div>
+      <ul class="list">
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Validado a cada push.</b> Um check run <code>Standwise config</code> aponta a linha com erro.</span></li>
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Nunca quebra o time.</b> Um push inválido mantém a última configuração válida em vigor.</span></li>
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Times do GitHub.</b> Os membros podem ser logins ou <code>@org/team</code>.</span></li>
+      </ul>
+    </div>
+    <div class="code">
+<pre><span class="t-dim"># .github/standwise.yml</span>
+teams:
+  - name: Backend
+    timezone: America/Sao_Paulo
+    workdays: [mon, tue, wed, thu, fri]
+    remind_at: "09:30"
+    digest_at: "10:00"
+    chat:
+      provider: slack
+      channel: "#daily-backend"
+    tracker:
+      provider: linear
+      team: BE
+    managers: [bruno]
+    members: ["@acme/backend"]</pre>
+      <div class="check"><b class="check-ok">✓ Standwise config</b> aprovado · 1 time, 6 membros</div>
+    </div>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Três jeitos de escrever</span>
+      <h2>Escolha o que combina com o seu jeito de trabalhar.</h2>
+    </div>
+    <div class="ways">
+      <article class="way"><h3>Plugin do Claude Code</h3><p>A skill <code>/daily</code> rascunha, pergunta o plano de hoje e os impedimentos e confirma com você.</p>
+<pre>/plugin marketplace add \
+  ImFelipeOliveira/standwise
+/plugin install standwise@standwise
+/daily</pre></article>
+      <article class="way"><h3>Qualquer cliente MCP</h3><p>Cursor, Codex, Claude Desktop e VS Code rodam o servidor MCP local.</p>
+<pre>{
+  "mcpServers": {
+    "standwise": {
+      "command": "standwise",
+      "args": ["mcp"]
+    }
+  }
+}</pre></article>
+      <article class="way"><h3>Terminal</h3><p>Um binário para macOS, Linux e Windows, conferido contra o SHA256SUMS.</p>
+<pre>standwise login
+standwise draft
+standwise submit</pre></article>
+    </div>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap faq">
+    <div class="head"><span class="eyebrow">FAQ</span><h2>Perguntas antes de instalar.</h2></div>
+    <div>
+      <details open><summary>É grátis?</summary><p>Sim, durante o beta público. Os times que entrarem no beta mantêm condições especiais quando os planos pagos chegarem.</p></details>
+      <details><summary>O Standwise lê o nosso código?</summary><p>Não. O GitHub App lê pull requests, reviews, checks, metadados de commits, o standwise.yml e o CODEOWNERS. Ele nunca lê arquivos de código.</p></details>
+      <details><summary>Do que eu preciso?</summary><p>Uma organização ou conta pessoal no GitHub e um workspace no Slack. O Linear é opcional. Google Chat e Jira estão em desenvolvimento.</p></details>
+      <details><summary>O meu gestor vê os impedimentos sugeridos para mim?</summary><p>Não. As sugestões aparecem só para você, no seu rascunho. Elas nunca chegam ao consolidado, à API, aos webhooks nem aos gestores.</p></details>
+      <details><summary>Dá para hospedar por conta própria?</summary><p>Sim. O Standwise tem licença MIT. O guia de self-hosting cobre a API, o worker e o Postgres.</p></details>
+    </div>
+  </div>
+</section>
+
+<section id="beta" class="flush">
+  <div class="wrap">
+    <div class="beta">
+      <div class="head tight">
+        <span class="eyebrow">Beta público</span>
+        <h2>Teste com o seu time.</h2>
+        <p class="lede">Procuramos times de 3 a 15 pessoas que usam GitHub e Slack. Ajudamos você a configurar em uma call de 20 minutos.</p>
+      </div>
+      <form id="beta-form" action="https://api-standwise.usefachada.dev/beta" method="post">
+        <p class="invalid" id="beta-invalid" role="alert">Não conseguimos enviar o seu pedido. Confira o nome e o e-mail de trabalho, escolha uma opção em cada lista e tente de novo.</p>
+        <input type="hidden" name="locale" value="pt-BR">
+        <label for="f-name">Nome<input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120"></label>
+        <label for="f-email">E-mail de trabalho<input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254"></label>
+        <label for="f-size">Tamanho do time<select id="f-size" name="team_size" required>
+          <option value="" disabled selected>Escolha</option>
+          <option value="3-5">3–5</option>
+          <option value="6-15">6–15</option>
+          <option value="16+">16+</option>
+        </select></label>
+        <label for="f-chat">Chat<select id="f-chat" name="chat" required>
+          <option value="" disabled selected>Escolha</option>
+          <option value="slack">Slack</option>
+          <option value="google_chat">Google Chat</option>
+          <option value="other">Outro</option>
+        </select></label>
+        <label class="full" for="f-tracker">Gestão de tarefas<select id="f-tracker" name="tracker" required>
+          <option value="" disabled selected>Escolha</option>
+          <option value="linear">Linear</option>
+          <option value="jira">Jira</option>
+          <option value="github">Só GitHub</option>
+          <option value="other">Outro</option>
+        </select></label>
+        <div class="hp" aria-hidden="true"><label for="f-website">Site da empresa<input id="f-website" name="company_website" type="text" tabindex="-1" autocomplete="off"></label></div>
+        <button class="btn btn-primary" type="submit">Pedir acesso ao beta</button>
+        <p class="note">Respondemos por e-mail em até dois dias úteis.</p>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Standwise, voltar ao topo"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Standwise</a>
+    <ul>
+      <li><a href="https://docs-standwise.usefachada.dev/pt-BR/">Documentação</a></li>
+      <li><a href="https://github.com/ImFelipeOliveira/standwise">GitHub</a></li>
+      <li><a href="https://docs-standwise.usefachada.dev/pt-BR/privacy">Privacidade</a></li>
+      <li><a href="/llms.txt">llms.txt</a></li>
+      <li><a href="/" hreflang="en" lang="en">English</a></li>
+    </ul>
+    <p>MIT · support.standwise@usefachada.dev</p>
+  </div>
+</footer>
+</body>
+</html>

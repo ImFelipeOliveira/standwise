@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Standwise: your daily standup, written in your AI agent</title>
+<meta name="description" content="Standwise drafts your daily standup from GitHub and Linear in your AI agent, sends it after you confirm and posts one team digest to Slack. Free beta.">
+<link rel="canonical" href="https://standwise.usefachada.dev/">
+<link rel="alternate" hreflang="en" href="https://standwise.usefachada.dev/">
+<link rel="alternate" hreflang="pt-BR" href="https://standwise.usefachada.dev/pt-BR/">
+<link rel="alternate" hreflang="x-default" href="https://standwise.usefachada.dev/">
+<link rel="alternate" type="text/markdown" href="/index.md">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1022" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Standwise">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:url" content="https://standwise.usefachada.dev/">
+<meta property="og:title" content="Standwise: your daily standup, written in your AI agent">
+<meta property="og:description" content="Drafts your daily from GitHub and Linear in Claude Code, Cursor or the terminal, sends it after you confirm and posts one digest per team to Slack.">
+<meta property="og:image" content="https://standwise.usefachada.dev/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Standwise: your daily standup, written in your AI agent">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Standwise: your daily standup, written in your AI agent">
+<meta name="twitter:description" content="Drafts your daily from GitHub and Linear in your AI agent, sends it after you confirm and posts one digest per team to Slack.">
+<meta name="twitter:image" content="https://standwise.usefachada.dev/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="/app.js" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Standwise","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","description":"Daily standup orchestrator: drafts each person's standup from GitHub and Linear activity inside their AI agent (Claude Code, Cursor, Codex, MCP), sends it only after confirmation, and posts one digest per team to Slack.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free during the public beta"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/ImFelipeOliveira/standwise","url":"https://standwise.usefachada.dev/","inLanguage":"en","image":"https://standwise.usefachada.dev/og.png"}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"en","mainEntity":[
+{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"Yes, during the public beta. Teams that join the beta keep special terms when paid plans arrive."}},
+{"@type":"Question","name":"Does Standwise read our code?","acceptedAnswer":{"@type":"Answer","text":"No. The GitHub App reads pull requests, reviews, checks, commit metadata, standwise.yml and CODEOWNERS. It never reads source files."}},
+{"@type":"Question","name":"What do I need?","acceptedAnswer":{"@type":"Answer","text":"A GitHub organization or personal account and a Slack workspace. Linear is optional. Google Chat and Jira are in development."}},
+{"@type":"Question","name":"Can my manager see my suggested blockers?","acceptedAnswer":{"@type":"Answer","text":"No. Suggestions are visible only to you, in your own draft. They never reach the digest, the API, webhooks or managers."}},
+{"@type":"Question","name":"Can we self-host?","acceptedAnswer":{"@type":"Answer","text":"Yes. Standwise is MIT licensed. The self-hosting guide covers the API, the worker and Postgres."}}
+]}
+</script>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Standwise home"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Standwise</a>
+    <nav aria-label="Main"><ul>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="https://docs-standwise.usefachada.dev/">Docs</a></li>
+      <li><a href="https://github.com/ImFelipeOliveira/standwise">GitHub</a></li>
+    </ul></nav>
+    <div class="nav-end">
+      <a class="lang" href="/pt-BR/" hreflang="pt-BR" lang="pt-BR">Português</a>
+      <a class="btn btn-primary" href="#beta">Join the beta</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="pill"><b>Beta</b> Open source · MIT · free while in beta</span>
+      <h1>Your daily standup, written in <em>your AI agent</em>.</h1>
+      <p class="lede">Run <code>/daily</code> in Claude Code, Cursor or the terminal. Standwise drafts yesterday from your GitHub and Linear activity, you confirm, and your team gets one digest in Slack.</p>
+      <div class="install">
+        <code id="cmd" data-copy="curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh"><span>$</span> curl -fsSL https://api-standwise.usefachada.dev/install.sh | sh</code>
+        <button class="copy" id="copy" type="button" aria-describedby="cmd" data-done="Copied">Copy</button>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#beta">Join the beta</a>
+        <a class="btn btn-ghost" href="https://docs-standwise.usefachada.dev/admin/install">Install for your org</a>
+      </div>
+      <p class="fine">Works with GitHub and Slack today. Google Chat and Jira are next.</p>
+    </div>
+
+    <figure class="stage" aria-label="Example: a daily drafted in the terminal and the digest posted to Slack">
+      <div class="terminal">
+        <div class="term-bar"><i></i><i></i><i></i><span class="term-title">~/work · claude</span><button class="replay" id="replay" type="button" hidden>Replay</button></div>
+        <div class="term-body"><pre id="term"><span class="ln"><span class="t-acc">&gt; </span><span class="typed t-acc">/daily</span></span>
+<span class="ln t-dim">Drafting from GitHub and Linear since Mon 09:12<span class="dots"></span></span>
+<span class="ln"> </span>
+<span class="ln"><b>Yesterday</b></span>
+<span class="ln">  • Merged <span class="t-acc">api#412</span> rate limits per API key</span>
+<span class="ln">  • Reviewed <span class="t-acc">web#88</span> setup checklist</span>
+<span class="ln">  • Moved <span class="t-acc">BE-231</span> to In review</span>
+<span class="ln"><b>Today</b></span>
+<span class="ln">  • Webhook retries with backoff</span>
+<span class="ln"><b>Blockers</b></span>
+<span class="ln">  <span class="t-warn">!</span> <span class="t-acc">api#415</span> waiting for review since Thu</span>
+<span class="ln">    <span class="t-dim">suggested only to you · confirm or ignore</span></span>
+<span class="ln"> </span>
+<span class="ln"><span class="t-ok">✓</span> Confirmed. Sent to #daily-backend at 10:00.</span></pre></div>
+      </div>
+      <div class="slack">
+        <div class="slack-head">
+          <div class="avatar"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></div>
+          <div><b>Standwise</b><span class="tag">APP</span><br><small>#daily-backend · 10:00</small></div>
+        </div>
+        <p class="title">Backend · Tue, Nov 3</p>
+        <p class="blk">1 blocker</p>
+        <ul><li>Ana: api#415 waiting for review → sent to @bruno</li></ul>
+        <p class="title">Updates</p>
+        <ul><li>Ana: merged rate limits; today, webhook retries</li><li>Caio: Linear sync fixes; today, pagination</li></ul>
+        <p class="who">Not sent yet: Davi</p>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<div class="agents">
+  <div class="wrap">
+    <p>Write your daily where you already work</p>
+    <ul aria-label="Supported clients"><li>Claude Code</li><li>Cursor</li><li>Codex</li><li>Claude Desktop</li><li>VS Code</li><li>Terminal</li></ul>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">A day with Standwise</span>
+      <h2>Set two times in standwise.yml. Standwise runs the rest.</h2>
+      <p class="lede">This team has <code>remind_at: "09:30"</code> and <code>digest_at: "10:00"</code> in São Paulo time, Monday to Friday.</p>
+    </div>
+    <ol class="day" aria-label="Timeline of one day">
+      <li class="slot"><span class="k">Draft</span><time datetime="08:50">08:50</time><p><b>Ana runs /daily.</b> She edits the draft, adds a blocker that links a pull request and confirms. The reviewer gets a direct message.</p></li>
+      <li class="slot"><span class="k">remind_at</span><time datetime="09:30">09:30</time><p><b>Davi hasn't written yet,</b> so he gets one reminder. Never more than one a day.</p></li>
+      <li class="slot"><span class="k">digest_at</span><time datetime="10:00">10:00</time><p><b>One digest per team</b> in #daily-backend: blockers first, then updates, then who hasn't sent.</p></li>
+      <li class="slot"><span class="k">Late</span><time datetime="10:40">10:40</time><p><b>Davi sends late.</b> His daily goes in the digest thread, so nobody misses it.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">What it does</span>
+      <h2>Collects, consolidates and delivers. You only write.</h2>
+    </div>
+    <div class="features">
+      <article class="feat"><h3>A draft from real work</h3><p>Pull requests opened, merged and reviewed, commits by repository, and Linear cards that started or finished. Monday covers the weekend.</p></article>
+      <article class="feat"><h3>Blockers reach who can help</h3><p>A blocker that links a pull request goes to its reviewers, then CODEOWNERS, then the team managers. A Linear card goes to the owner of the blocking card.</p></article>
+      <article class="feat"><h3>Nothing sent without you</h3><p>The MCP submit tool needs <code>confirmed: true</code>, which the agent passes only after you approve the text.</p></article>
+      <article class="feat"><h3>Several teams, one daily</h3><p>Write once and appear in every team digest you belong to, each in its own time zone and workdays.</p></article>
+      <article class="feat"><h3>Managers read from their agent</h3><p>Team digests, dailies and blockers for the last 90 days, through MCP read tools. Confirmed content only.</p></article>
+      <article class="feat"><h3>API and webhooks</h3><p>Read-only API keys with scopes, an OpenAPI reference, and signed <code>daily.submitted</code> and <code>blocker.opened</code> webhooks.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="privacy">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Privacy</span>
+      <h2>Built for teams, not for watching people.</h2>
+      <p class="lede">Standwise suggests blockers from your own signals. Those suggestions belong to you. A test in CI checks that they never leave your draft.</p>
+    </div>
+    <div class="privacy-grid">
+      <div class="col"><h3>Your team sees</h3><ul>
+        <li>Dailies you confirmed, in the team digest</li>
+        <li>Blockers you confirmed, routed to who can help</li>
+        <li>Who hasn't sent today's daily</li>
+      </ul></div>
+      <div class="col only"><h3>Only you see</h3><ul>
+        <li>A pull request waiting days for review</li>
+        <li>CI failing on your branch for a day</li>
+        <li>A Linear card stuck in progress</li>
+      </ul></div>
+    </div>
+    <p class="never">No productivity metrics. No rankings. No commit counts. Nothing sent on anyone's behalf.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split">
+    <div>
+      <div class="head tight">
+        <span class="eyebrow">Configuration as code</span>
+        <h2>One file in your .github repository.</h2>
+        <p class="lede">Teams, times, Slack channels and managers live in <code>standwise.yml</code>. Every change is reviewed like code.</p>
+      </div>
+      <ul class="list">
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Checked on every push.</b> A <code>Standwise config</code> check run points to the line with the error.</span></li>
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Never breaks the team.</b> An invalid push keeps the last valid config in effect.</span></li>
+        <li><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Teams from GitHub.</b> Members can be logins or <code>@org/team</code>.</span></li>
+      </ul>
+    </div>
+    <div class="code">
+<pre><span class="t-dim"># .github/standwise.yml</span>
+teams:
+  - name: Backend
+    timezone: America/Sao_Paulo
+    workdays: [mon, tue, wed, thu, fri]
+    remind_at: "09:30"
+    digest_at: "10:00"
+    chat:
+      provider: slack
+      channel: "#daily-backend"
+    tracker:
+      provider: linear
+      team: BE
+    managers: [bruno]
+    members: ["@acme/backend"]</pre>
+      <div class="check"><b class="check-ok">✓ Standwise config</b> passed · 1 team, 6 members</div>
+    </div>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Three ways to write</span>
+      <h2>Pick the one that fits how you work.</h2>
+    </div>
+    <div class="ways">
+      <article class="way"><h3>Claude Code plugin</h3><p>The <code>/daily</code> skill drafts, asks for today and blockers, and confirms with you.</p>
+<pre>/plugin marketplace add \
+  ImFelipeOliveira/standwise
+/plugin install standwise@standwise
+/daily</pre></article>
+      <article class="way"><h3>Any MCP client</h3><p>Cursor, Codex, Claude Desktop and VS Code run the local MCP server.</p>
+<pre>{
+  "mcpServers": {
+    "standwise": {
+      "command": "standwise",
+      "args": ["mcp"]
+    }
+  }
+}</pre></article>
+      <article class="way"><h3>Terminal</h3><p>One binary for macOS, Linux and Windows, checked against SHA256SUMS.</p>
+<pre>standwise login
+standwise draft
+standwise submit</pre></article>
+    </div>
+  </div>
+</section>
+
+<section class="flush">
+  <div class="wrap faq">
+    <div class="head"><span class="eyebrow">FAQ</span><h2>Questions before you install.</h2></div>
+    <div>
+      <details open><summary>Is it free?</summary><p>Yes, during the public beta. Teams that join the beta keep special terms when paid plans arrive.</p></details>
+      <details><summary>Does Standwise read our code?</summary><p>No. The GitHub App reads pull requests, reviews, checks, commit metadata, standwise.yml and CODEOWNERS. It never reads source files.</p></details>
+      <details><summary>What do I need?</summary><p>A GitHub organization or personal account and a Slack workspace. Linear is optional. Google Chat and Jira are in development.</p></details>
+      <details><summary>Can my manager see my suggested blockers?</summary><p>No. Suggestions are visible only to you, in your own draft. They never reach the digest, the API, webhooks or managers.</p></details>
+      <details><summary>Can we self-host?</summary><p>Yes. Standwise is MIT licensed. The self-hosting guide covers the API, the worker and Postgres.</p></details>
+    </div>
+  </div>
+</section>
+
+<section id="beta" class="flush">
+  <div class="wrap">
+    <div class="beta">
+      <div class="head tight">
+        <span class="eyebrow">Public beta</span>
+        <h2>Try it with your team.</h2>
+        <p class="lede">We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up on a 20-minute call.</p>
+      </div>
+      <form id="beta-form" action="https://api-standwise.usefachada.dev/beta" method="post">
+        <p class="invalid" id="beta-invalid" role="alert">We couldn't send your request. Check your name and work email, pick an option in each list and try again.</p>
+        <input type="hidden" name="locale" value="en">
+        <label for="f-name">Name<input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120"></label>
+        <label for="f-email">Work email<input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254"></label>
+        <label for="f-size">Team size<select id="f-size" name="team_size" required>
+          <option value="" disabled selected>Choose</option>
+          <option value="3-5">3–5</option>
+          <option value="6-15">6–15</option>
+          <option value="16+">16+</option>
+        </select></label>
+        <label for="f-chat">Chat<select id="f-chat" name="chat" required>
+          <option value="" disabled selected>Choose</option>
+          <option value="slack">Slack</option>
+          <option value="google_chat">Google Chat</option>
+          <option value="other">Other</option>
+        </select></label>
+        <label class="full" for="f-tracker">Tracker<select id="f-tracker" name="tracker" required>
+          <option value="" disabled selected>Choose</option>
+          <option value="linear">Linear</option>
+          <option value="jira">Jira</option>
+          <option value="github">GitHub only</option>
+          <option value="other">Other</option>
+        </select></label>
+        <div class="hp" aria-hidden="true"><label for="f-website">Company website<input id="f-website" name="company_website" type="text" tabindex="-1" autocomplete="off"></label></div>
+        <button class="btn btn-primary" type="submit">Request beta access</button>
+        <p class="note">We'll email you within two working days.</p>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Standwise, back to top"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Standwise</a>
+    <ul>
+      <li><a href="https://docs-standwise.usefachada.dev/">Documentation</a></li>
+      <li><a href="https://github.com/ImFelipeOliveira/standwise">GitHub</a></li>
+      <li><a href="https://docs-standwise.usefachada.dev/privacy">Privacy</a></li>
+      <li><a href="/llms.txt">llms.txt</a></li>
+      <li><a href="/pt-BR/" hreflang="pt-BR" lang="pt-BR">Português</a></li>
+    </ul>
+    <p>MIT · support.standwise@usefachada.dev</p>
+  </div>
+</footer>
+</body>
+</html>
