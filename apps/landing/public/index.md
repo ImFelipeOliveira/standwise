@@ -124,7 +124,7 @@ standwise submit
 
 ### Is it free?
 
-Yes, during the public beta. Teams that join the beta keep special terms when paid plans arrive.
+Yes, during the public beta.
 
 ### Does Standwise read our code?
 
@@ -140,10 +140,10 @@ No. Suggestions are visible only to you, in your own draft. They never reach the
 
 ### Can we self-host?
 
-Yes. Standwise is MIT licensed. The self-hosting guide covers the API, the worker and Postgres.
+Yes. Standwise is MIT licensed. The [self-hosting section of the README](https://github.com/ImFelipeOliveira/standwise#self-hosting) covers the API, the worker and Postgres.
 
 ## Public beta
 
-Try it with your team. We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up on a 20-minute call. Request access with the form at [standwise.usefachada.dev/#beta](https://standwise.usefachada.dev/#beta).
+Try it with your team. We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up. Request access with the form at [standwise.usefachada.dev/#beta](https://standwise.usefachada.dev/#beta).
 
 Support: support.standwise@usefachada.dev

@@ -123,8 +123,10 @@ describe('landing', () => {
         mainEntity: { name: string; acceptedAnswer: { text: string } }[];
       };
       expect(faq.mainEntity.map((entry) => entry.name)).toEqual(summaries);
-      for (const entry of faq.mainEntity)
-        expect(entry.acceptedAnswer.text.length).toBeGreaterThan(10);
+      const answers = [...html.matchAll(/<summary>[\s\S]*?<\/summary><p>([\s\S]*?)<\/p>/g)].map(
+        (match) => decode(match[1] ?? ''),
+      );
+      expect(faq.mainEntity.map((entry) => entry.acceptedAnswer.text)).toEqual(answers);
     }
   });
 
@@ -175,6 +177,61 @@ describe('landing', () => {
       }
       expect(html).toMatch(/id="beta-invalid"/);
       expect(html).not.toMatch(/\svalue="[^"]*@/);
+      const name = tags(html, 'input').find((tag) => attr(tag, 'name') === 'name') ?? '';
+      expect(attr(name, 'maxlength')).toBe('120');
+      expect(attr(email, 'maxlength')).toBe('254');
+      for (const select of tags(html, 'select')) expect(select).toMatch(/\srequired[\s>]/);
+      const honeypotAt = html.indexOf('name="company_website"');
+      const wrapperAt = html.lastIndexOf('<div', honeypotAt);
+      const wrapper = html.slice(wrapperAt, honeypotAt);
+      expect(wrapper).toMatch(/^<div\b[^>]*\saria-hidden="true"/);
+      expect(wrapper).not.toContain('</div>');
+    }
+  });
+
+  test('invalid box is shown only as the target', () => {
+    const css = read('styles.css').replace(/\s+/g, ' ');
+    expect(css).toMatch(/\.invalid \{[^}]*display: none/);
+    expect(css).toMatch(/(\.invalid|#beta-invalid):target \{[^}]*display: block/);
+  });
+
+  test('pt-BR page links the pt-BR docs', () => {
+    const docsLinks = [
+      ...read('pt-BR/index.html').matchAll(
+        /href="(https:\/\/docs-standwise\.usefachada\.dev[^"]*)"/g,
+      ),
+    ].map((match) => match[1] ?? '');
+    expect(docsLinks.length).toBeGreaterThan(0);
+    for (const link of docsLinks) expect(link).toStartWith(`${DOCS}/pt-BR/`);
+  });
+
+  test('csp allows the form and its redirect targets', () => {
+    expect(read('_headers')).toContain(
+      `form-action ${API} ${DOCS} ${SITE}; base-uri 'none'; frame-ancestors 'none'`,
+    );
+  });
+
+  test('copy makes no undecided promises and links the self-hosting readme', () => {
+    const files = ['index.html', 'pt-BR/index.html', 'index.md', 'pt-BR/index.md', 'llms.txt'];
+    for (const file of files) {
+      const text = read(file);
+      for (const phrase of [
+        'special terms',
+        'condições especiais',
+        'two working days',
+        'dois dias úteis',
+        '20-minute',
+        '20 minutos',
+        'self-hosting guide',
+        'guia de self-hosting',
+      ]) {
+        expect(text).not.toContain(phrase);
+      }
+    }
+    for (const file of PAGES.map((page) => page.file)) {
+      expect(read(file)).toContain(
+        'href="https://github.com/ImFelipeOliveira/standwise#self-hosting"',
+      );
     }
   });
 

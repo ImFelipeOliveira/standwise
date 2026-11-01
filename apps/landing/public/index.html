@@ -39,11 +39,11 @@
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","inLanguage":"en","mainEntity":[
-{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"Yes, during the public beta. Teams that join the beta keep special terms when paid plans arrive."}},
+{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"Yes, during the public beta."}},
 {"@type":"Question","name":"Does Standwise read our code?","acceptedAnswer":{"@type":"Answer","text":"No. The GitHub App reads pull requests, reviews, checks, commit metadata, standwise.yml and CODEOWNERS. It never reads source files."}},
 {"@type":"Question","name":"What do I need?","acceptedAnswer":{"@type":"Answer","text":"A GitHub organization or personal account and a Slack workspace. Linear is optional. Google Chat and Jira are in development."}},
 {"@type":"Question","name":"Can my manager see my suggested blockers?","acceptedAnswer":{"@type":"Answer","text":"No. Suggestions are visible only to you, in your own draft. They never reach the digest, the API, webhooks or managers."}},
-{"@type":"Question","name":"Can we self-host?","acceptedAnswer":{"@type":"Answer","text":"Yes. Standwise is MIT licensed. The self-hosting guide covers the API, the worker and Postgres."}}
+{"@type":"Question","name":"Can we self-host?","acceptedAnswer":{"@type":"Answer","text":"Yes. Standwise is MIT licensed. The self-hosting section of the README covers the API, the worker and Postgres."}}
 ]}
 </script>
 </head>
@@ -247,11 +247,11 @@ standwise submit</pre></article>
   <div class="wrap faq">
     <div class="head"><span class="eyebrow">FAQ</span><h2>Questions before you install.</h2></div>
     <div>
-      <details open><summary>Is it free?</summary><p>Yes, during the public beta. Teams that join the beta keep special terms when paid plans arrive.</p></details>
+      <details open><summary>Is it free?</summary><p>Yes, during the public beta.</p></details>
       <details><summary>Does Standwise read our code?</summary><p>No. The GitHub App reads pull requests, reviews, checks, commit metadata, standwise.yml and CODEOWNERS. It never reads source files.</p></details>
       <details><summary>What do I need?</summary><p>A GitHub organization or personal account and a Slack workspace. Linear is optional. Google Chat and Jira are in development.</p></details>
       <details><summary>Can my manager see my suggested blockers?</summary><p>No. Suggestions are visible only to you, in your own draft. They never reach the digest, the API, webhooks or managers.</p></details>
-      <details><summary>Can we self-host?</summary><p>Yes. Standwise is MIT licensed. The self-hosting guide covers the API, the worker and Postgres.</p></details>
+      <details><summary>Can we self-host?</summary><p>Yes. Standwise is MIT licensed. The <a href="https://github.com/ImFelipeOliveira/standwise#self-hosting">self-hosting section of the README</a> covers the API, the worker and Postgres.</p></details>
     </div>
   </div>
 </section>
@@ -262,7 +262,7 @@ standwise submit</pre></article>
       <div class="head tight">
         <span class="eyebrow">Public beta</span>
         <h2>Try it with your team.</h2>
-        <p class="lede">We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up on a 20-minute call.</p>
+        <p class="lede">We're looking for teams of 3 to 15 people on GitHub and Slack. We'll help you set it up.</p>
       </div>
       <form id="beta-form" action="https://api-standwise.usefachada.dev/beta" method="post">
         <p class="invalid" id="beta-invalid" role="alert">We couldn't send your request. Check your name and work email, pick an option in each list and try again.</p>
@@ -290,7 +290,6 @@ standwise submit</pre></article>
         </select></label>
         <div class="hp" aria-hidden="true"><label for="f-website">Company website<input id="f-website" name="company_website" type="text" tabindex="-1" autocomplete="off"></label></div>
         <button class="btn btn-primary" type="submit">Request beta access</button>
-        <p class="note">We'll email you within two working days.</p>
       </form>
     </div>
   </div>

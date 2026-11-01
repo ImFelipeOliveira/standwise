@@ -39,11 +39,11 @@
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","inLanguage":"pt-BR","mainEntity":[
-{"@type":"Question","name":"É grátis?","acceptedAnswer":{"@type":"Answer","text":"Sim, durante o beta público. Os times que entrarem no beta mantêm condições especiais quando os planos pagos chegarem."}},
+{"@type":"Question","name":"É grátis?","acceptedAnswer":{"@type":"Answer","text":"Sim, durante o beta público."}},
 {"@type":"Question","name":"O Standwise lê o nosso código?","acceptedAnswer":{"@type":"Answer","text":"Não. O GitHub App lê pull requests, reviews, checks, metadados de commits, o standwise.yml e o CODEOWNERS. Ele nunca lê arquivos de código."}},
 {"@type":"Question","name":"Do que eu preciso?","acceptedAnswer":{"@type":"Answer","text":"Uma organização ou conta pessoal no GitHub e um workspace no Slack. O Linear é opcional. Google Chat e Jira estão em desenvolvimento."}},
 {"@type":"Question","name":"O meu gestor vê os impedimentos sugeridos para mim?","acceptedAnswer":{"@type":"Answer","text":"Não. As sugestões aparecem só para você, no seu rascunho. Elas nunca chegam ao consolidado, à API, aos webhooks nem aos gestores."}},
-{"@type":"Question","name":"Dá para hospedar por conta própria?","acceptedAnswer":{"@type":"Answer","text":"Sim. O Standwise tem licença MIT. O guia de self-hosting cobre a API, o worker e o Postgres."}}
+{"@type":"Question","name":"Dá para hospedar por conta própria?","acceptedAnswer":{"@type":"Answer","text":"Sim. O Standwise tem licença MIT. A seção de self-hosting do README cobre a API, o worker e o Postgres."}}
 ]}
 </script>
 </head>
@@ -247,11 +247,11 @@ standwise submit</pre></article>
   <div class="wrap faq">
     <div class="head"><span class="eyebrow">FAQ</span><h2>Perguntas antes de instalar.</h2></div>
     <div>
-      <details open><summary>É grátis?</summary><p>Sim, durante o beta público. Os times que entrarem no beta mantêm condições especiais quando os planos pagos chegarem.</p></details>
+      <details open><summary>É grátis?</summary><p>Sim, durante o beta público.</p></details>
       <details><summary>O Standwise lê o nosso código?</summary><p>Não. O GitHub App lê pull requests, reviews, checks, metadados de commits, o standwise.yml e o CODEOWNERS. Ele nunca lê arquivos de código.</p></details>
       <details><summary>Do que eu preciso?</summary><p>Uma organização ou conta pessoal no GitHub e um workspace no Slack. O Linear é opcional. Google Chat e Jira estão em desenvolvimento.</p></details>
       <details><summary>O meu gestor vê os impedimentos sugeridos para mim?</summary><p>Não. As sugestões aparecem só para você, no seu rascunho. Elas nunca chegam ao consolidado, à API, aos webhooks nem aos gestores.</p></details>
-      <details><summary>Dá para hospedar por conta própria?</summary><p>Sim. O Standwise tem licença MIT. O guia de self-hosting cobre a API, o worker e o Postgres.</p></details>
+      <details><summary>Dá para hospedar por conta própria?</summary><p>Sim. O Standwise tem licença MIT. A <a href="https://github.com/ImFelipeOliveira/standwise#self-hosting">seção de self-hosting do README</a> cobre a API, o worker e o Postgres.</p></details>
     </div>
   </div>
 </section>
@@ -262,7 +262,7 @@ standwise submit</pre></article>
       <div class="head tight">
         <span class="eyebrow">Beta público</span>
         <h2>Teste com o seu time.</h2>
-        <p class="lede">Procuramos times de 3 a 15 pessoas que usam GitHub e Slack. Ajudamos você a configurar em uma call de 20 minutos.</p>
+        <p class="lede">Procuramos times de 3 a 15 pessoas que usam GitHub e Slack. Ajudamos você a configurar.</p>
       </div>
       <form id="beta-form" action="https://api-standwise.usefachada.dev/beta" method="post">
         <p class="invalid" id="beta-invalid" role="alert">Não conseguimos enviar o seu pedido. Confira o nome e o e-mail de trabalho, escolha uma opção em cada lista e tente de novo.</p>
@@ -290,7 +290,6 @@ standwise submit</pre></article>
         </select></label>
         <div class="hp" aria-hidden="true"><label for="f-website">Site da empresa<input id="f-website" name="company_website" type="text" tabindex="-1" autocomplete="off"></label></div>
         <button class="btn btn-primary" type="submit">Pedir acesso ao beta</button>
-        <p class="note">Respondemos por e-mail em até dois dias úteis.</p>
       </form>
     </div>
   </div>
