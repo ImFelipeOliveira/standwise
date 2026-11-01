@@ -1,0 +1,101 @@
+language: en-US
+tone_instructions: Direct and specific. Point to the file and line, say what breaks for a person using Standwise, and suggest the fix. Skip praise and style nits that Biome already enforces.
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - dev
+      - main
+  path_filters:
+    - "!bun.lock"
+    - "!CHANGELOG.md"
+    - "!docs/superpowers/**"
+    - "!packages/db/migrations/meta/**"
+  path_instructions:
+    - path: "**/*.{ts,tsx,css,sh,yml,yaml}"
+      instructions: |
+        Review against docs/engineering/review-guide.md. In particular flag:
+        - any comment added to code (the project allows none);
+        - business rules, database queries or external API calls inside routes, jobs, the CLI or the MCP server instead of a use case;
+        - a database query not scoped by installation_id (and member_id for personal data);
+        - logging outside logError, or logs containing tokens, emails, daily or card text, request bodies or SQL params;
+        - user-visible text not going through t(lang, key) with both pt-BR and en keys;
+        - suggestions, card activity or per-person signals reaching managers, /v1/org, /v1/manage, webhooks, the digest, the setup page or logs;
+        - a Slack message sent without claimDelivery, or work after the claim outside the try;
+        - a queue.enqueue whose policy differs from the queue.work declaration of the same job;
+        - read-then-write races without compare-and-swap or an advisory lock;
+        - HTTP calls without a timeout, single-page reads of paginated APIs, network calls while a database transaction is open;
+        - state resolved or deleted after an external source failed;
+        - regexes that can backtrack on user input, GraphQL inputs not passed as variables, redirects built from request data;
+        - imports of packages not declared in the package's own package.json;
+        - dead code, duplicated helpers and tests that would pass without the feature.
+    - path: "packages/orchestrator/src/use-cases/**"
+      instructions: |
+        Use cases hold the business rules and throw DomainError with a stable code. Check idempotency on retries, concurrency between two workers, tenant scoping and the anti-surveillance rule. Every new behaviour needs a use-case test without HTTP.
+    - path: "apps/api/src/{web/**,routes/web.tsx}"
+      instructions: |
+        Server-rendered pages under a strict CSP: no style attributes, no script tags, styles only from classes in styles.ts. State-changing forms carry the CSRF field. Check en and pt-BR, dark mode tokens, visible keyboard focus, 44px touch targets on phones and that long values wrap.
+    - path: "apps/api/src/routes/**"
+      instructions: |
+        Routes stay thin: parse, call one use case, map the result. Internal agent routes must stay out of the public OpenAPI document. Redirect targets come only from configured URLs.
+    - path: "packages/adapters/**"
+      instructions: |
+        Adapters for GitHub, Slack and Linear. External input is untrusted. Every HTTP call has a timeout, paginated endpoints are read up to a cap, errors map to typed errors and never include tokens. Check the provider's documented meaning of each error code.
+    - path: "packages/db/**"
+      instructions: |
+        Repository functions must be scoped by installation_id. Writes that can race use compare-and-swap or a transaction-scoped advisory lock. New tables go into the truncate list in packages/db/test/setup.ts and come with a generated migration.
+    - path: "packages/core/**"
+      instructions: |
+        Pure functions only: no I/O, no Date.now(), time comes in as a parameter. Watch time zones, workday rules and exact thresholds.
+    - path: "docs/site/**/*.md"
+      instructions: |
+        Documentation in en (docs/site) and pt-BR (docs/site/pt-BR) must stay in sync and match the code. Nothing may describe managers or the organization seeing a person's suggestions or card activity.
+    - path: ".github/workflows/**"
+      instructions: |
+        Actions must be pinned to full commit SHAs and job permissions kept minimal. No YAML comments.
+  pre_merge_checks:
+    custom_checks:
+      - name: No comments in code
+        mode: warning
+        instructions: Fail if the pull request adds comments to TypeScript, TSX, CSS, shell, YAML or Dockerfile files. Markdown is allowed.
+      - name: Tenant scoping
+        mode: warning
+        instructions: Fail if a new or changed database query reads or writes rows without filtering by installation_id.
+      - name: Anti-surveillance
+        mode: error
+        instructions: Fail if suggestions, Linear card activity or per-person signals can reach the digest, /v1/org, /v1/manage, outgoing webhooks, the setup page or logs, or if the change adds per-person metrics or rankings.
+      - name: Both languages
+        mode: warning
+        instructions: Fail if user-visible text is added without both pt-BR and en i18n keys, or if docs/site changes in one language only.
+  tools:
+    biome:
+      enabled: true
+    gitleaks:
+      enabled: true
+    shellcheck:
+      enabled: true
+    actionlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: false
+knowledge_base:
+  learnings:
+    scope: local
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - files: docs/engineering/review-guide.md
+        applyTo: "**"
+      - files: CONTRIBUTING.md
+        applyTo: "**"
+chat:
+  auto_reply: true

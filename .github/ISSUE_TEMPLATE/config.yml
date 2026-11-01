@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs-standwise.usefachada.dev/
+    about: Install guide, standwise.yml reference, CLI, MCP and API
+  - name: Support
+    url: https://docs-standwise.usefachada.dev/troubleshooting
+    about: Common problems and the support email for questions about your installation

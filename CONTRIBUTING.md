@@ -26,3 +26,7 @@ Also run `bun run lint` and `bun run typecheck` before opening a PR.
 ## Code style
 
 Do not write comments in code. Make names and structure carry the meaning.
+
+## Review guide
+
+The patterns, code smells and past bugs reviewers look for are in [docs/engineering/review-guide.md](docs/engineering/review-guide.md). CodeRabbit reads it too (see `.coderabbit.yaml`).
