@@ -1,5 +1,5 @@
-import { type ResolvedTeam, teamsForMember } from '@standwise/core';
-import { getInstallation, operationalConfig } from '@standwise/db';
+import { type ResolvedTeam, teamsForMember } from '@standcast/core';
+import { getInstallation, operationalConfig } from '@standcast/db';
 import type { Deps } from '../deps';
 import { resolveTeams } from '../teams';
 import { DomainError } from './errors';
@@ -11,7 +11,7 @@ export async function loadOrgTeams(deps: Deps, installationId: number): Promise<
   if (!installation) throw new DomainError('org_not_found', 'organization not found');
   const config = operationalConfig(installation);
   if (!config) {
-    throw new DomainError('org_not_configured', 'organization has no valid standwise.yml');
+    throw new DomainError('org_not_configured', 'organization has no valid standcast.yml');
   }
   const teams = await resolveTeams(deps, installation.id, installation.accountLogin, config);
   return { owner: installation.accountLogin, teams };

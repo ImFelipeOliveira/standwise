@@ -7,8 +7,8 @@ import {
   setIdentity,
   setMemberInstallations,
   upsertInstallation,
-} from '@standwise/db';
-import { LinearAuthError } from '@standwise/linear';
+} from '@standcast/db';
+import { LinearAuthError } from '@standcast/linear';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   completeLinearConnect,

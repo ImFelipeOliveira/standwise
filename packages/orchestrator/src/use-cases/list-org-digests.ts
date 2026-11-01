@@ -1,4 +1,4 @@
-import { getMemberLogins, listDigestDeliveries, listSubmitters } from '@standwise/db';
+import { getMemberLogins, listDigestDeliveries, listSubmitters } from '@standcast/db';
 import type { Deps } from '../deps';
 import { loadOrgTeams, requireTeam } from './org-teams';
 import { decodeCursor, type Page, paginate, parseDay, parseLimit } from './pagination';

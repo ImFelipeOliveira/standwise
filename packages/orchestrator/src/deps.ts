@@ -1,5 +1,5 @@
-import type { ChatChannel } from '@standwise/core';
-import type { Db } from '@standwise/db';
+import type { ChatChannel } from '@standcast/core';
+import type { Db } from '@standcast/db';
 import type {
   App,
   createCheckRun,
@@ -12,10 +12,11 @@ import type {
   listPullRequestFiles,
   Octokit,
   resolveTeamMembers,
-} from '@standwise/github';
-import type { exchangeLinearCode, LinearFetch, refreshLinearToken } from '@standwise/linear';
-import type { JobQueue } from '@standwise/queue';
-import type { exchangeSlackCode } from '@standwise/slack';
+} from '@standcast/github';
+import type { exchangeLinearCode, LinearFetch, refreshLinearToken } from '@standcast/linear';
+import type { JobQueue } from '@standcast/queue';
+import type { EmailMessage } from '@standcast/resend';
+import type { exchangeSlackCode } from '@standcast/slack';
 import type { TrackerFor } from './linear-tracker';
 import type { SafeFetchOptions } from './safe-fetch';
 
@@ -53,6 +54,7 @@ export type Deps = {
     publicUrl: string;
     supportEmail: string;
     docsUrl: string;
+    landingUrl: string;
     appId: string;
     webhookSecret: string;
     githubClientId: string;
@@ -65,6 +67,8 @@ export type Deps = {
   };
 };
 
+export type EmailSender = { send(message: EmailMessage): Promise<void> };
+
 export type WorkerDeps = Pick<
   Deps,
   | 'db'
@@ -76,4 +80,9 @@ export type WorkerDeps = Pick<
   | 'webhookTransport'
   | 'trackerFor'
   | 'linear'
-> & { env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret'> };
+> & {
+  email: EmailSender | null;
+  env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret' | 'supportEmail'> & {
+    betaEmailFrom: string;
+  };
+};

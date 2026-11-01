@@ -3,7 +3,7 @@ import {
   getInstallation,
   insertWebhookDeliveries,
   listSubscribedWebhookEndpoints,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import type { DeliverableEvent, Envelope, WebhookEvent } from '../events';
 import { logError } from '../log-error';

@@ -1,15 +1,17 @@
 import {
+  deleteBetaRequestsCreatedBefore,
   deleteExpiredSessions,
   deletePersonDeliveriesBefore,
   deleteResolvedSuggestionsBefore,
   deleteWebhookDeliveriesBefore,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 
 export const PRUNE_DATA_JOB = 'prune-data';
 export const WEBHOOK_DELIVERY_RETENTION_DAYS = 30;
 const SUGGESTION_RETENTION_DAYS = 90;
 const PERSON_DELIVERY_RETENTION_DAYS = 90;
+const BETA_REQUEST_RETENTION_DAYS = 365;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -18,6 +20,7 @@ export type PruneResult = {
   sessions: number;
   suggestions: number;
   personDeliveries: number;
+  betaRequests: number;
 };
 
 export async function pruneData(deps: Pick<WorkerDeps, 'db' | 'now'>): Promise<PruneResult> {
@@ -33,6 +36,10 @@ export async function pruneData(deps: Pick<WorkerDeps, 'db' | 'now'>): Promise<P
     personDeliveries: await deletePersonDeliveriesBefore(
       deps.db,
       daysAgo(PERSON_DELIVERY_RETENTION_DAYS),
+    ),
+    betaRequests: await deleteBetaRequestsCreatedBefore(
+      deps.db,
+      daysAgo(BETA_REQUEST_RETENTION_DAYS),
     ),
   };
 }

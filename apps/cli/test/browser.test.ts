@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { stripUnsafeChars } from '@standwise/core';
+import { stripUnsafeChars } from '@standcast/core';
 import { browserCommand } from '../src/device-flow';
 
 describe('browserCommand', () => {

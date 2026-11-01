@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { headersFile, inlineScriptHashes, siteCsp, writeSiteHeaders } from './docs-headers';
 
-const temp = await mkdtemp(join(tmpdir(), 'standwise-headers-'));
+const temp = await mkdtemp(join(tmpdir(), 'standcast-headers-'));
 
 afterAll(async () => {
   await rm(temp, { recursive: true, force: true });

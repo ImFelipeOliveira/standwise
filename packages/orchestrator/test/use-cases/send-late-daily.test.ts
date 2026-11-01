@@ -6,8 +6,8 @@ import {
   setIdentity,
   setInstallationConfig,
   upsertDaily,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { sendLateDaily } from '../../src';
 import { config, daily, fakeChat, fakeDeps, flakyDb, INST, seedMember, seedOrg } from './fakes';
@@ -56,7 +56,7 @@ describe('sendLateDaily', () => {
     expect(row?.status).toBe('sent');
   });
 
-  test('late daily uses the last valid config while standwise.yml is invalid', async () => {
+  test('late daily uses the last valid config while standcast.yml is invalid', async () => {
     const { deps, replies, job } = await setup();
     await setInstallationConfig(db, INST, {
       status: 'invalid',

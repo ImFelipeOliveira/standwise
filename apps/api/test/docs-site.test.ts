@@ -16,14 +16,14 @@ import { inlineScriptHashes } from '../../../scripts/docs-headers';
 const ROOT = join(import.meta.dir, '../../..');
 const SITE = join(ROOT, 'docs/site');
 const SUPPORT = 'help@sw.test';
-const PUBLIC_URL = 'https://api-standwise.usefachada.dev';
-const temp = await mkdtemp(join(tmpdir(), 'standwise-docs-'));
+const PUBLIC_URL = 'https://api-standcast.usefachada.dev';
+const temp = await mkdtemp(join(tmpdir(), 'standcast-docs-'));
 const outDir = join(temp, 'dist');
 
 function buildSite(supportEmail: string, out: string) {
   return Bun.spawnSync(['bun', 'run', 'docs:build', '--outDir', out], {
     cwd: ROOT,
-    env: { ...process.env, SUPPORT_EMAIL: supportEmail, STANDWISE_PUBLIC_URL: PUBLIC_URL },
+    env: { ...process.env, SUPPORT_EMAIL: supportEmail, STANDCAST_PUBLIC_URL: PUBLIC_URL },
     stdout: 'pipe',
     stderr: 'pipe',
   });
@@ -108,7 +108,7 @@ describe('site build', () => {
     ]) {
       const html = await readFile(join(outDir, page), 'utf8');
       expect(html, page).toContain(`href="${PUBLIC_URL}/reference"`);
-      expect(html, page).not.toContain('https://api.standwise.dev/reference');
+      expect(html, page).not.toContain('https://api.standcast.app/reference');
     }
   });
 
@@ -225,12 +225,12 @@ describe('check-docs', () => {
   test('overview must have the required sections in both languages', async () => {
     const dir = await fixture({
       'index.md':
-        '# Standwise\n\n## What it is\n\n## Who it is for\n\n## How it works\n\n## What Standwise does not do\n',
-      'pt-BR/index.md': '# Standwise\n\n## O que é\n\n## Como funciona\n',
+        '# Standcast\n\n## What it is\n\n## Who it is for\n\n## How it works\n\n## What Standcast does not do\n',
+      'pt-BR/index.md': '# Standcast\n\n## O que é\n\n## Como funciona\n',
     });
     expect(await checkOverview(dir)).toEqual([
       'pt-BR/index.md: missing section "Para quem é"',
-      'pt-BR/index.md: missing section "O que o Standwise não faz"',
+      'pt-BR/index.md: missing section "O que o Standcast não faz"',
     ]);
   });
 

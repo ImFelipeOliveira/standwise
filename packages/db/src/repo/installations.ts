@@ -1,4 +1,4 @@
-import type { ConfigError, StandwiseConfig } from '@standwise/core';
+import type { ConfigError, StandcastConfig } from '@standcast/core';
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type InstallationRow, installations } from '../schema';
@@ -31,7 +31,7 @@ export async function deleteInstallation(db: Db, id: number): Promise<void> {
 }
 
 export type InstallationConfigResult =
-  | { status: 'configured'; config: StandwiseConfig }
+  | { status: 'configured'; config: StandcastConfig }
   | { status: 'invalid'; errors: ConfigError[] }
   | { status: 'unconfigured'; reason: string };
 
@@ -67,14 +67,14 @@ const OPERATIONAL_STATUSES: InstallationRow['status'][] = ['configured', 'invali
 
 export function operationalConfig(
   installation: Pick<InstallationRow, 'status' | 'config'> | null | undefined,
-): StandwiseConfig | null {
+): StandcastConfig | null {
   if (!installation?.config) return null;
   return OPERATIONAL_STATUSES.includes(installation.status) ? installation.config : null;
 }
 
 export async function listOperationalInstallations(
   db: Db,
-): Promise<{ id: number; accountLogin: string; config: StandwiseConfig }[]> {
+): Promise<{ id: number; accountLogin: string; config: StandcastConfig }[]> {
   const rows = await db
     .select()
     .from(installations)

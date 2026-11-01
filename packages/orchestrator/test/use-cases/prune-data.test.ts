@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
 import {
+  getBetaRequest,
   getDelivery,
   insertWebhookDeliveries,
   insertWebhookEndpoint,
   listRecentWebhookDeliveries,
   markDeliverySent,
-} from '@standwise/db';
+  upsertBetaRequest,
+} from '@standcast/db';
 import {
   ageDeliveries,
   insertAgedSessions,
@@ -154,5 +156,22 @@ describe('pruneData', () => {
       expect(await getDelivery(db, { ...base, kind, subject: 'recent' })).not.toBeNull();
     }
     expect(await getDelivery(db, { ...base, teamName: 'Alpha', kind: 'digest' })).not.toBeNull();
+  });
+
+  test('deletes beta requests older than 365 days and keeps recent ones', async () => {
+    const input = {
+      name: 'A',
+      teamSize: '3-5',
+      chat: 'slack',
+      tracker: 'linear',
+      locale: 'en',
+    } as const;
+    const old = await upsertBetaRequest(db, { ...input, email: 'old@acme.com' }, daysAgo(366));
+    const recent = await upsertBetaRequest(db, { ...input, email: 'new@acme.com' }, daysAgo(364));
+    const { deps } = fakeDeps();
+    deps.now = () => NOW;
+    expect((await pruneData(deps)).betaRequests).toBe(1);
+    expect(await getBetaRequest(db, old?.id ?? '')).toBeNull();
+    expect(await getBetaRequest(db, recent?.id ?? '')).not.toBeNull();
   });
 });

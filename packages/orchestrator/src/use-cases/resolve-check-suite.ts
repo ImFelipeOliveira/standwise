@@ -1,4 +1,4 @@
-import { getInstallation, operationalConfig } from '@standwise/db';
+import { getInstallation, operationalConfig } from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { resolveTeams } from '../teams';

@@ -3,7 +3,7 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type ApiKeyScope, apiKeys } from '../schema';
 
-const KEY_PREFIX = 'swk_';
+const KEY_PREFIX = 'sck_';
 const DISPLAY_PREFIX_LENGTH = 8;
 const LAST_USED_RESOLUTION_SECONDS = 60;
 

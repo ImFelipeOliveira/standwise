@@ -4,7 +4,7 @@ import {
   createApiKey,
   type MemberRow,
   revokeApiKey,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from '../deps';
 import { DomainError } from './errors';
 import type { MembershipCheck } from './org-context';

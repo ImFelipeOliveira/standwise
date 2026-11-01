@@ -40,7 +40,7 @@ body:
         - Setup page
         - Slack digest, reminder or direct message
         - Linear integration
-        - standwise.yml check run
+        - standcast.yml check run
         - Public API or webhooks
         - Documentation
         - Other
@@ -50,10 +50,10 @@ body:
     id: version
     attributes:
       label: CLI version
-      description: Output of `standwise --version`, if the CLI is involved
+      description: Output of `standcast --version`, if the CLI is involved
   - type: textarea
     id: config
     attributes:
-      label: Relevant standwise.yml
+      label: Relevant standcast.yml
       description: Remove anything you don't want to share
       render: yaml

@@ -1,5 +1,5 @@
 import { WebClient, type WebClientOptions } from '@slack/web-api';
-import type { ChatChannel, Message, MessageRef } from '@standwise/core';
+import type { ChatChannel, Message, MessageRef } from '@standcast/core';
 import { ChatDeliveryError, mapSlackErrors } from './errors';
 import { renderSlack } from './render';
 

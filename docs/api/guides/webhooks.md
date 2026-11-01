@@ -1,19 +1,19 @@
 ## Webhooks
 
-Standwise can send events to your systems as they happen. An organization admin registers an HTTPS endpoint on the setup page, picks the events it receives and gets a signing secret. Standwise then sends a signed `POST` with a JSON body for every event.
+Standcast can send events to your systems as they happen. An organization admin registers an HTTPS endpoint on the setup page, picks the events it receives and gets a signing secret. Standcast then sends a signed `POST` with a JSON body for every event.
 
 ### Registering an endpoint
 
-Only an organization admin can manage webhooks. On the Standwise setup page of the organization, open the **Webhooks** section, enter the endpoint URL, pick the events and add it.
+Only an organization admin can manage webhooks. On the Standcast setup page of the organization, open the **Webhooks** section, enter the endpoint URL, pick the events and add it.
 
 The endpoint URL must:
 
 - use `https://`;
 - use the default port (443);
 - not contain a user name or password;
-- point to a public address. Standwise resolves the host name before every delivery and refuses private, loopback, link-local, carrier-grade NAT, multicast, reserved and cloud metadata addresses, in IPv4 and IPv6. It then connects to the address it checked, so a DNS change between the check and the request cannot redirect the delivery.
+- point to a public address. Standcast resolves the host name before every delivery and refuses private, loopback, link-local, carrier-grade NAT, multicast, reserved and cloud metadata addresses, in IPv4 and IPv6. It then connects to the address it checked, so a DNS change between the check and the request cannot redirect the delivery.
 
-The signing secret (`whsec_...`) is shown once, when the endpoint is created. Standwise stores it encrypted and cannot show it again. If you lose it, disable the endpoint and create another. An organization can have up to 10 active endpoints.
+The signing secret (`whsec_...`) is shown once, when the endpoint is created. Standcast stores it encrypted and cannot show it again. If you lose it, disable the endpoint and create another. An organization can have up to 10 active endpoints.
 
 ### Events
 
@@ -115,10 +115,10 @@ Every body is an envelope with the same fields:
 | Header | Value |
 | --- | --- |
 | `Content-Type` | `application/json` |
-| `User-Agent` | `Standwise-Webhooks/1` |
-| `Standwise-Event` | The event name, same as `type` in the body. |
-| `Standwise-Delivery` | Delivery id (UUID). One per endpoint and event; it stays the same across retries. |
-| `Standwise-Signature` | `t=<unix seconds>,v1=<signature>` |
+| `User-Agent` | `Standcast-Webhooks/1` |
+| `Standcast-Event` | The event name, same as `type` in the body. |
+| `Standcast-Delivery` | Delivery id (UUID). One per endpoint and event; it stays the same across retries. |
+| `Standcast-Signature` | `t=<unix seconds>,v1=<signature>` |
 
 ### Verifying the signature
 
@@ -131,7 +131,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const TOLERANCE_SECONDS = 300;
 
-export function verifyStandwiseSignature(
+export function verifyStandcastSignature(
   secret: string,
   rawBody: string,
   header: string,
@@ -151,15 +151,15 @@ export function verifyStandwiseSignature(
   return signatures.some((signature) => timingSafeEqual(expected, signature));
 }
 
-const secret = process.env.STANDWISE_WEBHOOK_SECRET ?? '';
+const secret = process.env.STANDCAST_WEBHOOK_SECRET ?? '';
 const seen = new Set<string>();
 
 Bun.serve({
   port: 3000,
   async fetch(request) {
     const rawBody = await request.text();
-    const header = request.headers.get('standwise-signature') ?? '';
-    if (!verifyStandwiseSignature(secret, rawBody, header)) {
+    const header = request.headers.get('standcast-signature') ?? '';
+    if (!verifyStandcastSignature(secret, rawBody, header)) {
       return new Response('invalid signature', { status: 401 });
     }
     const event = JSON.parse(rawBody) as { id: string; type: string; data: unknown };
@@ -189,7 +189,7 @@ from flask import Flask, request
 TOLERANCE_SECONDS = 300
 
 
-def verify_standwise_signature(
+def verify_standcast_signature(
     secret: str, raw_body: bytes, header: str, now: Optional[int] = None
 ) -> bool:
     timestamp = None
@@ -211,15 +211,15 @@ def verify_standwise_signature(
 
 
 app = Flask(__name__)
-secret = os.environ["STANDWISE_WEBHOOK_SECRET"]
+secret = os.environ["STANDCAST_WEBHOOK_SECRET"]
 seen = set()
 
 
-@app.post("/standwise")
-def standwise_webhook():
+@app.post("/standcast")
+def standcast_webhook():
     raw_body = request.get_data()
-    header = request.headers.get("Standwise-Signature", "")
-    if not verify_standwise_signature(secret, raw_body, header):
+    header = request.headers.get("Standcast-Signature", "")
+    if not verify_standcast_signature(secret, raw_body, header):
         return "invalid signature", 401
     event = json.loads(raw_body)
     if event["id"] in seen:
@@ -238,11 +238,11 @@ A delivery can arrive more than once, for example when your endpoint processed i
 - Any `2xx` response counts as delivered. The response body is ignored.
 - Anything else counts as a failure: other status codes, redirects (they are never followed), connection errors and no response within **10 seconds**.
 - A failed delivery is retried up to 8 attempts in total, waiting 1 minute, 5 minutes, 30 minutes, 2 hours, 6 hours, 12 hours and 24 hours between attempts. After the 8th failed attempt the delivery is marked as failed and is not retried.
-- After **20 failed deliveries in a row**, Standwise disables the endpoint. The setup page shows it as disabled after failures. A successful delivery resets the count. To resume, create the endpoint again.
+- After **20 failed deliveries in a row**, Standcast disables the endpoint. The setup page shows it as disabled after failures. A successful delivery resets the count. To resume, create the endpoint again.
 - Respond quickly: acknowledge with `2xx` and do the slow work in the background.
 
 Events are not guaranteed to arrive in order. Use `created_at` when the order matters.
 
 ### Testing an endpoint
 
-On the setup page, click **Send test event** next to the endpoint. Standwise sends a signed `ping` event to that endpoint only. The **Latest 20 deliveries** table shows every delivery with its event, status, attempts and the last response status or error, so you can confirm the endpoint answered with `2xx` and that your signature check passes.
+On the setup page, click **Send test event** next to the endpoint. Standcast sends a signed `ping` event to that endpoint only. The **Latest 20 deliveries** table shows every delivery with its event, status, attempts and the last response status or error, so you can confirm the endpoint answered with `2xx` and that your signature check passes.

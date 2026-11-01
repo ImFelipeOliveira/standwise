@@ -22,17 +22,17 @@ jobs:
         ports:
           - 5433:5432
         env:
-          POSTGRES_USER: standwise
-          POSTGRES_PASSWORD: standwise
-          POSTGRES_DB: standwise
+          POSTGRES_USER: standcast
+          POSTGRES_PASSWORD: standcast
+          POSTGRES_DB: standcast
         options: >-
-          --health-cmd "pg_isready -U standwise"
+          --health-cmd "pg_isready -U standcast"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgres://standwise:standwise@localhost:5433/standwise
-      TEST_DATABASE_URL: postgres://standwise:standwise@localhost:5433/standwise_test
+      DATABASE_URL: postgres://standcast:standcast@localhost:5433/standcast
+      TEST_DATABASE_URL: postgres://standcast:standcast@localhost:5433/standcast_test
     steps:
       - name: checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -43,7 +43,7 @@ jobs:
         with:
           bun-version: 1.4.4
       - name: Create test database
-        run: psql "$DATABASE_URL" -c "CREATE DATABASE standwise_test"
+        run: psql "$DATABASE_URL" -c "CREATE DATABASE standcast_test"
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run check-pins

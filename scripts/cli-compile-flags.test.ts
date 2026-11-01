@@ -4,8 +4,8 @@ import { cliDefineFlags } from './cli-compile-flags';
 
 describe('resolveDefaultApiUrl', () => {
   test('defaults to the canonical api', () => {
-    expect(resolveDefaultApiUrl(undefined)).toBe('https://api.standwise.dev');
-    expect(resolveDefaultApiUrl('')).toBe('https://api.standwise.dev');
+    expect(resolveDefaultApiUrl(undefined)).toBe('https://api.standcast.app');
+    expect(resolveDefaultApiUrl('')).toBe('https://api.standcast.app');
   });
 
   test('accepts an https url and trims trailing slashes', () => {
@@ -18,9 +18,9 @@ describe('resolveDefaultApiUrl', () => {
   });
 
   test('builds a define flag with a quoted literal', () => {
-    expect(cliDefineFlags({ STANDWISE_DEFAULT_API_URL: 'https://x.example.com' })).toEqual([
+    expect(cliDefineFlags({ STANDCAST_DEFAULT_API_URL: 'https://x.example.com' })).toEqual([
       '--define',
-      'STANDWISE_DEFAULT_API_URL="https://x.example.com"',
+      'STANDCAST_DEFAULT_API_URL="https://x.example.com"',
     ]);
   });
 });

@@ -4,4 +4,4 @@ This project follows the [Contributor Covenant, version 2.1](https://www.contrib
 
 In short: be respectful, assume good intent, and keep discussions about the work. Harassment, personal attacks and discriminatory language are not accepted.
 
-Report unacceptable behaviour to support.standwise@usefachada.dev. Reports are handled confidentially.
+Report unacceptable behaviour to support.standcast@usefachada.dev. Reports are handled confidentially.

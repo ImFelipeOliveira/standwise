@@ -1,4 +1,4 @@
-import type { MemberRow } from '@standwise/db';
+import type { MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { type MembershipCheck, resolveOrgContext } from './org-context';
 

@@ -1,4 +1,4 @@
-import { loadConfig, type WorkerDeps } from '@standwise/orchestrator';
+import { loadConfig, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({

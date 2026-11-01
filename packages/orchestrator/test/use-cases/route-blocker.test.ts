@@ -4,8 +4,8 @@ import {
   type Item,
   parseConfig,
   type ResolvedTeam,
-  type StandwiseConfig,
-} from '@standwise/core';
+  type StandcastConfig,
+} from '@standcast/core';
 import {
   claimDelivery,
   getConnection,
@@ -16,9 +16,9 @@ import {
   setMemberInstallations,
   upsertDaily,
   upsertMember,
-} from '@standwise/db';
-import type { PullRequestDetail } from '@standwise/github';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import type { PullRequestDetail } from '@standcast/github';
+import { ChatDeliveryError } from '@standcast/slack';
 import { deliveries } from '../../../db/src/schema';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
@@ -35,7 +35,7 @@ useCleanDb();
 
 const DATE = '2026-10-28';
 
-function routeConfig(extra = '', managers = '[mgr]'): StandwiseConfig {
+function routeConfig(extra = '', managers = '[mgr]'): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -139,8 +139,8 @@ async function linkCard(
   });
 }
 
-const team = (cfg: StandwiseConfig): ResolvedTeam => ({
-  ...(cfg.teams[0] as StandwiseConfig['teams'][number]),
+const team = (cfg: StandcastConfig): ResolvedTeam => ({
+  ...(cfg.teams[0] as StandcastConfig['teams'][number]),
   memberLogins: ['bob', 'carla'],
 });
 

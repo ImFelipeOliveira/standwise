@@ -1,14 +1,14 @@
 {
-  "name": "Standwise",
-  "url": "https://standwise.example.com",
+  "name": "Standcast",
+  "url": "https://standcast.example.com",
   "hook_attributes": {
-    "url": "https://standwise.example.com/webhooks/github",
+    "url": "https://standcast.example.com/webhooks/github",
     "active": true
   },
-  "redirect_url": "https://standwise.example.com/docs/",
-  "setup_url": "https://standwise.example.com/setup",
+  "redirect_url": "https://standcast.example.com/docs/",
+  "setup_url": "https://standcast.example.com/setup",
   "callback_urls": [
-    "https://standwise.example.com/auth/github/callback"
+    "https://standcast.example.com/auth/github/callback"
   ],
   "setup_on_update": true,
   "public": true,

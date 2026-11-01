@@ -5,7 +5,7 @@ import {
   markConnectionInvalid,
   saveConnection,
   setMemberInstallations,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import {
   createMembershipCheck,

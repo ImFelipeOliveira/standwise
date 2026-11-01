@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { pingDatabase } from '@standwise/db';
-import type { Deps } from '@standwise/orchestrator';
+import { pingDatabase } from '@standcast/db';
+import type { Deps } from '@standcast/orchestrator';
 import type { GetClientIp } from '../middleware/rate-limit';
 import { apiKeyScheme } from '../openapi/document';
 import { HealthSchema } from '../openapi/schemas';

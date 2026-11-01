@@ -4,7 +4,7 @@
 
 No. The draft is only for you. Your manager sees only what you confirmed and sent.
 
-## Can Standwise send a daily for me?
+## Can Standcast send a daily for me?
 
 No. Every daily needs your explicit confirmation. The skill and the MCP server ask you before sending, and the public API has no way to send a daily.
 
@@ -20,7 +20,7 @@ It counts for the next workday of your first team, so it shows up in Monday's di
 
 No. One daily per day per organization. It appears in the digest of every team you are in.
 
-## I work for two organizations that use Standwise.
+## I work for two organizations that use Standcast.
 
 You write one daily for each. The CLI asks for `--org` and the MCP tools for `org` when you belong to more than one.
 
@@ -28,11 +28,11 @@ You write one daily for each. The CLI asks for `--org` and the MCP tools for `or
 
 Claude Code through the [skill](/members/claude-code). Claude Desktop, Cursor, Codex, VS Code and any other MCP client through the [MCP server](/members/mcp). Without an agent, use the [CLI](/members/cli).
 
-## Does Standwise use AI on my data?
+## Does Standcast use AI on my data?
 
-No. No LLM processes your data on the Standwise servers. Your agent runs on your machine, with your own account. See [Privacy](/privacy).
+No. No LLM processes your data on the Standcast servers. Your agent runs on your machine, with your own account. See [Privacy](/privacy).
 
-## Does Standwise measure productivity?
+## Does Standcast measure productivity?
 
 No. There are no rankings, scores, commit counts per person or per-person aggregates anywhere.
 
@@ -44,7 +44,7 @@ Linear works today: your cards appear in your draft, card blockers are routed an
 
 Yes. At `remind_at`, people who have not sent the daily get one direct message in Slack, at most once per day. See [How it works](/how-it-works).
 
-## Does my manager see the blockers Standwise suggests?
+## Does my manager see the blockers Standcast suggests?
 
 No. Suggested blockers show only to you, in your draft. Your manager sees a blocker only after you add it to your daily.
 
@@ -52,13 +52,13 @@ No. Suggested blockers show only to you, in your draft. Your manager sees a bloc
 
 Each new blocker goes once by direct message to the reviewers of the linked pull request, or its CODEOWNERS, or the team managers. See [Blocker routing](/how-it-works#blocker-routing).
 
-## Can I configure Standwise without a `.github` repository?
+## Can I configure Standcast without a `.github` repository?
 
-No. The configuration lives only in `standwise.yml` at the root of the `.github` repository. A private `.github` repository works.
+No. The configuration lives only in `standcast.yml` at the root of the `.github` repository. A private `.github` repository works.
 
-## Can I run Standwise on my own servers?
+## Can I run Standcast on my own servers?
 
-No. Standwise is a hosted service. The code is open source under the MIT license.
+No. Standcast is a hosted service. The code is open source under the MIT license.
 
 ## How do I contact support?
 

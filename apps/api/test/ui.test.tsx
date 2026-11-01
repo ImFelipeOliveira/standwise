@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { type Language, type MessageKey, t } from '@standwise/core';
-import type { SetupStatus } from '@standwise/orchestrator';
+import { type Language, type MessageKey, t } from '@standcast/core';
+import type { SetupStatus } from '@standcast/orchestrator';
 import { ErrorPage } from '../src/web/error';
 import { PAGE_CSS } from '../src/web/layout';
 import { SetupPage } from '../src/web/setup';
@@ -336,7 +336,7 @@ function status(overrides: Partial<SetupStatus> = {}): SetupStatus {
       { name: 'Alpha', channel: '#alpha', remindAt: '09:00', digestAt: '10:00', tracker: null },
       { name: 'Beta', channel: '#beta', remindAt: '08:30', digestAt: '11:00', tracker: null },
     ],
-    configFileUrl: 'https://github.com/acme/.github/blob/main/standwise.yml',
+    configFileUrl: 'https://github.com/acme/.github/blob/main/standcast.yml',
     teamFailures: [{ kind: 'digest', team: 'Alpha', date: '2026-10-28', at: NOW, error: 'boom' }],
     personFailures: [{ kind: 'reminder', error: 'nope', count: 2, lastAt: NOW }],
     apiKeys: {
@@ -449,8 +449,8 @@ describe('no inline styles or scripts', () => {
             lang={lang}
             status={value}
             csrf="token"
-            docsUrl="https://docs.standwise.dev"
-            newKey={extra.newKey ? { name: 'ci', key: 'swk_secret' } : undefined}
+            docsUrl="https://docs.standcast.app"
+            newKey={extra.newKey ? { name: 'ci', key: 'sck_secret' } : undefined}
             newWebhook={
               extra.newWebhook
                 ? { url: 'https://hooks.example.com/a', secret: 'whsec_x' }
@@ -491,7 +491,7 @@ const page = (
       lang={lang}
       status={value}
       csrf="token"
-      docsUrl="https://docs.standwise.dev"
+      docsUrl="https://docs.standcast.app"
       {...extra}
     />,
   );
@@ -608,7 +608,7 @@ describe('setup checklist', () => {
     expect(teamCard(card, 'Alpha')).toContain('reminder 09:00 · digest 10:00');
     expect(teamCard(card, 'Beta')).toContain('reminder 08:30 · digest 11:00');
     expect(card).toContain(
-      '<a class="btn btn-secondary" href="https://github.com/acme/.github/blob/main/standwise.yml">',
+      '<a class="btn btn-secondary" href="https://github.com/acme/.github/blob/main/standcast.yml">',
     );
     expect(card).toContain('Edit on GitHub');
   });
@@ -660,7 +660,7 @@ describe('setup checklist', () => {
     );
     expect(card).toContain('step step-todo');
     expect(card).toContain('no_file');
-    expect(card).toContain('Create standwise.yml from the template');
+    expect(card).toContain('Create standcast.yml from the template');
     expect(card).toContain('<pre>');
     expect(card).not.toContain('Edit on GitHub');
   });
@@ -707,13 +707,13 @@ describe('setup checklist', () => {
 
   test('one-time secrets render first in the main column as an urgent info alert', async () => {
     const html = await page(status(), 'en', {
-      newKey: { name: 'ci', key: 'swk_secret' },
+      newKey: { name: 'ci', key: 'sck_secret' },
       newWebhook: { url: 'https://hooks.example.com/a', secret: 'whsec_x' },
     });
     const main = html.slice(html.indexOf('class="layout-main'), html.indexOf('id="step-github"'));
     expect(main.match(/class="alert alert-info" role="alert"/g)?.length).toBe(2);
     expect(main).not.toContain('role="status"');
-    expect(main).toContain('<code class="code">swk_secret</code>');
+    expect(main).toContain('<code class="code">sck_secret</code>');
     expect(main).toContain('<code class="code">whsec_x</code>');
     expect(main).toContain('Copy it now');
   });
@@ -803,7 +803,7 @@ describe('error page', () => {
     expect(html.indexOf('<header')).toBeLessThan(html.indexOf('<main>'));
     expect(html).not.toContain('action="/logout"');
     expect(html).not.toContain('/docs/');
-    expect(html).not.toContain('docs.standwise.dev');
+    expect(html).not.toContain('docs.standcast.app');
   });
 
   test('the legacy page and button rules are gone', () => {
@@ -868,7 +868,7 @@ describe('setup polish', () => {
     expect(keys).not.toContain('<table');
     expect(keys).toContain('class="item-list"');
     expect(keys.match(/<li class="item">/g)?.length).toBe(2);
-    expect(keys).toContain('<code>swk_abcd</code>');
+    expect(keys).toContain('<code>sck_abcd</code>');
     expect(keys).toContain('<span class="badge badge-neutral">Revoked</span>');
     expect(keys).toContain('<form method="post" action="/setup/api-keys/k1/revoke">');
     expect(keys).not.toContain('/setup/api-keys/k2/revoke');

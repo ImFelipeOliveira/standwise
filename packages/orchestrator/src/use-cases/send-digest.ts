@@ -4,7 +4,7 @@ import {
   type MessageRef,
   type Person,
   type ResolvedTeam,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   claimDelivery,
   completeDelivery,
@@ -14,8 +14,8 @@ import {
   getMemberLogins,
   listDailies,
   operationalConfig,
-} from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import { chatUserIdsFor } from '../chat-identity';
 import type { WorkerDeps } from '../deps';
 import { resolveTeams } from '../teams';

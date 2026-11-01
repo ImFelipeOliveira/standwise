@@ -1,4 +1,4 @@
-import { linkTrackerIdentity, type WorkerDeps } from '@standwise/orchestrator';
+import { linkTrackerIdentity, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({ installationId: z.number().int(), memberId: z.uuid() });

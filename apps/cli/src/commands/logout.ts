@@ -1,4 +1,4 @@
-import { t } from '@standwise/core';
+import { t } from '@standcast/core';
 import { revokeSession } from '../api';
 import { deleteCredentials, readCredentials } from '../credentials';
 import { type Ctx, EXIT } from '../io';

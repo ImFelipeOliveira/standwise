@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ChatDeliveryError } from '@standwise/slack';
+import { ChatDeliveryError } from '@standcast/slack';
 import { describeDeliveryError } from '../../src/use-cases/delivery-error';
 
 describe('describeDeliveryError', () => {

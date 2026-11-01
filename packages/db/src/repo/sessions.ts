@@ -14,7 +14,7 @@ export async function createSession(
   memberId: string,
   kind: 'cli' | 'web',
 ): Promise<string> {
-  const token = `sw_${randomBytes(32).toString('base64url')}`;
+  const token = `sc_${randomBytes(32).toString('base64url')}`;
   await db.insert(sessions).values({ tokenHash: hash(token), memberId, kind });
   return token;
 }

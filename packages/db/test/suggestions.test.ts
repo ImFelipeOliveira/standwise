@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Signal } from '@standwise/core';
+import type { Signal } from '@standcast/core';
 import {
   claimDelivery,
   confirmSuggestionsByUrl,

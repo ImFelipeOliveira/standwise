@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "standwise-docs",
+  "name": "standcast-docs",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./docs/site/.vitepress/dist",

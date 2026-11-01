@@ -9,7 +9,7 @@ remind_at 09:30 · digest_at 10:00 · channel #daily-backend
 
 ## 08:50 · Alice drafts her daily
 
-Alice runs `/daily` in Claude Code. The skill asks Standwise for a draft. Standwise looks at Alice's GitHub activity in the organization since her last daily:
+Alice runs `/daily` in Claude Code. The skill asks Standcast for a draft. Standcast looks at Alice's GitHub activity in the organization since her last daily:
 
 - pull requests she opened;
 - pull requests she merged;
@@ -19,7 +19,7 @@ Alice runs `/daily` in Claude Code. The skill asks Standwise for a draft. Standw
 
 The window starts when she sent her last daily, if that was on or after the previous workday. Otherwise it starts at midnight of the previous workday. On Monday, the previous workday is Friday, so the weekend is covered. The cards use the same window. The draft has up to 50 items in total, newest first. If Linear fails, the draft still comes back with the GitHub activity.
 
-Alice edits yesterday, writes today and one blocker, and confirms. Standwise stores the daily for today's date. She can send it again until the digest goes out: the last version wins.
+Alice edits yesterday, writes today and one blocker, and confirms. Standcast stores the daily for today's date. She can send it again until the digest goes out: the last version wins.
 
 ## 09:30 · Reminder
 
@@ -32,22 +32,22 @@ At `remind_at`, in the team's time zone and only on workdays, people who have no
 
 ## 10:00 · The digest
 
-At `digest_at`, in the team's time zone and only on workdays, Standwise posts one message to `#daily-backend`:
+At `digest_at`, in the team's time zone and only on workdays, Standcast posts one message to `#daily-backend`:
 
 1. the title, with the team and the date;
 2. **Blockers**, with who reported each one;
-3. each person's yesterday and today, in the order of `members` in `standwise.yml`;
+3. each person's yesterday and today, in the order of `members` in `standcast.yml`;
 4. the people who did not send the daily.
 
-People are mentioned in Slack when Standwise knows their Slack user. Otherwise they appear as `@` followed by their GitHub login, as plain text. See [Slack](/admin/slack#how-people-are-mentioned).
+People are mentioned in Slack when Standcast knows their Slack user. Otherwise they appear as `@` followed by their GitHub login, as plain text. See [Slack](/admin/slack#how-people-are-mentioned).
 
 There is exactly one digest per team per day. If the worker is down at 10:00, the digest goes out when it comes back, as long as that is within 120 minutes. After 12:00 it is skipped for that day. A failed post is retried up to 3 attempts in total, and the error shows up on the setup page.
 
 ## 10:40 · Bob sends a late daily
 
-Bob sends his daily after the digest. Standwise replies in the digest thread with his daily. The CLI and the MCP tools tell him `late: true`.
+Bob sends his daily after the digest. Standcast replies in the digest thread with his daily. The CLI and the MCP tools tell him `late: true`.
 
-Only the first late daily of the day goes to the thread. If Bob sends again, Standwise stores the new version and sends the webhook, but does not post a second reply.
+Only the first late daily of the day goes to the thread. If Bob sends again, Standcast stores the new version and sends the webhook, but does not post a second reply.
 
 ## Blocker routing
 
@@ -64,7 +64,7 @@ Each new blocker in a submitted daily is sent once by direct message to whoever 
 Rules:
 
 - The author never receives their own blocker, and at most 5 people get it.
-- For cards, only people linked to Standwise are considered, and cards from another Linear workspace are never read: they go to the managers. If Linear is not connected or its access was revoked, a card blocker goes to the managers.
+- For cards, only people linked to Standcast are considered, and cards from another Linear workspace are never read: they go to the managers. If Linear is not connected or its access was revoked, a card blocker goes to the managers.
 - If none of the people found has a Slack identity, or GitHub could not be read, the blocker goes to the managers.
 - Pull requests from other organizations are not read, and go to the managers.
 - A blocker with a link is identified by the link, so rewording it or sending the daily again does not send it again. Without a link, the text identifies it. At most 10 different blockers per daily are routed.
@@ -76,7 +76,7 @@ Blockers also appear at the top of the digest, in the `blocker.opened` webhook a
 
 ## Suggested blockers
 
-Standwise can notice blockers you may have missed. There are three signals:
+Standcast can notice blockers you may have missed. There are three signals:
 
 - your own open pull request, not a draft, with no review for `pr_review_hours` (default 48) since it was ready for review;
 - failing CI on the head commit of your pull request for 24 hours;
@@ -88,17 +88,17 @@ A suggestion shows only to you, in your draft. It never appears in the digest, t
 
 To answer:
 
-- **Confirm:** add it to your blockers with its link. Submitting the daily confirms it. From a terminal, `standwise suggestion confirm <id>`.
-- **Ignore:** `standwise suggestion ignore <id>`, the MCP tool `standwise_decide_suggestion`, or answer when the `/daily` skill asks you.
+- **Confirm:** add it to your blockers with its link. Submitting the daily confirms it. From a terminal, `standcast suggestion confirm <id>`.
+- **Ignore:** `standcast suggestion ignore <id>`, the MCP tool `standcast_decide_suggestion`, or answer when the `/daily` skill asks you.
 
-An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or a new period without review, after a review is dismissed or the pull request is marked ready for review again. A stale card comes back only if the card is restarted. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standwise-suggestion).
+An ignored suggestion comes back only if the signal changes: a new head commit that is still failing, or a new period without review, after a review is dismissed or the pull request is marked ready for review again. A stale card comes back only if the card is restarted. The agent never adds a suggestion without your answer. See [CLI](/members/cli#standcast-suggestion).
 
 ## Time zones, workdays and several teams
 
 - **All times are in the team's time zone.** `remind_at` and `digest_at` are local times, `HH:MM`, 24 hours.
 - **Digests run only on workdays.** With `workdays: [mon, tue, wed, thu, fri]`, there is no digest on Saturday or Sunday.
-- **The standup date follows your first team.** "Today" and "previous workday" use the time zone and workdays of the first team in `standwise.yml` that lists you. A daily sent on a day off counts for the next workday.
+- **The standup date follows your first team.** "Today" and "previous workday" use the time zone and workdays of the first team in `standcast.yml` that lists you. A daily sent on a day off counts for the next workday.
 - **One daily, every team.** If you are in two teams, your daily appears in both digests. You write it once.
-- **One daily per organization.** If you belong to two organizations that use Standwise, you write one daily for each. The CLI and the MCP tools ask which one, or take `--org` / `org`.
-- **Changing the file.** Standwise reloads `standwise.yml` on every push to the default branch of the `.github` repository, force pushes included. If a push makes the file invalid, Standwise keeps using the last valid version until you fix it: digests still go out, and drafts and submissions still work. Deleting the file switches Standwise off for the organization. Without a valid version in use, drafts and submissions get `org_not_configured`. See [Install](/admin/install#configuration-states).
-- **Checking the file before it lands.** When a push to any branch of `.github` touches `standwise.yml`, or a pull request in `.github` changes it, Standwise creates a check run named `Standwise config`. See [Install](/admin/install#configuration-states).
+- **One daily per organization.** If you belong to two organizations that use Standcast, you write one daily for each. The CLI and the MCP tools ask which one, or take `--org` / `org`.
+- **Changing the file.** Standcast reloads `standcast.yml` on every push to the default branch of the `.github` repository, force pushes included. If a push makes the file invalid, Standcast keeps using the last valid version until you fix it: digests still go out, and drafts and submissions still work. Deleting the file switches Standcast off for the organization. Without a valid version in use, drafts and submissions get `org_not_configured`. See [Install](/admin/install#configuration-states).
+- **Checking the file before it lands.** When a push to any branch of `.github` touches `standcast.yml`, or a pull request in `.github` changes it, Standcast creates a check run named `Standcast config`. See [Install](/admin/install#configuration-states).

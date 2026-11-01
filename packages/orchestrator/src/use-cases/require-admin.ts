@@ -1,4 +1,4 @@
-import type { InstallationRow, MemberRow } from '@standwise/db';
+import type { InstallationRow, MemberRow } from '@standcast/db';
 import type { Deps } from '../deps';
 import { authorizeInstallation } from './authorize-installation';
 import { DomainError } from './errors';

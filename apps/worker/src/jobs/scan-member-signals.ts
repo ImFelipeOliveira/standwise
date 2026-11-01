@@ -1,4 +1,4 @@
-import { scanMemberSignals, type WorkerDeps } from '@standwise/orchestrator';
+import { scanMemberSignals, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({

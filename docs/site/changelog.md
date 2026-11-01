@@ -4,9 +4,13 @@ outline: [2, 3]
 
 # Changelog
 
-What changed in Standwise. Versions match the [GitHub releases](https://github.com/ImFelipeOliveira/standwise/releases). The API section follows the [versioning policy](/api/overview#versioning).
+What changed in Standcast. Versions match the [GitHub releases](https://github.com/ImFelipeOliveira/standcast/releases). The API section follows the [versioning policy](/api/overview#versioning).
 
 ## Product
+
+### Unreleased
+
+- Standwise is now Standcast: new name, CLI binary `standcast`, config file `standcast.yml`, `STANDCAST_*` environment variables, `Standcast-*` webhook headers, `sc_`/`sck_` token prefixes and new URLs.
 
 ### 0.2.0 — 2026-10-31
 

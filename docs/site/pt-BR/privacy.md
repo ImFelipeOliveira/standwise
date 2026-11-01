@@ -1,29 +1,29 @@
 # Privacidade
 
-O que o Standwise lê, o que guarda, o que nunca faz e quem vê o quê. Esta página descreve o serviço como ele funciona hoje.
+O que o Standcast lê, o que guarda, o que nunca faz e quem vê o quê. Esta página descreve o serviço como ele funciona hoje.
 
 ## Sem IA do nosso lado
 
-Nenhum LLM processa os seus dados nos servidores do Standwise. O rascunho é montado com buscas simples no GitHub, e o consolidado é montado com o que as pessoas confirmaram. Quando você escreve a daily com um agente de IA, esse agente roda na sua máquina, com a sua conta no provedor dele. O Standwise não vê essa conversa.
+Nenhum LLM processa os seus dados nos servidores do Standcast. O rascunho é montado com buscas simples no GitHub, e o consolidado é montado com o que as pessoas confirmaram. Quando você escreve a daily com um agente de IA, esse agente roda na sua máquina, com a sua conta no provedor dele. O Standcast não vê essa conversa.
 
-## O que o Standwise lê
+## O que o Standcast lê
 
 ### GitHub
 
-O Standwise usa as permissões do GitHub App dele: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read) e a permissão de conta Email addresses (read). Com elas, ele lê:
+O Standcast usa as permissões do GitHub App dele: Metadata (read), Contents (read), Pull requests (read), Checks (write), Commit statuses (read), Members (read) e a permissão de conta Email addresses (read). Com elas, ele lê:
 
-- o `standwise.yml` do repositório `.github` do dono da instalação;
-- os membros dos times do GitHub citados no `standwise.yml` (`@org/time`);
+- o `standcast.yml` do repositório `.github` do dono da instalação;
+- os membros dos times do GitHub citados no `standcast.yml` (`@org/time`);
 - a participação e o papel na organização, para saber quem é membro e quem é admin;
 - para os impedimentos sugeridos e o encaminhamento de impedimentos, em pull requests da organização: título, url, estado de rascunho, o momento em que ficou pronto para revisão, o estado das revisões (só contadas), as conclusões dos check runs no commit head, os caminhos dos arquivos alterados (só para achar os donos do código) e o arquivo `CODEOWNERS`;
 - para a pessoa que pede o rascunho: títulos, links, repositórios e datas dos pull requests que ela abriu, mergeou e revisou, e dos commits de autoria dela, na organização;
 - quando você entra: o seu id de usuário no GitHub, o seu login, o seu e-mail principal verificado e as instalações que você acessa.
 
-Ele não lê o conteúdo do seu código nem outros arquivos além do `standwise.yml` e do `CODEOWNERS`. A permissão Checks (write) é usada só para criar o check run `Standwise config` no `standwise.yml`. O Standwise não escreve nos seus repositórios.
+Ele não lê o conteúdo do seu código nem outros arquivos além do `standcast.yml` e do `CODEOWNERS`. A permissão Checks (write) é usada só para criar o check run `Standcast config` no `standcast.yml`. O Standcast não escreve nos seus repositórios.
 
 ### Slack
 
-O token do bot do app do Slack permite que o Standwise:
+O token do bot do app do Slack permite que o Standcast:
 
 - busque um usuário do Slack pelo e-mail, para mencionar as pessoas no consolidado;
 - liste canais, para transformar `#canal` no id do canal;
@@ -34,7 +34,7 @@ Ele não lê mensagens de nenhum canal ou conversa.
 
 ### Linear
 
-Se um admin conectar o Linear, o Standwise usa um app OAuth que age como ele mesmo (`actor=app`), com o escopo só de leitura `read`, para um workspace do Linear por instalação. Ele lê:
+Se um admin conectar o Linear, o Standcast usa um app OAuth que age como ele mesmo (`actor=app`), com o escopo só de leitura `read`, para um workspace do Linear por instalação. Ele lê:
 
 - para quem pede o rascunho e para os sinais de cards: o identificador da issue, o título, a url, o tipo do estado, as datas de início e de conclusão, o responsável, quem criou, as relações "bloqueia" e a chave do time;
 - para encaminhar um impedimento de card: o responsável e quem criou o card citado, e os responsáveis pelos cards que o bloqueiam, só para saber quem avisar;
@@ -44,13 +44,13 @@ Ele nunca lê descrições nem comentários, e nunca escreve no Linear. Cards de
 
 ### Jira <Badge type="info" text="em breve" />
 
-O Standwise ainda não se conecta ao Jira, então não lê nada dele.
+O Standcast ainda não se conecta ao Jira, então não lê nada dele.
 
-## O que o Standwise guarda
+## O que o Standcast guarda
 
 | Dado | O que fica guardado | Proteção |
 | --- | --- | --- |
-| Instalação | Id da instalação no GitHub, login, tipo e id da conta, estado da configuração, o `standwise.yml` interpretado e os erros de validação | |
+| Instalação | Id da instalação no GitHub, login, tipo e id da conta, estado da configuração, o `standcast.yml` interpretado e os erros de validação | |
 | Pessoa | Id de usuário no GitHub, login e e-mail principal verificado | |
 | Participação em organizações | A quais instalações cada pessoa pertence | |
 | Identidade no Slack | O id de usuário do Slack de cada pessoa, por instalação | |
@@ -61,14 +61,23 @@ O Standwise ainda não se conecta ao Jira, então não lê nada dele.
 | Dailies | Data, horário do envio, os itens de ontem, hoje e impedimentos com os links, e se quem confirmou foi a pessoa (`human`) ou o agente (`agent`) | |
 | Sugestões | Para cada impedimento sugerido: o link e o título do pull request (ou do card), o tipo, quando foi percebido e a sua decisão | Visível só para você |
 | Entregas | Para cada consolidado, daily atrasada, lembrete e impedimento encaminhado: time, data, estado, tentativas, o canal e o id da mensagem no Slack e o erro, se falhou | |
-| API keys | Nome, os 8 primeiros caracteres depois de `swk_`, escopos, quem criou, datas de criação, último uso e revogação | Só um hash SHA-256 do segredo |
+| API keys | Nome, os 8 primeiros caracteres depois de `sck_`, escopos, quem criou, datas de criação, último uso e revogação | Só um hash SHA-256 do segredo |
 | Endpoints de webhook | URL, eventos, estado e número de falhas | Segredo de assinatura criptografado com AES-256-GCM |
 | Entregas de webhook | O payload do evento enviado (que pode conter o texto da daily), estado, tentativas, último código de resposta ou erro | |
 | Limites de taxa | Um contador por credencial ou endereço IP por minuto | Linhas apagadas depois de uns 10 minutos |
 
 O token do GitHub do seu login é usado uma vez para identificar você e não é guardado. As chaves de criptografia ficam no ambiente do servidor, não no banco.
 
-## O que o Standwise nunca faz
+## Pedidos de beta
+
+Quando alguém pede acesso ao beta na página do Standcast, o formulário coleta nome, e-mail de trabalho, tamanho do time, o chat e o tracker que o time usa e o idioma da página. Isso é separado da instalação do app e dos dados acima.
+
+- **Para quê:** para entrar em contato com o time depois que instalar e verificar se está tudo indo bem.
+- **Para onde vai:** fica guardado no Standcast e é enviado por e-mail para a caixa de suporte do Standcast através do Resend, um provedor de e-mail. Nunca é compartilhado de outra forma.
+- **Por quanto tempo:** é apagado 12 meses depois do pedido.
+- **Remoção antecipada:** mande um e-mail para <SupportEmail /> e o pedido é apagado antes.
+
+## O que o Standcast nunca faz
 
 - Enviar uma daily sem a confirmação explícita da pessoa.
 - Mostrar a alguém um rascunho ou uma sugestão que a pessoa não confirmou.
@@ -77,7 +86,7 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 - Ler o seu código, as suas mensagens no Slack ou as suas mensagens diretas.
 - Escrever nos seus repositórios.
 - Mandar os seus dados para um modelo de IA.
-- Vender ou compartilhar os seus dados com terceiros.
+- Vender os seus dados, ou compartilhá-los com alguém além dos provedores que operam o serviço (como a Resend, para os e-mails de pedidos do beta).
 
 ## Quem vê o quê
 
@@ -93,7 +102,7 @@ O token do GitHub do seu login é usado uma vez para identificar você e não é
 
 ## Retenção
 
-Hoje o Standwise não apaga dailies de forma programada. Dailies e entregas de consolidado ficam guardadas enquanto o app estiver instalado. Alguns dados são removidos automaticamente:
+Hoje o Standcast não apaga dailies de forma programada. Dailies e entregas de consolidado ficam guardadas enquanto o app estiver instalado. Alguns dados são removidos automaticamente:
 
 - logs de entrega de webhook de saída: depois de 30 dias;
 - sessões expiradas: removidas;
@@ -106,8 +115,8 @@ As sessões da CLI param de funcionar depois de 90 dias sem uso, e as sessões d
 
 ## Remoção dos dados
 
-- **Desinstale o GitHub App.** O Standwise apaga a instalação e tudo o que pertence a ela: configuração, dailies, entregas, conexão com o Slack e identidades, API keys, endpoints de webhook e as entregas deles.
-- **Saia.** O `standwise logout` revoga a sua sessão da CLI no servidor e apaga o arquivo local de credenciais.
+- **Desinstale o GitHub App.** O Standcast apaga a instalação e tudo o que pertence a ela: configuração, dailies, entregas, conexão com o Slack e identidades, API keys, endpoints de webhook e as entregas deles.
+- **Saia.** O `standcast logout` revoga a sua sessão da CLI no servidor e apaga o arquivo local de credenciais.
 - **O seu cadastro de pessoa.** O seu id de usuário no GitHub, o login e o e-mail não pertencem a uma instalação só, então desinstalar não os remove. Para apagá-los, mande um e-mail ao suporte.
 
 ## Contato

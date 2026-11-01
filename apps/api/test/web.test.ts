@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseConfig, type StandwiseConfig } from '@standwise/core';
+import { parseConfig, type StandcastConfig } from '@standcast/core';
 import {
   claimDelivery,
   createSession,
@@ -14,10 +14,10 @@ import {
   setMemberInstallations,
   upsertInstallation,
   upsertMember,
-} from '@standwise/db';
-import { csrfToken, type Deps, nullTracker } from '@standwise/orchestrator';
-import { createMemoryQueue } from '@standwise/queue';
-import { ChatDeliveryError } from '@standwise/slack';
+} from '@standcast/db';
+import { csrfToken, type Deps, nullTracker } from '@standcast/orchestrator';
+import { createMemoryQueue } from '@standcast/queue';
+import { ChatDeliveryError } from '@standcast/slack';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import { fakeLinear } from '../../../packages/orchestrator/test/use-cases/fakes';
 import { createApp } from '../src/app';
@@ -27,7 +27,7 @@ const KEY = new Uint8Array(32).fill(7);
 const INST = 11;
 const FOREIGN = 12;
 
-function config(extra = '', members = '[alice, bob]'): StandwiseConfig {
+function config(extra = '', members = '[alice, bob]'): StandcastConfig {
   const parsed = parseConfig(`
 teams:
   - name: Alpha
@@ -130,6 +130,7 @@ function harness(
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
       docsUrl: 'https://docs.sw.test',
+      landingUrl: 'https://landing.sw.test',
       appId: '1',
       webhookSecret: 'whsec',
       githubClientId: 'cid',
@@ -169,7 +170,7 @@ async function seed(setup: (installationId: number) => Promise<void> = async () 
   await setInstallationConfig(db, INST, { status: 'configured', config: config() });
   await setup(INST);
   const token = await createSession(db, member.id, 'web');
-  return { member, cookie: `sw_web=${token}`, token };
+  return { member, cookie: `sc_web=${token}`, token };
 }
 
 const location = (res: Response) => res.headers.get('location') ?? '';
@@ -180,8 +181,8 @@ async function beginLogin(app: ReturnType<typeof createApp>, next?: string) {
   );
   const state = new URL(location(res)).searchParams.get('state') ?? '';
   const setCookie = res.headers.get('set-cookie') ?? '';
-  const nonce = /sw_login=([^;]+)/.exec(setCookie)?.[1] ?? '';
-  return { res, state, setCookie, loginCookie: `sw_login=${nonce}` };
+  const nonce = /sc_login=([^;]+)/.exec(setCookie)?.[1] ?? '';
+  return { res, state, setCookie, loginCookie: `sc_login=${nonce}` };
 }
 
 const callback = (
@@ -215,7 +216,7 @@ describe('web login', () => {
     expect(url.searchParams.get('client_id')).toBe('cid');
     expect(url.searchParams.get('redirect_uri')).toBe('https://sw.test/auth/github/callback');
     expect(url.searchParams.get('state')).toContain('.');
-    expect(setCookie).toContain('sw_login=');
+    expect(setCookie).toContain('sc_login=');
     expect(setCookie).toContain('HttpOnly');
     expect(setCookie).toContain('Secure');
     expect(setCookie).toContain('SameSite=Lax');
@@ -232,16 +233,16 @@ describe('web login', () => {
     expect(location(res)).toBe('/setup?installation_id=11');
     expect(webCodes).toEqual(['abc']);
     const cookies = res.headers.getSetCookie();
-    const web = cookies.find((c) => c.startsWith('sw_web=')) ?? '';
+    const web = cookies.find((c) => c.startsWith('sc_web=')) ?? '';
     expect(web).toContain('HttpOnly');
     expect(web).toContain('Secure');
     expect(web).toContain('SameSite=Lax');
     expect(web).toContain('Path=/');
     expect(web).toContain('Max-Age=604800');
-    const cleared = cookies.find((c) => c.startsWith('sw_login=')) ?? '';
+    const cleared = cookies.find((c) => c.startsWith('sc_login=')) ?? '';
     expect(cleared).toContain('Max-Age=0');
     expect(cleared).toContain('Path=/auth/github');
-    const token = /sw_web=([^;]+)/.exec(web)?.[1] ?? '';
+    const token = /sc_web=([^;]+)/.exec(web)?.[1] ?? '';
     expect((await resolveSession(db, token, 'web'))?.login).toBe('alice');
   });
 
@@ -258,10 +259,10 @@ describe('web login', () => {
     await seed();
     const { state } = await beginLogin(app);
     const other = await beginLogin(app);
-    for (const cookie of [undefined, other.loginCookie, 'sw_login=']) {
+    for (const cookie of [undefined, other.loginCookie, 'sc_login=']) {
       const res = await callback(app, state, cookie);
       expect(res.status).toBe(400);
-      expect(res.headers.getSetCookie().some((c) => c.startsWith('sw_web='))).toBe(false);
+      expect(res.headers.getSetCookie().some((c) => c.startsWith('sc_web='))).toBe(false);
     }
     expect(webCodes).toEqual([]);
   });
@@ -438,13 +439,13 @@ describe('setup page', () => {
     });
     const en = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     expect(await en.text()).toContain(
-      'Standwise keeps using the last valid version until you fix it.',
+      'Standcast keeps using the last valid version until you fix it.',
     );
     const pt = await app.request(`/setup?installation_id=${INST}`, {
       headers: { cookie, 'accept-language': 'pt-BR' },
     });
     expect(await pt.text()).toContain(
-      'O Standwise continua usando a última versão válida até você corrigir.',
+      'O Standcast continua usando a última versão válida até você corrigir.',
     );
   });
 
@@ -465,7 +466,7 @@ describe('setup page', () => {
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = (await res.text()).replaceAll('&amp;', '&');
     expect(html).toContain(
-      'https://github.com/acme/.github/new/trunk?filename=standwise.yml&value=',
+      'https://github.com/acme/.github/new/trunk?filename=standcast.yml&value=',
     );
     expect(html).toContain('help@sw.test');
   });
@@ -478,7 +479,7 @@ describe('setup page', () => {
     const res = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     const html = await res.text();
     expect(html).toContain('https://github.com/new?name=.github');
-    expect(html).not.toContain('filename=standwise.yml');
+    expect(html).not.toContain('filename=standcast.yml');
   });
 
   test('setup lists failed deliveries', async () => {
@@ -604,8 +605,8 @@ describe('setup page', () => {
       await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } })
     ).text();
     expect(html).toContain('>Configured<');
-    expect(html).toContain('Standwise has no access to the .github repository.');
-    expect(html).toContain('Standwise keeps using the current configuration.');
+    expect(html).toContain('Standcast has no access to the .github repository.');
+    expect(html).toContain('Standcast keeps using the current configuration.');
   });
 
   test('a configured install shows its teams, the edit link and the progress', async () => {
@@ -618,9 +619,9 @@ describe('setup page', () => {
     expect(en).toContain('<h3>Alpha</h3>');
     expect(en).toContain('#alpha');
     expect(en).toContain('reminder 09:00 · digest 10:00');
-    expect(en).toContain('href="https://github.com/acme/.github/blob/trunk/standwise.yml"');
+    expect(en).toContain('href="https://github.com/acme/.github/blob/trunk/standcast.yml"');
     expect(en).toContain('Edit on GitHub');
-    expect(en).not.toContain('filename=standwise.yml');
+    expect(en).not.toContain('filename=standcast.yml');
     const pt = await (
       await app.request(`/setup?installation_id=${INST}`, {
         headers: { cookie, 'accept-language': 'pt-BR' },
@@ -714,7 +715,7 @@ describe('slack connection', () => {
     const { app, slackCalls } = harness();
     const { cookie, member } = await seed();
     const { state } = await startConnect(app, cookie);
-    const other = `sw_web=${await createSession(db, member.id, 'web')}`;
+    const other = `sc_web=${await createSession(db, member.id, 'web')}`;
     const res = await app.request(
       `/oauth/slack/callback?code=c&state=${encodeURIComponent(state)}`,
       {
@@ -840,7 +841,7 @@ describe('linear connection', () => {
     const { app, linear } = harness();
     const { cookie, member } = await seed();
     const { state } = await startConnect(app, cookie);
-    const other = `sw_web=${await createSession(db, member.id, 'web')}`;
+    const other = `sc_web=${await createSession(db, member.id, 'web')}`;
     const res = await app.request(
       `/oauth/linear/callback?code=c&state=${encodeURIComponent(state)}`,
       { headers: { cookie: other } },
@@ -975,7 +976,7 @@ describe('setup github team notices', () => {
   test('shows a notice for a missing and a truncated team in english', async () => {
     const html = await page(withTeams);
     expect(html).toContain(
-      'Team Alpha: the GitHub team @gone/ops was not found, or Standwise cannot see it.',
+      'Team Alpha: the GitHub team @gone/ops was not found, or Standcast cannot see it.',
     );
     expect(html).toContain(
       'Team Alpha: the GitHub team @huge/all is too large; only the first 5,000 members are used.',
@@ -990,7 +991,7 @@ describe('setup github team notices', () => {
 
   test('shows no notice when every team resolves', async () => {
     const html = await page(async () => {});
-    expect(html).not.toContain('was not found, or Standwise cannot see it');
+    expect(html).not.toContain('was not found, or Standcast cannot see it');
     expect(html).not.toContain('is too large');
   });
 });
@@ -1024,7 +1025,7 @@ describe('setup right after install', () => {
     await seed();
     const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=777&resynced=1');
     const login = await callback(app, state, loginCookie);
-    const cookie = /sw_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
+    const cookie = /sc_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
     const en = await app.request('/setup?installation_id=777&resynced=1', {
       headers: { cookie, 'accept-language': 'en' },
     });
@@ -1121,7 +1122,7 @@ describe('web logout', () => {
     expect(res.status).toBe(303);
     expect(location(res)).toBe('/');
     const setCookie = res.headers.get('set-cookie') ?? '';
-    expect(setCookie).toContain('sw_web=;');
+    expect(setCookie).toContain('sc_web=;');
     expect(setCookie).toContain('Path=/');
     expect(setCookie.toLowerCase()).toContain('max-age=0');
     const after = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
@@ -1148,7 +1149,7 @@ describe('web logout', () => {
     await post(app, cookie, body);
     const again = await post(app, cookie, body);
     expect(again.status).toBe(303);
-    expect(again.headers.get('set-cookie') ?? '').toContain('sw_web=;');
+    expect(again.headers.get('set-cookie') ?? '').toContain('sc_web=;');
   });
 
   test('a post without a cookie does not touch cookies', async () => {
@@ -1172,7 +1173,7 @@ describe('web logout', () => {
       body: new URLSearchParams({ csrf: csrfToken('sess', token) }).toString(),
     });
     expect(res.status).toBe(403);
-    expect(res.headers.get('set-cookie') ?? '').not.toContain('sw_web=;');
+    expect(res.headers.get('set-cookie') ?? '').not.toContain('sc_web=;');
     const after = await app.request(`/setup?installation_id=${INST}`, { headers: { cookie } });
     expect(after.status).toBe(200);
   });
@@ -1190,7 +1191,7 @@ describe('web logout', () => {
       body: new URLSearchParams({ csrf: csrfToken('sess', token) }).toString(),
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get('set-cookie') ?? '').toContain('sw_web=;');
+    expect(res.headers.get('set-cookie') ?? '').toContain('sc_web=;');
   });
 
   test('the setup page shows a sign out button in en and pt-BR', async () => {
@@ -1269,7 +1270,7 @@ describe('browser error pages', () => {
     await seed();
     const { state, loginCookie } = await beginLogin(app, '/setup?installation_id=777&resynced=1');
     const login = await callback(app, state, loginCookie);
-    const cookie = /sw_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
+    const cookie = /sc_web=[^;]+/.exec(login.headers.get('set-cookie') ?? '')?.[0] ?? '';
     const res = await app.request('/setup?installation_id=777&resynced=1', {
       headers: { cookie, 'accept-language': 'en' },
     });

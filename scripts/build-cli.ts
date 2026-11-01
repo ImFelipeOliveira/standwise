@@ -17,7 +17,7 @@ await mkdir('dist', { recursive: true });
 
 const sums: string[] = [];
 for (const target of targets) {
-  const name = `standwise-${target}${target.includes('windows') ? '.exe' : ''}`;
+  const name = `standcast-${target}${target.includes('windows') ? '.exe' : ''}`;
   const outfile = `dist/${name}`;
   const proc = Bun.spawn(
     [

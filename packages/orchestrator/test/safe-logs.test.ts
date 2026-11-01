@@ -4,7 +4,7 @@ import {
   insertWebhookEndpoint,
   listOverdueWebhookDeliveries,
   saveConnection,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../db/test/setup';
 import {
   deliverWebhook,

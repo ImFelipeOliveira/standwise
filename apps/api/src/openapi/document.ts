@@ -11,9 +11,9 @@ import rootPackage from '../../../../package.json' with { type: 'json' };
 export const API_VERSION: string = rootPackage.version;
 
 const overview = (docsUrl: string) =>
-  `Standwise orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.
+  `Standcast orchestrates the daily standup: it builds each person's draft from their GitHub activity, collects the confirmed dailies and posts one digest per team to chat.
 
-Product documentation, guides and the standwise.yml reference: [Standwise docs](${docsUrl}/).`;
+Product documentation, guides and the standcast.yml reference: [Standcast docs](${docsUrl}/).`;
 
 export const GUIDES = [
   authentication,
@@ -31,9 +31,9 @@ export function apiKeyScheme() {
   return {
     type: 'http',
     scheme: 'bearer',
-    bearerFormat: 'swk_',
+    bearerFormat: 'sck_',
     description:
-      'API key created by an organization admin. Send it as `Authorization: Bearer swk_...`.',
+      'API key created by an organization admin. Send it as `Authorization: Bearer sck_...`.',
   } as const;
 }
 
@@ -41,7 +41,7 @@ export function sessionScheme() {
   return {
     type: 'http',
     scheme: 'bearer',
-    bearerFormat: 'sw_',
+    bearerFormat: 'sc_',
     description: 'Session token issued to the CLI, skill and MCP server after a GitHub login.',
   } as const;
 }
@@ -52,7 +52,7 @@ export function publicDocument(app: DocumentSource, env: DocumentEnv) {
   return app.getOpenAPI31Document({
     openapi: '3.1.0',
     info: {
-      title: 'Standwise API',
+      title: 'Standcast API',
       version: API_VERSION,
       contact: { email: env.supportEmail },
       description: [overview(env.docsUrl), ...GUIDES].join('\n\n'),
@@ -62,7 +62,7 @@ export function publicDocument(app: DocumentSource, env: DocumentEnv) {
       { name: 'Organization', description: 'Organization data. Authenticated with an API key.' },
       {
         name: 'Webhooks',
-        description: 'Signed events Standwise sends to the endpoints an admin registers.',
+        description: 'Signed events Standcast sends to the endpoints an admin registers.',
       },
       { name: 'Meta', description: 'Service metadata and health.' },
     ],
@@ -73,11 +73,11 @@ export function internalDocument(app: DocumentSource, env: DocumentEnv) {
   return app.getOpenAPI31Document({
     openapi: '3.1.0',
     info: {
-      title: 'Standwise internal API',
+      title: 'Standcast internal API',
       version: API_VERSION,
       contact: { email: env.supportEmail },
       description:
-        'Routes used by the Standwise CLI, skill and MCP server. Authenticated with a session token. Not part of the public contract.',
+        'Routes used by the Standcast CLI, skill and MCP server. Authenticated with a session token. Not part of the public contract.',
     },
     servers: [{ url: env.publicUrl }],
   });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Message } from '@standwise/core';
+import type { Message } from '@standcast/core';
 import {
   claimDelivery,
   createApiKey,
@@ -11,8 +11,8 @@ import {
   setMemberInstallations,
   syncSuggestions,
   WEBHOOK_EVENTS,
-} from '@standwise/db';
-import { createMembershipCheck, sendDigest, submitDaily } from '@standwise/orchestrator';
+} from '@standcast/db';
+import { createMembershipCheck, sendDigest, submitDaily } from '@standcast/orchestrator';
 import { sql } from 'drizzle-orm';
 import { db, useCleanDb } from '../../../packages/db/test/setup';
 import {
@@ -235,7 +235,7 @@ describe('suggestions never leak outside the person', () => {
 
     const web = await createSession(db, alice.id, 'web');
     const page = await app.request(`/setup?installation_id=${INST}`, {
-      headers: { cookie: `sw_web=${web}`, 'accept-language': 'en' },
+      headers: { cookie: `sc_web=${web}`, 'accept-language': 'en' },
     });
     const html = await page.text();
     expect(page.status).toBe(200);

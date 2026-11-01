@@ -9,7 +9,7 @@ remind_at 09:30 · digest_at 10:00 · canal #daily-backend
 
 ## 08:50 · Alice monta a daily
 
-Alice roda `/daily` no Claude Code. A skill pede um rascunho ao Standwise. O Standwise olha a atividade da Alice no GitHub da organização desde a última daily dela:
+Alice roda `/daily` no Claude Code. A skill pede um rascunho ao Standcast. O Standcast olha a atividade da Alice no GitHub da organização desde a última daily dela:
 
 - pull requests que ela abriu;
 - pull requests que ela mergeou;
@@ -19,7 +19,7 @@ Alice roda `/daily` no Claude Code. A skill pede um rascunho ao Standwise. O Sta
 
 A janela começa no envio da última daily, se ela foi no dia útil anterior ou depois. Senão, começa à meia-noite do dia útil anterior. Na segunda, o dia útil anterior é sexta, então o fim de semana entra. Os cards usam a mesma janela. O rascunho tem até 50 itens no total, do mais recente para o mais antigo. Se o Linear falhar, o rascunho ainda vem com a atividade do GitHub.
 
-Alice ajusta o ontem, escreve o hoje e um impedimento e confirma. O Standwise guarda a daily na data de hoje. Ela pode reenviar até o consolidado sair: vale a última versão.
+Alice ajusta o ontem, escreve o hoje e um impedimento e confirma. O Standcast guarda a daily na data de hoje. Ela pode reenviar até o consolidado sair: vale a última versão.
 
 ## 09:30 · Lembrete
 
@@ -32,22 +32,22 @@ No `remind_at`, no fuso do time e só em dias úteis, quem ainda não enviou a d
 
 ## 10:00 · O consolidado
 
-No `digest_at`, no fuso do time e só em dias úteis, o Standwise publica uma mensagem no `#daily-backend`:
+No `digest_at`, no fuso do time e só em dias úteis, o Standcast publica uma mensagem no `#daily-backend`:
 
 1. o título, com o time e a data;
 2. **Impedimentos**, com quem reportou cada um;
-3. o ontem e o hoje de cada pessoa, na ordem de `members` no `standwise.yml`;
+3. o ontem e o hoje de cada pessoa, na ordem de `members` no `standcast.yml`;
 4. quem não enviou a daily.
 
-As pessoas são mencionadas no Slack quando o Standwise conhece o usuário delas lá. Senão, aparecem como `@` seguido do login do GitHub, em texto. Veja [Slack](/pt-BR/admin/slack#como-as-pessoas-sao-mencionadas).
+As pessoas são mencionadas no Slack quando o Standcast conhece o usuário delas lá. Senão, aparecem como `@` seguido do login do GitHub, em texto. Veja [Slack](/pt-BR/admin/slack#como-as-pessoas-sao-mencionadas).
 
 Existe exatamente um consolidado por time por dia. Se o worker estiver fora do ar às 10:00, o consolidado sai quando ele voltar, desde que dentro de 120 minutos. Depois das 12:00, ele não sai naquele dia. Uma publicação com falha é tentada até 3 vezes no total, e o erro aparece na página de setup.
 
 ## 10:40 · Bob manda uma daily atrasada
 
-Bob envia a daily depois do consolidado. O Standwise responde na thread do consolidado com a daily dele. A CLI e as tools do MCP devolvem `late: true`.
+Bob envia a daily depois do consolidado. O Standcast responde na thread do consolidado com a daily dele. A CLI e as tools do MCP devolvem `late: true`.
 
-Só a primeira daily atrasada do dia vai para a thread. Se o Bob reenviar, o Standwise guarda a nova versão e dispara o webhook, mas não publica uma segunda resposta.
+Só a primeira daily atrasada do dia vai para a thread. Se o Bob reenviar, o Standcast guarda a nova versão e dispara o webhook, mas não publica uma segunda resposta.
 
 ## Encaminhamento de impedimentos
 
@@ -64,7 +64,7 @@ Cada impedimento novo de uma daily enviada vai uma vez, por mensagem direta, par
 Regras:
 
 - O autor nunca recebe o próprio impedimento, e no máximo 5 pessoas recebem.
-- Para cards, só entram pessoas ligadas ao Standwise, e cards de outro workspace do Linear nunca são lidos: vão para os gestores. Se o Linear não está conectado ou o acesso foi revogado, o impedimento de card vai para os gestores.
+- Para cards, só entram pessoas ligadas ao Standcast, e cards de outro workspace do Linear nunca são lidos: vão para os gestores. Se o Linear não está conectado ou o acesso foi revogado, o impedimento de card vai para os gestores.
 - Se nenhuma das pessoas encontradas tem identidade no Slack, ou o GitHub não pôde ser lido, o impedimento vai para os gestores.
 - Pull requests de outras organizações não são lidos e vão para os gestores.
 - Um impedimento com link é identificado pelo link, então reescrever o texto ou enviar a daily de novo não envia outra vez. Sem link, o texto o identifica. No máximo 10 impedimentos diferentes por daily são encaminhados.
@@ -76,7 +76,7 @@ Os impedimentos também aparecem no topo do consolidado, no webhook `blocker.ope
 
 ## Impedimentos sugeridos
 
-O Standwise pode perceber impedimentos que você deixou passar. São três sinais:
+O Standcast pode perceber impedimentos que você deixou passar. São três sinais:
 
 - um pull request seu, aberto e que não é rascunho, sem revisão há `pr_review_hours` (padrão 48) desde que ficou pronto para revisão;
 - o CI falhando no commit head do seu pull request há 24 horas;
@@ -88,17 +88,17 @@ Uma sugestão aparece só para você, no seu rascunho. Ela nunca aparece no cons
 
 Para responder:
 
-- **Confirmar:** adicione aos seus impedimentos com o link. Enviar a daily confirma. Pelo terminal, `standwise suggestion confirm <id>`.
-- **Ignorar:** `standwise suggestion ignore <id>`, a tool MCP `standwise_decide_suggestion`, ou responda quando a skill `/daily` perguntar.
+- **Confirmar:** adicione aos seus impedimentos com o link. Enviar a daily confirma. Pelo terminal, `standcast suggestion confirm <id>`.
+- **Ignorar:** `standcast suggestion ignore <id>`, a tool MCP `standcast_decide_suggestion`, ou responda quando a skill `/daily` perguntar.
 
-Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou um novo período sem revisão, depois que uma revisão é descartada ou o pull request volta a ficar pronto para revisão. Um card parado só volta se o card for reiniciado. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standwise-suggestion).
+Uma sugestão ignorada só volta se o sinal mudar: um novo commit head que ainda falha, ou um novo período sem revisão, depois que uma revisão é descartada ou o pull request volta a ficar pronto para revisão. Um card parado só volta se o card for reiniciado. O agente nunca adiciona uma sugestão sem a sua resposta. Veja [CLI](/pt-BR/members/cli#standcast-suggestion).
 
 ## Fuso, dias úteis e vários times
 
 - **Todos os horários são no fuso do time.** `remind_at` e `digest_at` são horários locais, `HH:MM`, 24 horas.
 - **Consolidados só em dias úteis.** Com `workdays: [mon, tue, wed, thu, fri]`, não há consolidado no sábado nem no domingo.
-- **A data da daily segue o seu primeiro time.** "Hoje" e "dia útil anterior" usam o fuso e os dias úteis do primeiro time do `standwise.yml` que lista você. Uma daily enviada num dia de folga conta para o próximo dia útil.
+- **A data da daily segue o seu primeiro time.** "Hoje" e "dia útil anterior" usam o fuso e os dias úteis do primeiro time do `standcast.yml` que lista você. Uma daily enviada num dia de folga conta para o próximo dia útil.
 - **Uma daily, todos os times.** Se você está em dois times, a sua daily aparece nos dois consolidados. Você escreve uma vez.
-- **Uma daily por organização.** Se você está em duas organizações que usam o Standwise, escreve uma daily para cada. A CLI e as tools do MCP perguntam qual, ou recebem `--org` / `org`.
-- **Mudanças no arquivo.** O Standwise recarrega o `standwise.yml` a cada push na branch padrão do repositório `.github`, inclusive force push. Se um push deixar o arquivo inválido, o Standwise continua usando a última versão válida até você corrigir: o consolidado sai, e o rascunho e o envio continuam funcionando. Apagar o arquivo desliga o Standwise para a organização. Sem uma versão válida em uso, o rascunho e o envio recebem `org_not_configured`. Veja [Instalação](/pt-BR/admin/install#estados-da-configuracao).
-- **Conferindo o arquivo antes de ele valer.** Quando um push em qualquer branch do `.github` altera o `standwise.yml`, ou um pull request no `.github` o altera, o Standwise cria um check run chamado `Standwise config`. Veja [Instalação](/pt-BR/admin/install#estados-da-configuracao).
+- **Uma daily por organização.** Se você está em duas organizações que usam o Standcast, escreve uma daily para cada. A CLI e as tools do MCP perguntam qual, ou recebem `--org` / `org`.
+- **Mudanças no arquivo.** O Standcast recarrega o `standcast.yml` a cada push na branch padrão do repositório `.github`, inclusive force push. Se um push deixar o arquivo inválido, o Standcast continua usando a última versão válida até você corrigir: o consolidado sai, e o rascunho e o envio continuam funcionando. Apagar o arquivo desliga o Standcast para a organização. Sem uma versão válida em uso, o rascunho e o envio recebem `org_not_configured`. Veja [Instalação](/pt-BR/admin/install#estados-da-configuracao).
+- **Conferindo o arquivo antes de ele valer.** Quando um push em qualquer branch do `.github` altera o `standcast.yml`, ou um pull request no `.github` o altera, o Standcast cria um check run chamado `Standcast config`. Veja [Instalação](/pt-BR/admin/install#estados-da-configuracao).

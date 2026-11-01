@@ -1,4 +1,4 @@
-import { deliverWebhook, requeueWebhookDeliveries, type WorkerDeps } from '@standwise/orchestrator';
+import { deliverWebhook, requeueWebhookDeliveries, type WorkerDeps } from '@standcast/orchestrator';
 import { z } from 'zod';
 
 const schema = z.object({ deliveryId: z.uuid() });

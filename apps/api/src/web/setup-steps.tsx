@@ -1,7 +1,7 @@
-import type { Language } from '@standwise/core';
-import type { SetupStatus } from '@standwise/orchestrator';
+import type { Language } from '@standcast/core';
+import type { SetupStatus } from '@standcast/orchestrator';
 import type { Child } from 'hono/jsx';
-import { newConfigFileUrl, newConfigRepoUrl, standwiseYmlTemplate } from './config-template';
+import { newConfigFileUrl, newConfigRepoUrl, standcastYmlTemplate } from './config-template';
 import { reasonText, TEAM_NOTICES, TRACKER_NOTICES, type Translate } from './setup-labels';
 import { Alert, Badge, ButtonLink, Card, Code, Icon, ScrollTable, StepStatus } from './ui';
 
@@ -226,7 +226,7 @@ function TeamCard(props: { t: Translate; team: SetupStatus['teams'][number]; not
 function ConfigStep(props: NumberedStepProps & { lang: Language }) {
   const { t, status } = props;
   const { config } = status;
-  const template = standwiseYmlTemplate(status.login, t('web.template.teamName'), props.lang);
+  const template = standcastYmlTemplate(status.login, t('web.template.teamName'), props.lang);
   const configured = config.status === 'configured';
   const names = new Set(configured ? status.teams.map((team) => team.name) : []);
   const looseNotices = status.teamNotices.filter((notice) => !names.has(notice.team));

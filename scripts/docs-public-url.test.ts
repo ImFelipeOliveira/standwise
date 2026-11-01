@@ -8,7 +8,7 @@ import {
   type UrlToken,
 } from './docs-public-url';
 
-const INTERIM = 'https://api-standwise.usefachada.dev';
+const INTERIM = 'https://api-standcast.usefachada.dev';
 
 const token = (type: string, content: string, children: UrlToken[] | null = null): UrlToken => ({
   type,
@@ -52,6 +52,37 @@ describe('rewritePublicUrl', () => {
     expect(tokens[2]?.content).toBe(`<a href="${CANONICAL_PUBLIC_URL}">`);
   });
 
+  test('rewrites link hrefs only at a url boundary', () => {
+    const link = (href: string): UrlToken & { href: string } => {
+      const t = {
+        ...token('link_open', ''),
+        href,
+        attrGet: () => t.href,
+        attrSet: (_name: string, value: string) => {
+          t.href = value;
+        },
+      };
+      return t;
+    };
+    const links = [
+      link(CANONICAL_PUBLIC_URL),
+      link(`${CANONICAL_PUBLIC_URL}/health`),
+      link(`${CANONICAL_PUBLIC_URL}?a=1`),
+      link(`${CANONICAL_PUBLIC_URL}#top`),
+      link(`${CANONICAL_PUBLIC_URL}.evil.test/path`),
+      link(`https://evil.test/?next=${CANONICAL_PUBLIC_URL}`),
+    ];
+    rewritePublicUrl(links, INTERIM);
+    expect(links.map((l) => l.href)).toEqual([
+      INTERIM,
+      `${INTERIM}/health`,
+      `${INTERIM}?a=1`,
+      `${INTERIM}#top`,
+      `${CANONICAL_PUBLIC_URL}.evil.test/path`,
+      `https://evil.test/?next=${CANONICAL_PUBLIC_URL}`,
+    ]);
+  });
+
   test('leaves tokens untouched for the canonical url', () => {
     const tokens = [token('text', CANONICAL_PUBLIC_URL)];
     rewritePublicUrl(tokens, CANONICAL_PUBLIC_URL);
@@ -78,9 +109,9 @@ describe('publicUrlPlugin in the vitepress renderer', () => {
       ].join('\n'),
     );
     disposeMdItInstance();
-    expect(html).not.toContain('api.standwise.dev');
+    expect(html).not.toContain('api.standcast.app');
     expect(html).toContain(`${INTERIM}/openapi.json`);
     expect(html).toContain(`href="${INTERIM}/health"`);
-    expect(html).toContain('api-standwise.usefachada.dev/install.sh');
+    expect(html).toContain('api-standcast.usefachada.dev/install.sh');
   });
 });

@@ -6,7 +6,7 @@ import {
   listOverdueWebhookDeliveries,
   retryWebhookDelivery,
   type WebhookAttemptOutcome,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import { SafeFetchError, safeFetch } from '../safe-fetch';
@@ -19,7 +19,7 @@ export const WEBHOOK_BACKOFF_MS = [1, 5, 30, 120, 360, 720, 1440].map((m) => m *
 export const MAX_WEBHOOK_ATTEMPTS = WEBHOOK_BACKOFF_MS.length + 1;
 export const WEBHOOK_DISABLE_AFTER_FAILURES = 20;
 export const WEBHOOK_TIMEOUT_MS = 10_000;
-export const WEBHOOK_USER_AGENT = 'Standwise-Webhooks/1';
+export const WEBHOOK_USER_AGENT = 'Standcast-Webhooks/1';
 
 const LEASE_MS = 5 * MINUTE;
 const OVERDUE_MS = 2 * MINUTE;
@@ -82,9 +82,9 @@ export async function deliverWebhook(deps: WorkerDeps, job: DeliverWebhookJob): 
   const headers = {
     'Content-Type': 'application/json',
     'User-Agent': WEBHOOK_USER_AGENT,
-    'Standwise-Event': claim.event,
-    'Standwise-Delivery': claim.id,
-    'Standwise-Signature': signWebhook(secret, body, Math.floor(now.getTime() / 1000)),
+    'Standcast-Event': claim.event,
+    'Standcast-Delivery': claim.id,
+    'Standcast-Signature': signWebhook(secret, body, Math.floor(now.getTime() / 1000)),
   };
   const result = await attempt(deps, claim.url, headers, body);
   if (result.ok) {

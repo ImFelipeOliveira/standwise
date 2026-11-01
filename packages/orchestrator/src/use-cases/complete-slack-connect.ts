@@ -1,5 +1,5 @@
-import { type MemberRow, saveConnection } from '@standwise/db';
-import { ChatDeliveryError } from '@standwise/slack';
+import { type MemberRow, saveConnection } from '@standcast/db';
+import { ChatDeliveryError } from '@standcast/slack';
 import type { Deps } from '../deps';
 import { hashSessionToken, verifyState } from '../state-token';
 import { DomainError } from './errors';

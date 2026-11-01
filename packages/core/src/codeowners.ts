@@ -2,10 +2,17 @@ export type CodeownersRule = { pattern: string; owners: string[] };
 
 const OWNER = /^@[\w.-]+(?:\/[\w.-]+)?$/;
 
+function stripComment(line: string): string {
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '#' && (i === 0 || /\s/.test(line[i - 1] ?? ''))) return line.slice(0, i);
+  }
+  return line;
+}
+
 export function parseCodeowners(source: string): CodeownersRule[] {
   const rules: CodeownersRule[] = [];
   for (const raw of source.split(/\r?\n/)) {
-    const line = raw.replace(/(^|\s)#.*$/, '').trim();
+    const line = stripComment(raw).trim();
     if (!line) continue;
     const [pattern, ...tokens] = line.split(/\s+/);
     const owners = tokens.filter((o) => OWNER.test(o));

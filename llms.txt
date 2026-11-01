@@ -1,0 +1,19 @@
+# Standcast
+
+> Standcast orchestrates a team daily standup from GitHub to Slack. Each person writes their daily with their AI agent, starting from a draft of their GitHub activity, and Standcast posts one digest per team to Slack. The public API is read-only; dailies are sent through the MCP server or the CLI.
+
+## Documentation
+
+- [Docs index for agents](https://docs-standcast.usefachada.dev/llms.txt): every documentation page as Markdown
+- [Full docs in one file](https://docs-standcast.usefachada.dev/llms-full.txt): the whole documentation in a single file
+
+## API
+
+- [API index for agents](https://api-standcast.usefachada.dev/llms.txt): OpenAPI document, reference and webhooks guide
+- [Changelog of the API](docs/api/CHANGELOG.md): changes to the public API contract
+
+## Repository
+
+- [README](README.md): what the project is and how to run it
+- [Contributing](CONTRIBUTING.md): how to work on the repository
+- [Review guide](docs/engineering/review-guide.md): what reviewers check before merging

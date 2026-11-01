@@ -1,4 +1,4 @@
-import { type Language, type MessageKey, t as translate } from '@standwise/core';
+import { type Language, type MessageKey, t as translate } from '@standcast/core';
 import { raw } from 'hono/html';
 import type { Child } from 'hono/jsx';
 import { PAGE_CSS } from './styles';
@@ -58,7 +58,7 @@ function Header(props: { lang: Language; header?: HeaderProps }) {
     <header class="topbar">
       <span class="topbar-brand">
         <Logo />
-        <span>Standwise</span>
+        <span>Standcast</span>
         <span class="badge badge-neutral topbar-beta">{t('web.header.beta')}</span>
       </span>
       {header ? (

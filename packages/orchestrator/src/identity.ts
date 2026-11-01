@@ -1,11 +1,11 @@
-import { memberOverrides } from '@standwise/core';
+import { memberOverrides } from '@standcast/core';
 import {
   getConnectionExternalId,
   getInstallation,
   getMemberById,
   operationalConfig,
   writeIdentityIfConnected,
-} from '@standwise/db';
+} from '@standcast/db';
 import type { Deps } from './deps';
 import { logError } from './log-error';
 

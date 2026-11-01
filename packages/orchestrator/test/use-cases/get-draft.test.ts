@@ -5,7 +5,7 @@ import {
   DailySubmissionSchema,
   parseConfig,
   TITLE_MAX,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   decideSuggestion,
   listPendingSuggestions,
@@ -14,7 +14,7 @@ import {
   setMemberInstallations,
   syncSuggestions,
   upsertDaily,
-} from '@standwise/db';
+} from '@standcast/db';
 import { db, useCleanDb } from '../../../db/test/setup';
 import { createMembershipCheck, getDraft, submitDaily } from '../../src';
 import { config, daily, fakeDeps, INST, seedMember, seedOrg } from './fakes';

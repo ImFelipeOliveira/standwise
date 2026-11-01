@@ -1,4 +1,4 @@
-import { DomainError, type DomainErrorCode, logError } from '@standwise/orchestrator';
+import { DomainError, type DomainErrorCode, logError } from '@standcast/orchestrator';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
@@ -19,6 +19,7 @@ export const STATUS: Record<DomainErrorCode, ContentfulStatusCode> = {
   insufficient_scope: 403,
   not_found: 404,
   suggestion_already_decided: 409,
+  invalid_beta_request: 422,
 };
 
 export function onError(error: Error, c: Context): Response {

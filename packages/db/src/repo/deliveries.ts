@@ -1,4 +1,4 @@
-import type { MessageRef } from '@standwise/core';
+import type { MessageRef } from '@standcast/core';
 import { and, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import { type DeliveryKind, type DeliveryRow, deliveries } from '../schema';

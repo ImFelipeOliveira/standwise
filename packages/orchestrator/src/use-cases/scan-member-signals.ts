@@ -2,10 +2,10 @@ import {
   detectCardSignals,
   detectPullRequestSignals,
   type SignalKind,
-  type StandwiseConfig,
+  type StandcastConfig,
   type TeamConfig,
   teamsForMember,
-} from '@standwise/core';
+} from '@standcast/core';
 import {
   getDelivery,
   getInstallation,
@@ -14,8 +14,8 @@ import {
   operationalConfig,
   type SuggestionRow,
   syncSuggestions,
-} from '@standwise/db';
-import { GitHubRateLimitError } from '@standwise/github';
+} from '@standcast/db';
+import { GitHubRateLimitError } from '@standcast/github';
 import type { WorkerDeps } from '../deps';
 import { logError } from '../log-error';
 import type { StaleCards } from '../project-tracker';
@@ -32,7 +32,7 @@ type ScanContext = {
   installationId: number;
   owner: string;
   ownerType: 'User' | 'Organization';
-  config: StandwiseConfig;
+  config: StandcastConfig;
   memberId: string;
   login: string;
   team: TeamConfig;
