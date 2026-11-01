@@ -244,20 +244,25 @@ export async function checkSuggestionLeaks(root: string): Promise<string[]> {
   return problems;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const BR_DATE = /^\d{2}\/\d{2}\/\d{4}$/;
+
 const CHANGELOG_HEADINGS = [
-  { file: 'docs/site/changelog.md', prefix: '### ' },
-  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ' },
-  { file: 'docs/api/CHANGELOG.md', prefix: '## ' },
+  { file: 'docs/site/changelog.md', prefix: '### ', date: ISO_DATE },
+  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ', date: BR_DATE },
+  { file: 'docs/api/CHANGELOG.md', prefix: '## ', date: ISO_DATE },
 ];
 
 export function changelogVersionProblems(file: string, text: string, version: string): string[] {
-  const heading = new RegExp(
-    `^${CHANGELOG_HEADINGS.find((c) => c.file === file)?.prefix ?? '## '}${version.replaceAll('.', '\\.')} — `,
-    'm',
-  );
-  return heading.test(text)
-    ? []
-    : [`${file}: no "${version} — <date>" heading for the current version`];
+  const format = CHANGELOG_HEADINGS.find((c) => c.file === file) ?? {
+    prefix: '## ',
+    date: ISO_DATE,
+  };
+  const start = `${format.prefix}${version} — `;
+  const found = text
+    .split('\n')
+    .some((line) => line.startsWith(start) && format.date.test(line.slice(start.length).trim()));
+  return found ? [] : [`${file}: no "${version} — <date>" heading for the current version`];
 }
 
 export async function checkChangelogVersions(root: string): Promise<string[]> {
