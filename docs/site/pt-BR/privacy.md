@@ -68,6 +68,15 @@ O Standwise ainda não se conecta ao Jira, então não lê nada dele.
 
 O token do GitHub do seu login é usado uma vez para identificar você e não é guardado. As chaves de criptografia ficam no ambiente do servidor, não no banco.
 
+## Pedidos de beta
+
+Quando alguém pede acesso ao beta na página do Standwise, o formulário coleta nome, e-mail de trabalho, tamanho do time, o chat e o tracker que o time usa e o idioma da página. Isso é separado da instalação do app e dos dados acima.
+
+- **Para quê:** para entrar em contato com o time depois que instalar e verificar se está tudo indo bem.
+- **Para onde vai:** fica guardado no Standwise e é enviado por e-mail para a caixa de suporte do Standwise através do Resend, um provedor de e-mail. Nunca é compartilhado de outra forma.
+- **Por quanto tempo:** é apagado 12 meses depois do pedido.
+- **Remoção antecipada:** mande um e-mail para <SupportEmail /> e o pedido é apagado antes.
+
 ## O que o Standwise nunca faz
 
 - Enviar uma daily sem a confirmação explícita da pessoa.

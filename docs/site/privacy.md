@@ -68,6 +68,15 @@ Standwise does not connect to Jira yet, so it reads nothing from it.
 
 The GitHub token from your login is used once to identify you and is not stored. Encryption keys live in the server environment, not in the database.
 
+## Beta requests
+
+When someone asks for beta access on the Standwise landing page, the form collects a name, a work email, the team size, the chat and the tracker the team uses, and the language of the page. This is separate from installing the app and from the data above.
+
+- **Why:** to contact the team after they install, and to check it is going well.
+- **Where it goes:** it is stored by Standwise and emailed to the Standwise support inbox through Resend, an email provider. It is never shared otherwise.
+- **How long:** it is deleted 12 months after the request.
+- **Earlier deletion:** email <SupportEmail /> and the request is deleted sooner.
+
 ## What Standwise never does
 
 - Sends a daily without the person's explicit confirmation.

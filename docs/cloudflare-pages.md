@@ -65,3 +65,19 @@ If the project was created through **Workers & Pages > Create > Worker > Import 
 - Build command: `bun install --frozen-lockfile && bun run docs:build`. Deploy command: `npx wrangler deploy`.
 - Set the same build variables (`BUN_VERSION`, `SUPPORT_EMAIL`, `STANDWISE_PUBLIC_URL`) under the Worker's **Settings > Build > Variables and secrets**.
 - Add the custom domain under the Worker's **Settings > Domains & Routes**.
+
+## Landing page Worker
+
+The landing page (`apps/landing`) is a second Worker, `standwise-landing`, served at `https://standwise.usefachada.dev`. It has no build step: `apps/landing/public` is published as static assets, with its own `_headers` already in that folder. The config is `apps/landing/wrangler.jsonc`. Agents find `llms.txt` at its root.
+
+Create it through **Workers & Pages > Create > Worker > Import a repository** (Workers Builds) and pick the `standwise` repository.
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `standwise-landing`, the `name` in `apps/landing/wrangler.jsonc` |
+| Production branch | `main` |
+| Build command | None |
+| Deploy command | `npx wrangler deploy -c apps/landing/wrangler.jsonc` |
+| Root directory | `/` |
+
+Add the custom domain `standwise.usefachada.dev` under the Worker's **Settings > Domains & Routes**. The form posts to the api, which allows this origin through `LANDING_URL` (see [deploy.md](deploy.md)). When `standwise.dev` arrives, add it as a second custom domain and keep the interim one.

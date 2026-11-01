@@ -20,6 +20,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
+  <a href="https://standwise.usefachada.dev">Landing</a> ·
   <a href="https://docs-standwise.usefachada.dev/">Documentation</a> ·
   <a href="https://docs-standwise.usefachada.dev/admin/configuration">Configuration</a> ·
   <a href="#roadmap">Roadmap</a>
@@ -111,6 +112,8 @@ A day with `remind_at: "09:30"` and `digest_at: "10:00"`:
 The full walkthrough is in [How it works](https://docs-standwise.usefachada.dev/how-it-works).
 
 ## Quick start
+
+New here? The [landing page](https://standwise.usefachada.dev) has the overview and the beta request form. Agents can read [llms.txt](https://standwise.usefachada.dev/llms.txt).
 
 ### For admins
 

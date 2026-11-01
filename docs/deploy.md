@@ -38,6 +38,7 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 | `PUBLIC_URL` | Public address of the api, for example `https://api.standwise.dev` |
 | `SUPPORT_EMAIL` | Shown in the setup and error pages and the OpenAPI document |
 | `DOCS_URL` | Address of the documentation site, `https` with no trailing slash, for example `https://docs-standwise.usefachada.dev`. Defaults to `https://docs.standwise.dev`. The setup header links to it, and the api redirects `/docs` and `/docs/*` to it with a 301 |
+| `LANDING_URL` | Address of the landing page, `https` with no trailing slash. Defaults to `https://standwise.usefachada.dev`. It is the origin the api allows for the beta request form |
 | `TRUST_PROXY` | `true` behind Railway |
 | `TRUSTED_PROXY_HOPS` | `1` behind Railway |
 | `STANDWISE_ENCRYPTION_KEY` | 32 random bytes, base64: `openssl rand -base64 32`. Keep it identical on api and worker |
@@ -51,6 +52,18 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 | `SLACK_CLIENT_SECRET` | |
 | `LINEAR_CLIENT_ID` | Required on api and worker. See [linear-app.md](linear-app.md) |
 | `LINEAR_CLIENT_SECRET` | Required on api and worker |
+
+Set these on the worker service, which emails beta requests and deletes them after 365 days:
+
+| Variable | Notes |
+| --- | --- |
+| `SUPPORT_EMAIL` | Required. The inbox that receives each beta request |
+| `RESEND_API_KEY` | Optional. Without it, requests are stored and a warning is logged, and no email is sent |
+| `BETA_EMAIL_FROM` | Required only when `RESEND_API_KEY` is set, for example `Standwise <beta@usefachada.dev>`. The domain must be verified in Resend |
+
+To set up Resend, create an API key at resend.com and verify the sender domain (add the DNS records Resend shows) before setting `BETA_EMAIL_FROM`.
+
+The landing page is a separate Cloudflare Worker, `standwise-landing`. See [cloudflare-pages.md](cloudflare-pages.md).
 
 `TEST_DATABASE_URL` is only for the test suite.
 
