@@ -12,7 +12,11 @@ export type SubmitBetaRequestOutcome = 'stored' | 'duplicate' | 'spam';
 const single = z.string();
 
 const schema = z.object({
-  name: single.trim().min(1).max(120),
+  name: single
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[^\p{Cc}]*$/u),
   email: single.trim().max(254).pipe(z.email()),
   team_size: z.enum(['3-5', '6-15', '16+']),
   chat: z.enum(['slack', 'google_chat', 'other']),

@@ -27,7 +27,7 @@ The image no longer builds the documentation site. If the api and worker service
 
 ## Runtime variables
 
-Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYPTION_KEY`, the five `GITHUB_*` variables and the two `LINEAR_*` variables; setting all of them on both is harmless.
+Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYPTION_KEY`, the five `GITHUB_*` variables and the two `LINEAR_*` variables, plus `SUPPORT_EMAIL` and `BETA_EMAIL_FROM` when `RESEND_API_KEY` is set; setting all of them on both is harmless.
 
 **Required since the Linear integration:** `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` must be set on both the api and the worker. Both services fail to start without them, so set them before you deploy this version. See [linear-app.md](linear-app.md).
 
@@ -38,7 +38,7 @@ Set these on the api service. The worker needs `DATABASE_URL`, `STANDWISE_ENCRYP
 | `PUBLIC_URL` | Public address of the api, for example `https://api.standwise.dev` |
 | `SUPPORT_EMAIL` | Shown in the setup and error pages and the OpenAPI document |
 | `DOCS_URL` | Address of the documentation site, `https` with no trailing slash, for example `https://docs-standwise.usefachada.dev`. Defaults to `https://docs.standwise.dev`. The setup header links to it, and the api redirects `/docs` and `/docs/*` to it with a 301 |
-| `LANDING_URL` | Address of the landing page, `https` with no trailing slash. Defaults to `https://standwise.usefachada.dev`. It is the origin the api allows for the beta request form |
+| `LANDING_URL` | Address of the landing page, `https` with no trailing slash. Defaults to `https://standwise.usefachada.dev`. It is where the api sends the browser back when the beta request form is invalid |
 | `TRUST_PROXY` | `true` behind Railway |
 | `TRUSTED_PROXY_HOPS` | `1` behind Railway |
 | `STANDWISE_ENCRYPTION_KEY` | 32 random bytes, base64: `openssl rand -base64 32`. Keep it identical on api and worker |
@@ -57,9 +57,9 @@ Set these on the worker service, which emails beta requests and deletes them aft
 
 | Variable | Notes |
 | --- | --- |
-| `SUPPORT_EMAIL` | Required. The inbox that receives each beta request |
+| `SUPPORT_EMAIL` | Required only when `RESEND_API_KEY` is set. The inbox that receives each beta request |
 | `RESEND_API_KEY` | Optional. Without it, requests are stored and a warning is logged, and no email is sent |
-| `BETA_EMAIL_FROM` | Required only when `RESEND_API_KEY` is set, for example `Standwise <beta@usefachada.dev>`. The domain must be verified in Resend |
+| `BETA_EMAIL_FROM` | Required when `RESEND_API_KEY` is set, for example `Standwise <beta@usefachada.dev>`. The domain must be verified in Resend |
 
 To set up Resend, create an API key at resend.com and verify the sender domain (add the DNS records Resend shows) before setting `BETA_EMAIL_FROM`.
 

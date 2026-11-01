@@ -80,4 +80,4 @@ Create it through **Workers & Pages > Create > Worker > Import a repository** (W
 | Deploy command | `npx wrangler deploy -c apps/landing/wrangler.jsonc` |
 | Root directory | `/` |
 
-Add the custom domain `standwise.usefachada.dev` under the Worker's **Settings > Domains & Routes**. The form posts to the api, which allows this origin through `LANDING_URL` (see [deploy.md](deploy.md)). When `standwise.dev` arrives, add it as a second custom domain and keep the interim one.
+Add the custom domain `standwise.usefachada.dev` under the Worker's **Settings > Domains & Routes**. The form posts to the api, which sends the browser back to `LANDING_URL` when the form is invalid (see [deploy.md](deploy.md)). The landing's `_headers` CSP `form-action` lists the api, docs and landing hosts, so update it if `DOCS_URL`, `LANDING_URL` or the api host change. When `standwise.dev` arrives, add it as a second custom domain and keep the interim one.

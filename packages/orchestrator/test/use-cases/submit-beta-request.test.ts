@@ -42,6 +42,15 @@ describe('submitBetaRequest', () => {
     expect(queue.enqueued).toHaveLength(1);
   });
 
+  test('name with a newline is rejected', async () => {
+    const { deps, queue } = fakeDeps();
+    await expect(
+      submitBetaRequest(deps, form({ name: 'Ana\r\nBcc: x@evil.com' })),
+    ).rejects.toMatchObject({ code: 'invalid_beta_request' });
+    expect(await rowCount()).toBe(0);
+    expect(queue.enqueued).toHaveLength(0);
+  });
+
   test('honeypot filled', async () => {
     const { deps, queue } = fakeDeps();
     const result = await submitBetaRequest(

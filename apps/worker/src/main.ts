@@ -93,7 +93,7 @@ const deps: WorkerDeps = {
   env: {
     linearClientId: env.LINEAR_CLIENT_ID,
     linearClientSecret: env.LINEAR_CLIENT_SECRET,
-    supportEmail: env.SUPPORT_EMAIL,
+    supportEmail: env.SUPPORT_EMAIL ?? '',
     betaEmailFrom: env.BETA_EMAIL_FROM ?? '',
   },
 };

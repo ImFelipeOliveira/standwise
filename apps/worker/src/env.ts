@@ -14,7 +14,7 @@ const schema = z
     GITHUB_CLIENT_SECRET: z.string().min(1),
     LINEAR_CLIENT_ID: z.string().min(1),
     LINEAR_CLIENT_SECRET: z.string().min(1),
-    SUPPORT_EMAIL: z.string().min(1),
+    SUPPORT_EMAIL: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     BETA_EMAIL_FROM: z.string().optional(),
   })
@@ -23,6 +23,13 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['BETA_EMAIL_FROM'],
+        message: 'required when RESEND_API_KEY is set',
+      });
+    }
+    if (value.RESEND_API_KEY && !value.SUPPORT_EMAIL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SUPPORT_EMAIL'],
         message: 'required when RESEND_API_KEY is set',
       });
     }

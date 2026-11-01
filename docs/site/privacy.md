@@ -86,7 +86,7 @@ When someone asks for beta access on the Standwise landing page, the form collec
 - Reads your code, your Slack messages or your direct messages.
 - Writes to your repositories.
 - Sends your data to an AI model.
-- Sells or shares your data with third parties.
+- Sells your data, or shares it with anyone other than the providers that run the service (such as Resend, for beta request emails).
 
 ## Who sees what
 
