@@ -5,6 +5,7 @@
   --vp-c-brand-soft: rgba(59, 75, 200, 0.14);
   --vp-c-text-1: #15171c;
   --vp-home-hero-name-color: #3b4bc8;
+  --vp-code-lang-color: #565b66;
 }
 
 .dark {
@@ -14,4 +15,5 @@
   --vp-c-brand-2: #a7b0f4;
   --vp-c-brand-3: #3b4bc8;
   --vp-c-brand-soft: rgba(140, 152, 240, 0.16);
+  --vp-code-lang-color: #a9adb8;
 }

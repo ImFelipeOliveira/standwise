@@ -216,6 +216,34 @@ describe('landing', () => {
     );
   });
 
+  test('csp is self-only for styles, fonts and robots fetches', () => {
+    const headers = read('_headers');
+    expect(headers).toContain("style-src 'self';");
+    expect(headers).toContain("font-src 'self';");
+    expect(headers).toContain("connect-src 'self';");
+    expect(headers).toContain('/fonts/*\n  Cache-Control: public, max-age=31536000, immutable');
+  });
+
+  test('fonts are self-hosted and the preloaded file exists', () => {
+    for (const file of htmlFiles()) {
+      const html = read(file);
+      expect(html).not.toContain('fonts.googleapis.com');
+      expect(html).not.toContain('fonts.gstatic.com');
+      const preload = tags(html, 'link').find((tag) => attr(tag, 'rel') === 'preload');
+      expect(preload).toBeDefined();
+      expect(attr(preload ?? '', 'as')).toBe('font');
+      expect(attr(preload ?? '', 'type')).toBe('font/woff2');
+      expect(preload).toContain('crossorigin');
+      expect(existsSync(join(PUBLIC, attr(preload ?? '', 'href') ?? ''))).toBe(true);
+    }
+    const css = read('styles.css');
+    expect(css).not.toContain('googleapis');
+    for (const [, path] of css.matchAll(/url\('([^']+\.woff2)'\)/g)) {
+      expect(existsSync(join(PUBLIC, path ?? ''))).toBe(true);
+    }
+    expect(existsSync(join(PUBLIC, 'fonts/LICENSE-OFL.txt'))).toBe(true);
+  });
+
   test('copy makes no undecided promises and links the self-hosting readme', () => {
     const files = ['index.html', 'pt-BR/index.html', 'index.md', 'pt-BR/index.md', 'llms.txt'];
     for (const file of files) {
