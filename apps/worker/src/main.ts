@@ -20,6 +20,7 @@ import {
   LINK_TRACKER_IDENTITIES_JOB,
   LINK_TRACKER_IDENTITY_JOB,
   LOAD_CONFIG_JOB,
+  NOTIFY_BETA_REQUEST_JOB,
   PRUNE_DATA_JOB,
   RESOLVE_CHECK_SUITE_JOB,
   ROUTE_BLOCKER_JOB,
@@ -28,11 +29,13 @@ import {
   type WorkerDeps,
 } from '@standwise/orchestrator';
 import { createPgBossQueue } from '@standwise/queue';
+import { sendEmail } from '@standwise/resend';
 import { parseEnv } from './env';
 import { deliverWebhookJob, requeueWebhooksJob } from './jobs/deliver-webhook';
 import { linkTrackerIdentitiesJob } from './jobs/link-tracker-identities';
 import { linkTrackerIdentityJob } from './jobs/link-tracker-identity';
 import { loadConfigJob } from './jobs/load-config';
+import { notifyBetaRequestJob } from './jobs/notify-beta-request';
 import { pruneDataJob } from './jobs/prune-data';
 import { resolveCheckSuiteJob } from './jobs/resolve-check-suite';
 import { routeBlockerJob } from './jobs/route-blocker';
@@ -56,6 +59,8 @@ const app = createGitHubApp({
   clientId: env.GITHUB_CLIENT_ID,
   clientSecret: env.GITHUB_CLIENT_SECRET,
 });
+
+const resendApiKey = env.RESEND_API_KEY;
 
 const deps: WorkerDeps = {
   db,
@@ -84,9 +89,12 @@ const deps: WorkerDeps = {
   chatFor: createChatFor(db, env.STANDWISE_ENCRYPTION_KEY),
   trackerFor: (...args) => createTrackerFor(deps)(...args),
   linear: { exchangeCode: exchangeLinearCode, refreshToken: refreshLinearToken },
+  email: resendApiKey ? { send: (message) => sendEmail(resendApiKey, message) } : null,
   env: {
     linearClientId: env.LINEAR_CLIENT_ID,
     linearClientSecret: env.LINEAR_CLIENT_SECRET,
+    supportEmail: env.SUPPORT_EMAIL,
+    betaEmailFrom: env.BETA_EMAIL_FROM ?? '',
   },
 };
 
@@ -108,6 +116,7 @@ await queue.work(LINK_TRACKER_IDENTITIES_JOB, linkTrackerIdentitiesJob(deps), st
 await queue.work(LINK_TRACKER_IDENTITY_JOB, linkTrackerIdentityJob(deps), stately);
 await queue.work(DELIVER_WEBHOOK_JOB, deliverWebhookJob(deps), plain);
 await queue.work('requeue-webhooks', requeueWebhooksJob(deps), plain);
+await queue.work(NOTIFY_BETA_REQUEST_JOB, notifyBetaRequestJob(deps), plain);
 await queue.work(PRUNE_DATA_JOB, pruneDataJob(deps), plain);
 await queue.schedule('tick', '* * * * *');
 await queue.schedule('requeue-webhooks', '*/5 * * * *');

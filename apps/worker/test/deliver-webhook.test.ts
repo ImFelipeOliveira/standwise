@@ -78,7 +78,13 @@ function harness(resolved: string[] = ['93.184.216.34']) {
         throw new Error('unused');
       },
     },
-    env: { linearClientId: 'lid', linearClientSecret: 'lsecret' },
+    email: null,
+    env: {
+      linearClientId: 'lid',
+      linearClientSecret: 'lsecret',
+      supportEmail: 'help@sw.test',
+      betaEmailFrom: '',
+    },
   };
   return {
     deps,

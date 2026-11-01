@@ -11,7 +11,7 @@ import type { CheckRunInput, PullRequestDetail } from '@standwise/github';
 import type { LinearOrganization, LinearTokens } from '@standwise/linear';
 import { createMemoryQueue } from '@standwise/queue';
 import { db } from '../../../db/test/setup';
-import { createTrackerFor, type Deps } from '../../src';
+import { createTrackerFor, type Deps, type WorkerDeps } from '../../src';
 
 export const INST = 11;
 
@@ -191,7 +191,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
     }
     throw new Error(route);
   };
-  const deps: Deps = {
+  const deps: Deps & Pick<WorkerDeps, 'email'> & { env: { betaEmailFrom: string } } = {
     db,
     queue,
     now: () => now,
@@ -271,7 +271,9 @@ export function fakeDeps(opts: FakeOptions = {}) {
         },
       }) as never,
     trackerFor: (...args) => createTrackerFor(deps)(...args),
+    email: null,
     env: {
+      betaEmailFrom: 'Standwise <beta@sw.test>',
       publicUrl: 'https://sw.test',
       supportEmail: 'help@sw.test',
       docsUrl: 'https://docs.sw.test',

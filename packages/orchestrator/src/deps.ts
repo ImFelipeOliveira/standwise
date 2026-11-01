@@ -15,6 +15,7 @@ import type {
 } from '@standwise/github';
 import type { exchangeLinearCode, LinearFetch, refreshLinearToken } from '@standwise/linear';
 import type { JobQueue } from '@standwise/queue';
+import type { EmailMessage } from '@standwise/resend';
 import type { exchangeSlackCode } from '@standwise/slack';
 import type { TrackerFor } from './linear-tracker';
 import type { SafeFetchOptions } from './safe-fetch';
@@ -65,6 +66,8 @@ export type Deps = {
   };
 };
 
+export type EmailSender = { send(message: EmailMessage): Promise<void> };
+
 export type WorkerDeps = Pick<
   Deps,
   | 'db'
@@ -76,4 +79,9 @@ export type WorkerDeps = Pick<
   | 'webhookTransport'
   | 'trackerFor'
   | 'linear'
-> & { env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret'> };
+> & {
+  email: EmailSender | null;
+  env: Pick<Deps['env'], 'linearClientId' | 'linearClientSecret' | 'supportEmail'> & {
+    betaEmailFrom: string;
+  };
+};

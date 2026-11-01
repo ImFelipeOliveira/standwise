@@ -53,6 +53,7 @@
         "@standwise/linear": "workspace:*",
         "@standwise/orchestrator": "workspace:*",
         "@standwise/queue": "workspace:*",
+        "@standwise/resend": "workspace:*",
         "zod": "^4.6.7",
       },
     },
@@ -72,6 +73,10 @@
         "@standwise/core": "workspace:*",
         "zod": "^4.6.7",
       },
+    },
+    "packages/adapters/resend": {
+      "name": "@standwise/resend",
+      "version": "0.0.0",
     },
     "packages/adapters/slack": {
       "name": "@standwise/slack",
@@ -112,6 +117,7 @@
         "@standwise/github": "workspace:*",
         "@standwise/linear": "workspace:*",
         "@standwise/queue": "workspace:*",
+        "@standwise/resend": "workspace:*",
         "@standwise/slack": "workspace:*",
         "zod": "^4.6.7",
       },
@@ -423,6 +429,8 @@
     "@standwise/orchestrator": ["@standwise/orchestrator@workspace:packages/orchestrator"],
 
     "@standwise/queue": ["@standwise/queue@workspace:packages/queue"],
+
+    "@standwise/resend": ["@standwise/resend@workspace:packages/adapters/resend"],
 
     "@standwise/slack": ["@standwise/slack@workspace:packages/adapters/slack"],
 
