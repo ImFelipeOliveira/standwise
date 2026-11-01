@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.1](https://github.com/ImFelipeOliveira/standcast/compare/standcast-v0.3.0...standcast-v0.3.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* changelog dates must be real calendar dates; cover a missing changelog file ([fb10e1f](https://github.com/ImFelipeOliveira/standcast/commit/fb10e1fdda563a085f1378fb2fa41d6d2d5bb3a7))
+* changelog headings need a dated entry; one missing changelog fails the check ([de1bab0](https://github.com/ImFelipeOliveira/standcast/commit/de1bab0bae7ef88fb74bc60720702b496541b70d))
+* content-hashed font files, clean docs urls in the sitemap, stricter font tests ([3b58252](https://github.com/ImFelipeOliveira/standcast/commit/3b58252133ea48613d4a89612b8f3c02ad6b55de))
+* landing csp ([#38](https://github.com/ImFelipeOliveira/standcast/issues/38)) ([d241bd3](https://github.com/ImFelipeOliveira/standcast/commit/d241bd3b801ac2a8714d3d9bf5272d7e42e0606c))
+* landing csp, self-hosted fonts and docs robots and sitemap ([09e7263](https://github.com/ImFelipeOliveira/standcast/commit/09e7263941029a24950d215a948c39814482918c))
+* landing csp, self-hosted fonts and docs robots and sitemap ([#37](https://github.com/ImFelipeOliveira/standcast/issues/37)) ([3664b1e](https://github.com/ImFelipeOliveira/standcast/commit/3664b1e2e26374e4281c8c3390c3e455da0bd214))
+* reject impossible changelog dates and cover a missing changelog file ([#40](https://github.com/ImFelipeOliveira/standcast/issues/40)) ([c48dbd2](https://github.com/ImFelipeOliveira/standcast/commit/c48dbd25884cf7cc8deaabcbee586311606194bf))
+
+
+### Documentation
+
+* 0.3.0 and 0.2.1 changelog entries and a check that every release has one ([ba33dae](https://github.com/ImFelipeOliveira/standcast/commit/ba33dae3552a4af179619e7e177e63734c94da33))
+* 0.3.0 changelog entries and a release check ([#39](https://github.com/ImFelipeOliveira/standcast/issues/39)) ([731e605](https://github.com/ImFelipeOliveira/standcast/commit/731e60596a31de09705cb0a6f9574eb9f04bded3))
+
 ## [0.3.0](https://github.com/ImFelipeOliveira/standwise/compare/standcast-v0.2.1...standcast-v0.3.0) (2026-11-01)
 
 
