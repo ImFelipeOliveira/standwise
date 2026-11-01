@@ -252,7 +252,7 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for commit co
 
 ## Support
 
-Questions and problems: [support@standwise.dev](mailto:support@standwise.dev).
+Questions and problems: [support.standwise@usefachada.dev](mailto:support.standwise@usefachada.dev).
 
 ## License
 

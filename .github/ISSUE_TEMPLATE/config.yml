@@ -4,5 +4,5 @@ contact_links:
     url: https://docs-standwise.usefachada.dev/
     about: Install guide, standwise.yml reference, CLI, MCP and API
   - name: Support
-    url: mailto:support.standwise@usefachada.dev
-    about: Questions about your installation
+    url: https://docs-standwise.usefachada.dev/troubleshooting
+    about: Common problems and the support email for questions about your installation
