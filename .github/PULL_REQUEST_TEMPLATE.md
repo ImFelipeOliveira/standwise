@@ -4,7 +4,7 @@ Describe the change and link the issue it closes, for example "Closes #12".
 
 ## Checklist
 
-- [ ] Targets `dev` (only `dev` and release-please release PRs merge into `main`)
+- [ ] Targets `dev`, unless this is a release-please release PR targeting `main`
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix:`, `docs:`, ...): releases are generated from them
 - [ ] `bun test`, `bun run lint` and `bun run typecheck` pass
 - [ ] No comments in code; user-facing text goes through i18n in en and pt-BR
