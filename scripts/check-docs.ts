@@ -244,24 +244,46 @@ export async function checkSuggestionLeaks(root: string): Promise<string[]> {
   return problems;
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const BR_DATE = /^\d{2}\/\d{2}\/\d{4}$/;
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const BR_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+function isoParts(text: string): [number, number, number] | null {
+  const m = text.match(ISO_DATE);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+function brParts(text: string): [number, number, number] | null {
+  const m = text.match(BR_DATE);
+  return m ? [Number(m[3]), Number(m[2]), Number(m[1])] : null;
+}
+
+function isCalendarDate(parts: [number, number, number] | null): boolean {
+  if (parts === null) return false;
+  const [year, month, day] = parts;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
 
 const CHANGELOG_HEADINGS = [
-  { file: 'docs/site/changelog.md', prefix: '### ', date: ISO_DATE },
-  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ', date: BR_DATE },
-  { file: 'docs/api/CHANGELOG.md', prefix: '## ', date: ISO_DATE },
+  { file: 'docs/site/changelog.md', prefix: '### ', date: isoParts },
+  { file: 'docs/site/pt-BR/changelog.md', prefix: '### ', date: brParts },
+  { file: 'docs/api/CHANGELOG.md', prefix: '## ', date: isoParts },
 ];
 
 export function changelogVersionProblems(file: string, text: string, version: string): string[] {
   const format = CHANGELOG_HEADINGS.find((c) => c.file === file) ?? {
     prefix: '## ',
-    date: ISO_DATE,
+    date: isoParts,
   };
   const start = `${format.prefix}${version} — `;
   const found = text
     .split('\n')
-    .some((line) => line.startsWith(start) && format.date.test(line.slice(start.length).trim()));
+    .some(
+      (line) =>
+        line.startsWith(start) && isCalendarDate(format.date(line.slice(start.length).trim())),
+    );
   return found ? [] : [`${file}: no "${version} — <date>" heading for the current version`];
 }
 
