@@ -10,6 +10,8 @@ What changed in Standcast. Versions match the [GitHub releases](https://github.c
 
 ### Unreleased
 
+### 0.3.1 — 2026-11-01
+
 - The documentation site publishes `robots.txt` and a `sitemap.xml`, and the landing page serves its own fonts.
 
 ### 0.3.0 — 2026-11-01

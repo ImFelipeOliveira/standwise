@@ -4,6 +4,10 @@ Versions match the GitHub releases. During the public beta (0.x), incompatible c
 
 ## Unreleased
 
+## 0.3.1 — 2026-11-01
+
+- No API changes.
+
 ## 0.3.0 — 2026-11-01
 
 ### Breaking: the rename to Standcast
