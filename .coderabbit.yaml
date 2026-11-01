@@ -93,7 +93,9 @@ knowledge_base:
   code_guidelines:
     enabled: true
     filePatterns:
-      - docs/engineering/review-guide.md
-      - CONTRIBUTING.md
+      - files: docs/engineering/review-guide.md
+        applyTo: "**"
+      - files: CONTRIBUTING.md
+        applyTo: "**"
 chat:
   auto_reply: true
