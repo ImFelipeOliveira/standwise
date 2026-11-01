@@ -2,7 +2,7 @@ name: sync-dev
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 concurrency:
   group: sync-dev
