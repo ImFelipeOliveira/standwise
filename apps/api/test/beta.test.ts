@@ -46,6 +46,13 @@ describe('POST /beta', () => {
     expect(res.headers.get('location')).toBe('https://landing.sw.test/pt-BR/#beta-invalid');
   });
 
+  test('oversized body redirects to the landing anchor without storing', async () => {
+    const { app } = createTestApp();
+    const res = await post(app, { ...valid, locale: 'en', name: 'A'.repeat(9000) });
+    expect(res.status).toBe(303);
+    expect(res.headers.get('location')).toBe('https://landing.sw.test/#beta-invalid');
+  });
+
   test('invalid en redirects to the en landing anchor', async () => {
     const { app } = createTestApp();
     const res = await post(app, { locale: 'en' });

@@ -72,6 +72,7 @@ describe('notifyBetaRequest', () => {
       to: 'support@sw.test',
       replyTo: EMAIL,
       subject: 'Beta request: Ana Souza (6-15, slack, linear)',
+      idempotencyKey: `beta-request/${id}/${(await getBetaRequest(db, id))?.createdAt.getTime()}`,
     });
     expect(sent[0]?.text).toContain('pt-BR');
     expect(sent[0]?.text).toContain(EMAIL);

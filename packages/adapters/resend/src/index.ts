@@ -4,6 +4,7 @@ export type EmailMessage = {
   replyTo?: string;
   subject: string;
   text: string;
+  idempotencyKey?: string;
 };
 
 export type EmailDeliveryCode = 'timeout' | 'request_failed' | 'http_error' | 'rejected';
@@ -38,7 +39,11 @@ export async function sendEmail(
   try {
     response = await fetchImpl(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...(message.idempotencyKey ? { 'Idempotency-Key': message.idempotencyKey } : {}),
+      },
       body: JSON.stringify({
         from: message.from,
         to: [message.to],

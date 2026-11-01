@@ -17,6 +17,7 @@ export async function notifyBetaRequest(
     from: deps.env.betaEmailFrom,
     to: deps.env.supportEmail,
     replyTo: request.email,
+    idempotencyKey: `beta-request/${request.id}/${request.createdAt.getTime()}`,
     subject: `Beta request: ${request.name} (${request.teamSize}, ${request.chat}, ${request.tracker})`,
     text: [
       `Name: ${request.name}`,

@@ -43,6 +43,18 @@ describe('sendEmail', () => {
     });
   });
 
+  test('sends the idempotency key header when given', async () => {
+    const calls: RequestInit[] = [];
+    const fetchImpl = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(init ?? {});
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+    await sendEmail(KEY, { ...message, idempotencyKey: 'beta-request/r1/1' }, { fetch: fetchImpl });
+    await sendEmail(KEY, message, { fetch: fetchImpl });
+    expect(new Headers(calls[0]?.headers).get('idempotency-key')).toBe('beta-request/r1/1');
+    expect(new Headers(calls[1]?.headers).has('idempotency-key')).toBe(false);
+  });
+
   test('4xx maps to rejected', async () => {
     const fetchImpl = (async () =>
       new Response(`bad ${KEY}`, { status: 422 })) as unknown as typeof fetch;
