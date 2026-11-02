@@ -624,6 +624,23 @@ describe('setup checklist', () => {
     expect(teamCard(html, 'Alpha')).not.toContain('card-warning');
   });
 
+  test('a slack channel notice renders inside its team card', async () => {
+    const html = await page(
+      status({
+        teamNotices: [
+          { team: 'Alpha', reference: '#alpha', kind: 'channel_not_found' },
+          { team: 'Beta', reference: '#beta', kind: 'channel_not_member' },
+        ],
+      }),
+    );
+    const alpha = teamCard(html, 'Alpha');
+    expect(alpha).toContain('card-warning');
+    expect(alpha).toContain('the Slack channel #alpha was not found');
+    const betaCard = teamCard(html, 'Beta');
+    expect(betaCard).toContain('the Standcast bot is not in the Slack channel #beta');
+    expect(betaCard).not.toContain('#alpha');
+  });
+
   test('an invalid file lists every error path in a scroll table', async () => {
     const card = section(
       await page(

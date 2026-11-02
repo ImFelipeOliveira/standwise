@@ -1,4 +1,4 @@
-import type { ConfigError, StandcastConfig } from '@standcast/core';
+import type { ChannelCheck, ConfigError, StandcastConfig } from '@standcast/core';
 import {
   type ApiKeySummary,
   getConnection,
@@ -108,6 +108,29 @@ async function findConfigRepo(octokit: Octokit, owner: string): Promise<SetupSta
   }
 }
 
+async function guarded(
+  work: Promise<TeamNotice[]>,
+  label: string,
+  installationId: number,
+): Promise<TeamNotice[]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<TeamNotice[]>((resolve) => {
+    timer = setTimeout(() => {
+      logError(label, new Error('timed out'), { installationId: String(installationId) });
+      resolve([]);
+    }, TEAM_NOTICES_TIMEOUT_MS);
+  });
+  const safe = work.catch((error) => {
+    logError(label, error, { installationId: String(installationId) });
+    return [];
+  });
+  try {
+    return await Promise.race([safe, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function safeTeamNotices(
   deps: Deps,
   installationId: number,
@@ -115,19 +138,51 @@ async function safeTeamNotices(
   config: StandcastConfig | null,
 ): Promise<TeamNotice[]> {
   if (!config) return [];
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<TeamNotice[]>((resolve) => {
-    timer = setTimeout(() => resolve([]), TEAM_NOTICES_TIMEOUT_MS);
+  return guarded(
+    teamResolutionNotices(deps, installationId, owner, config),
+    'setup team resolution failed',
+    installationId,
+  );
+}
+
+const CHANNEL_NOTICES: Record<Exclude<ChannelCheck, 'ok'>, TeamNotice['kind']> = {
+  not_found: 'channel_not_found',
+  not_member: 'channel_not_member',
+};
+
+async function channelNotices(
+  deps: Deps,
+  installationId: number,
+  config: StandcastConfig,
+): Promise<TeamNotice[]> {
+  const teams = config.teams.filter((team) => team.chat.provider === 'slack' && team.chat.channel);
+  if (teams.length === 0) return [];
+  const chat = await deps.chatFor(installationId, 'slack');
+  if (!chat) return [];
+  const channels = [...new Set(teams.map((team) => team.chat.channel))];
+  const results = new Map(
+    await Promise.all(
+      channels.map(async (channel) => [channel, await chat.checkChannel(channel)] as const),
+    ),
+  );
+  return teams.flatMap((team) => {
+    const result = results.get(team.chat.channel);
+    if (!result || result === 'ok') return [];
+    return [{ team: team.name, reference: team.chat.channel, kind: CHANNEL_NOTICES[result] }];
   });
-  const resolution = teamResolutionNotices(deps, installationId, owner, config).catch((error) => {
-    logError('setup team resolution failed', error, { installationId: String(installationId) });
-    return [];
-  });
-  try {
-    return await Promise.race([resolution, timeout]);
-  } finally {
-    clearTimeout(timer);
-  }
+}
+
+async function safeChannelNotices(
+  deps: Deps,
+  installationId: number,
+  config: StandcastConfig | null,
+): Promise<TeamNotice[]> {
+  if (!config) return [];
+  return guarded(
+    channelNotices(deps, installationId, config),
+    'setup channel check failed',
+    installationId,
+  );
 }
 
 export async function getSetupStatus(
@@ -149,6 +204,7 @@ export async function getSetupStatus(
     installation.accountLogin,
     operational,
   );
+  const channelNoticesPromise = safeChannelNotices(deps, installation.id, operational);
   const octokit = await deps.github.installationOctokit(installation.id);
   const [configRepo, connection, linearConnection, teamFailures, personFailures, admin, linked] =
     await Promise.all([
@@ -187,7 +243,7 @@ export async function getSetupStatus(
         invalid: linearConnection.invalidatedAt !== null || !linearConnection.externalKey,
       }
     : { connected: false };
-  const teamNotices = await teamNoticesPromise;
+  const teamNotices = [...(await teamNoticesPromise), ...(await channelNoticesPromise)];
   return {
     installationId: installation.id,
     owner: installation.accountLogin,

@@ -51,6 +51,8 @@ describe('createSlackChannel', () => {
     await ch.postToChannel('#daily-backend', msg);
     const post = calls.filter((c) => c.method === 'chat.postMessage');
     expect(post[0]?.body.channel).toBe('C2');
+    expect(post[0]?.body.unfurl_links).toBe('false');
+    expect(post[0]?.body.unfurl_media).toBe('false');
     expect(calls.filter((c) => c.method === 'conversations.list')).toHaveLength(1);
   });
 
@@ -125,6 +127,76 @@ describe('createSlackChannel', () => {
     const err = await ch.postToChannel('#nope', msg).catch((e) => e);
     expect(err).toBeInstanceOf(ChatDeliveryError);
     expect(err.code).toBe('channel_not_found');
+  });
+
+  test('checkChannel reports an unknown channel name as not_found', async () => {
+    const { calls, url } = fake({ 'conversations.list': () => ({ ok: true, channels: [] }) });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('#nope')).toBe('not_found');
+    expect(calls.map((c) => c.method)).toEqual(['conversations.list']);
+  });
+
+  test('checkChannel reports ok when the bot is a member', async () => {
+    const { calls, url } = fake({
+      'conversations.list': () => ({ ok: true, channels: [{ id: 'C2', name: 'daily' }] }),
+      'conversations.info': () => ({ ok: true, channel: { id: 'C2', is_member: true } }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('#daily')).toBe('ok');
+    expect(calls.find((c) => c.method === 'conversations.info')?.body.channel).toBe('C2');
+  });
+
+  test('checkChannel reports not_member when the bot is outside a private channel', async () => {
+    const { url } = fake({
+      'conversations.list': () => ({ ok: true, channels: [{ id: 'G2', name: 'daily' }] }),
+      'conversations.info': () => ({
+        ok: true,
+        channel: { id: 'G2', is_private: true, is_member: false },
+      }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('#daily')).toBe('not_member');
+  });
+
+  test('checkChannel accepts a public channel the bot has not joined', async () => {
+    const { url } = fake({
+      'conversations.info': () => ({
+        ok: true,
+        channel: { id: 'C2', is_private: false, is_member: false },
+      }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('C2')).toBe('ok');
+  });
+
+  test('checkChannel reports an archived channel id as not_found', async () => {
+    const { url } = fake({
+      'conversations.info': () => ({
+        ok: true,
+        channel: { id: 'C2', is_archived: true, is_member: true },
+      }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('C2')).toBe('not_found');
+  });
+
+  test('checkChannel reports an unknown channel id as not_found', async () => {
+    const { calls, url } = fake({
+      'conversations.info': () => ({ ok: false, error: 'channel_not_found' }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    expect(await ch.checkChannel('C404')).toBe('not_found');
+    expect(calls.map((c) => c.method)).toEqual(['conversations.info']);
+  });
+
+  test('checkChannel lets other slack errors through', async () => {
+    const { url } = fake({
+      'conversations.info': () => ({ ok: false, error: 'invalid_auth' }),
+    });
+    const ch = createSlackChannel('xoxb-t', { slackApiUrl: url });
+    const err = await ch.checkChannel('C1').catch((e) => e);
+    expect(err).toBeInstanceOf(ChatDeliveryError);
+    expect(err.code).toBe('invalid_auth');
   });
 
   test('postMessage without ts maps to invalid_response', async () => {

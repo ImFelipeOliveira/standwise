@@ -37,6 +37,8 @@ Defina o canal no `standcast.yml`, em `chat.channel`:
 
 Canais arquivados não são encontrados.
 
+Com o Slack conectado, a página de setup confere o canal de cada time e avisa no card do time quando o canal não é encontrado ou o bot não está num canal privado, para você corrigir antes do `digest_at`.
+
 ## Como as pessoas são mencionadas
 
 O consolidado menciona cada pessoa pelo usuário dela no Slack quando o Standcast o conhece, e mostra `@` seguido do login do GitHub, em texto, quando não conhece. A pessoa é ligada ao usuário do Slack quando entra (com `standcast login` ou na página de setup), se o Slack já estiver conectado e o `standcast.yml` tiver uma versão válida:

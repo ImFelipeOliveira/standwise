@@ -1,5 +1,5 @@
 import { WebClient, type WebClientOptions } from '@slack/web-api';
-import type { ChatChannel, Message, MessageRef } from '@standcast/core';
+import type { ChannelCheck, ChatChannel, Message, MessageRef } from '@standcast/core';
 import { ChatDeliveryError, mapSlackErrors } from './errors';
 import { renderSlack } from './render';
 
@@ -62,11 +62,25 @@ export function createSlackChannel(
       text: rendered.text,
       blocks: rendered.blocks as never,
       thread_ts: threadTs,
+      unfurl_links: false,
+      unfurl_media: false,
     });
     if (!res.ts || !res.channel) {
       throw new ChatDeliveryError('invalid_response', 'slack response missing ts or channel');
     }
     return { channel: res.channel, id: res.ts };
+  }
+
+  async function checkChannel(channel: string): Promise<ChannelCheck> {
+    try {
+      const id = await mapSlackErrors(() => resolveChannel(channel));
+      const res = await mapSlackErrors(() => client.conversations.info({ channel: id }));
+      if (res.channel?.is_archived) return 'not_found';
+      return res.channel?.is_private && res.channel.is_member === false ? 'not_member' : 'ok';
+    } catch (e) {
+      if (e instanceof ChatDeliveryError && e.code === 'channel_not_found') return 'not_found';
+      throw e;
+    }
   }
 
   return {
@@ -90,5 +104,6 @@ export function createSlackChannel(
         throw e;
       }
     },
+    checkChannel,
   };
 }

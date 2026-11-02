@@ -57,6 +57,8 @@ export const TRACKER_NOTICES: Record<TrackerNotice, MessageKey> = {
 export const TEAM_NOTICES: Record<SetupStatus['teamNotices'][number]['kind'], MessageKey> = {
   missing: 'setup.teams.missing',
   truncated: 'setup.teams.truncated',
+  channel_not_found: 'setup.teams.channelNotFound',
+  channel_not_member: 'setup.teams.channelNotMember',
 };
 
 export const formatDate = (lang: Language, date: Date) =>

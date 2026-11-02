@@ -106,8 +106,11 @@ export async function listActivity(
     searchIssues(octokit, `is:pr reviewed-by:${login} -author:${login} ${scope} updated:>=${from}`),
     searchCommits(octokit, `author:${login} ${scope} committer-date:>=${from}`),
   ]);
+  const mergedUrls = new Set(merged.map((hit) => hit.html_url));
   const items: ActivityItem[] = [
-    ...opened.map((hit) => pullItem('pr_opened', hit, hit.created_at)),
+    ...opened
+      .filter((hit) => !mergedUrls.has(hit.html_url))
+      .map((hit) => pullItem('pr_opened', hit, hit.created_at)),
     ...merged.map((hit) =>
       pullItem('pr_merged', hit, hit.pull_request?.merged_at ?? hit.created_at),
     ),

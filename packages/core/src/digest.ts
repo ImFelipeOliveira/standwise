@@ -1,6 +1,8 @@
 import type { Language, TeamConfig } from './config';
 import type { DailySubmission, Item } from './daily';
+import { githubRefLabel } from './github-ref';
 import { formatDate, t } from './i18n';
+import { parseLinearIssueUrl } from './linear-ref';
 import {
   type Block,
   type Inline,
@@ -12,9 +14,15 @@ import {
 
 export type DigestEntry = Person & { daily: DailySubmission };
 
+function refLabel(ref: NonNullable<Item['ref']>, fallback: string): string {
+  return (
+    githubRefLabel(ref.url) ?? parseLinearIssueUrl(ref.url)?.identifier ?? ref.title ?? fallback
+  );
+}
+
 function itemInlines(item: Item): Inline[] {
   if (!item.ref) return [item.text];
-  return [item.text, ' ', { link: { text: item.ref.title ?? item.text, url: item.ref.url } }];
+  return [item.text, ' ', { link: { text: refLabel(item.ref, item.text), url: item.ref.url } }];
 }
 
 function orderEntries(team: TeamConfig, entries: DigestEntry[]): DigestEntry[] {
