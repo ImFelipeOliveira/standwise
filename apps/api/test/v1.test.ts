@@ -140,6 +140,7 @@ function harness(
               if (opts.findUserError) throw opts.findUserError;
               return opts.slackUser === undefined ? 'U9' : opts.slackUser;
             },
+            checkChannel: async () => 'ok',
           } as never),
     trackerFor: async () => nullTracker,
     env: {

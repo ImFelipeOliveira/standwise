@@ -75,6 +75,33 @@ describe('listActivity', () => {
     expect(items[3]?.at).toEqual(new Date('2026-10-27T11:00:00Z'));
   });
 
+  test('a pull request opened and merged in the window appears once, as merged', async () => {
+    const opened = JSON.stringify({
+      items: [
+        {
+          title: 'Fix cache',
+          html_url: 'https://github.com/acme/api/pull/2',
+          repository_url: 'https://api.github.com/repos/acme/api',
+          created_at: '2026-10-27T12:00:00Z',
+          closed_at: '2026-10-27T15:00:00Z',
+          pull_request: { merged_at: '2026-10-27T15:00:00Z' },
+        },
+      ],
+    });
+    const { octokit } = octokitWith({
+      ...routes(),
+      'GET /search/issues': (url: URL) => {
+        const q = url.searchParams.get('q') ?? '';
+        if (q.includes('reviewed-by:')) return { body: JSON.stringify({ items: [] }) };
+        if (q.includes('is:merged')) return { body: fixture('search-merged.json') };
+        return { body: opened };
+      },
+    });
+    const items = await listActivity(octokit, 'acme', 'alice', since);
+    const pull = items.filter((i) => i.url === 'https://github.com/acme/api/pull/2');
+    expect(pull.map((i) => i.kind)).toEqual(['pr_merged']);
+  });
+
   test('caps at 50 items', async () => {
     const many = {
       items: Array.from({ length: 60 }, (_, i) => ({
@@ -118,7 +145,7 @@ describe('listActivity', () => {
       expect(Array.from(item.title).length).toBeLessThanOrEqual(200);
       expect(hasUnsafeChars(item.title)).toBe(false);
     }
-    const pr = items.find((i) => i.kind === 'pr_opened');
+    const pr = items.find((i) => i.url.includes('/pull/'));
     expect(pr?.title.startsWith('Fix login')).toBe(true);
     expect(pr?.title.endsWith('…')).toBe(true);
     expect(Array.from(pr?.title ?? '')).toHaveLength(200);

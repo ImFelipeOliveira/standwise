@@ -1,4 +1,5 @@
 import {
+  type ChannelCheck,
   type ChatChannel,
   type Message,
   type MessageRef,
@@ -47,6 +48,7 @@ export type FakeOptions = {
   snapshots?: Record<string, PullRequestSnapshot[]>;
   teams?: Record<string, string[]>;
   truncatedTeams?: string[];
+  channels?: Record<string, ChannelCheck>;
 };
 
 export function fakeLinear() {
@@ -269,6 +271,7 @@ export function fakeDeps(opts: FakeOptions = {}) {
           if (opts.findUserError) throw opts.findUserError;
           return 'U9';
         },
+        checkChannel: async (channel: string) => opts.channels?.[channel] ?? 'ok',
       }) as never,
     trackerFor: (...args) => createTrackerFor(deps)(...args),
     email: null,
@@ -367,6 +370,7 @@ export function fakeChat() {
       return { channel: `D${userId}`, id: `${counter}.2` };
     },
     findUserByEmail: async () => null,
+    checkChannel: async () => 'ok',
   };
   return {
     chat,

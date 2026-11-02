@@ -209,6 +209,10 @@ const ptBR = {
     'Time {team}: o time {reference} do GitHub não foi encontrado, ou o Standcast não consegue vê-lo. Confira o nome e se o app tem a permissão Members na organização.',
   'setup.teams.truncated':
     'Time {team}: o time {reference} do GitHub é grande demais; só os primeiros 5.000 membros são usados.',
+  'setup.teams.channelNotFound':
+    'Time {team}: o canal {reference} do Slack não foi encontrado. Crie o canal ou, se ele for privado, convide o bot do Standcast com /invite @Standcast.',
+  'setup.teams.channelNotMember':
+    'Time {team}: o bot do Standcast não está no canal {reference} do Slack. Convide-o com /invite @Standcast no canal.',
   'setup.tracker.jiraComingSoon': 'A integração com o Jira ainda não está disponível.',
   'setup.tracker.notConnected':
     'Este time usa o Linear, mas o Linear ainda não está conectado a esta instalação.',
@@ -428,6 +432,10 @@ const en = {
     'Team {team}: the GitHub team {reference} was not found, or Standcast cannot see it. Check the name, and that the app has the Members permission on the organization.',
   'setup.teams.truncated':
     'Team {team}: the GitHub team {reference} is too large; only the first 5,000 members are used.',
+  'setup.teams.channelNotFound':
+    'Team {team}: the Slack channel {reference} was not found. Create it, or if it is private, invite the Standcast bot with /invite @Standcast.',
+  'setup.teams.channelNotMember':
+    'Team {team}: the Standcast bot is not in the Slack channel {reference}. Invite it with /invite @Standcast in the channel.',
   'setup.tracker.jiraComingSoon': 'The Jira integration is not available yet.',
   'setup.tracker.notConnected':
     'This team uses Linear, but Linear is not connected to this installation yet.',

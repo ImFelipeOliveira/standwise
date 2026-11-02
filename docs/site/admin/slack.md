@@ -37,6 +37,8 @@ Set the channel in `standcast.yml` under `chat.channel`:
 
 Archived channels are not found.
 
+When Slack is connected, the setup page checks each team's channel and warns on the team's card when the channel is not found or the bot is not in a private channel, so you can fix it before `digest_at`.
+
 ## How people are mentioned
 
 The digest mentions each person with their Slack user when Standcast knows it, and shows `@` followed by their GitHub login as plain text otherwise. A person is linked to their Slack user when they sign in (with `standcast login` or on the setup page), if Slack is already connected and `standcast.yml` has a valid version:

@@ -10,6 +10,8 @@ What changed in Standcast. Versions match the [GitHub releases](https://github.c
 
 ### Unreleased
 
+- The setup page warns when a team's Slack channel is missing or the bot is not in it; digest links no longer unfold into previews and show a short label (repo#123, FEL-12); a pull request opened and merged in the same window appears once in the draft.
+
 ### 0.3.1 — 2026-11-01
 
 - The documentation site publishes `robots.txt` and a `sitemap.xml`, and the landing page serves its own fonts.

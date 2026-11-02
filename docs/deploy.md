@@ -91,6 +91,19 @@ You can deploy before the final domain exists, with an interim domain of your ow
 - **README.md and `packages/plugin/skills/daily/SKILL.md`:** they are read on GitHub and in the plugin, not built, so they name the interim address directly.
 - **CLI:** the released binary points at `https://api.standcast.app` unless the release is built with `STANDCAST_DEFAULT_API_URL`. The release workflow sets it to the interim address. Without a release build, people run `standcast login --api-url <url>` or set `STANDCAST_API_URL`.
 
+### External app settings checklist
+
+These settings live outside the repository, so a domain change does not update them. Check every row after changing the api domain. The symptom column is what a person sees when the row is wrong.
+
+| App | Setting | Value | Symptom when wrong |
+| --- | --- | --- | --- |
+| GitHub App | Setup URL | `<PUBLIC_URL>/setup` | After installing the app, the browser lands on a 404 page of another site |
+| GitHub App | Callback URL | `<PUBLIC_URL>/auth/github/callback` | Signing in to the setup page fails with a redirect URI error on GitHub |
+| GitHub App | Webhook URL | `<PUBLIC_URL>/webhooks/github` | Installs and `standcast.yml` pushes are never seen; the setup page stays unconfigured |
+| GitHub App | Enable Device Flow | on | `standcast login` fails with `device_flow_disabled` |
+| Slack app | Redirect URL | `<PUBLIC_URL>/oauth/slack/callback` | Connecting Slack fails with `redirect_uri did not match any configured URIs` |
+| Linear app | Callback URL | `<PUBLIC_URL>/oauth/linear/callback` | Connecting Linear fails with a redirect URI error on Linear |
+
 ### When the final domain arrives
 
 Change every place that names the interim address:

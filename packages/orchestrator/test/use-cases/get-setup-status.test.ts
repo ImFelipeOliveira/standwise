@@ -242,8 +242,102 @@ describe('getSetupStatus team notices', () => {
   test('a hanging resolution gives up after about 3 seconds', async () => {
     const { fake, member } = await run('[alice, "@acme/x"]');
     fake.deps.github.resolveTeamMembers = () => new Promise(() => {});
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
     const started = Date.now();
     const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    spy.mockRestore();
+    expect(status.teamNotices).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(4500);
+  }, 10000);
+});
+
+describe('getSetupStatus channel notices', () => {
+  const beta = `  - name: Beta
+    timezone: America/Sao_Paulo
+    remind_at: "09:00"
+    digest_at: "10:00"
+    managers: [alice]
+    members: [alice]
+    chat: { provider: slack, channel: "#alpha" }`;
+
+  async function run(options: Parameters<typeof fakeDeps>[0] = {}, extra = '') {
+    await seedOrg(config('[alice, bob]', extra));
+    const member = await seedMember();
+    await setMemberInstallations(db, member.id, [INST]);
+    const fake = fakeDeps(options);
+    return { fake, member };
+  }
+
+  async function notices(options: Parameters<typeof fakeDeps>[0] = {}) {
+    const { fake, member } = await run(options);
+    return (await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST))
+      .teamNotices;
+  }
+
+  test('a missing channel is reported on its team', async () => {
+    expect(await notices({ channels: { '#alpha': 'not_found' } })).toEqual([
+      { team: 'Alpha', reference: '#alpha', kind: 'channel_not_found' },
+    ]);
+  });
+
+  test('a channel without the bot is reported on its team', async () => {
+    expect(await notices({ channels: { '#alpha': 'not_member' } })).toEqual([
+      { team: 'Alpha', reference: '#alpha', kind: 'channel_not_member' },
+    ]);
+  });
+
+  test('a reachable channel has no notice', async () => {
+    expect(await notices({ channels: { '#alpha': 'ok' } })).toEqual([]);
+  });
+
+  test('a channel shared by two teams is checked once and reported on both', async () => {
+    const { fake, member } = await run({}, beta);
+    const checked: string[] = [];
+    fake.deps.chatFor = async () =>
+      ({
+        checkChannel: async (channel: string) => {
+          checked.push(channel);
+          return 'not_member';
+        },
+      }) as never;
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    expect(checked).toEqual(['#alpha']);
+    expect(status.teamNotices).toEqual([
+      { team: 'Alpha', reference: '#alpha', kind: 'channel_not_member' },
+      { team: 'Beta', reference: '#alpha', kind: 'channel_not_member' },
+    ]);
+  });
+
+  test('without slack connected no channel is checked', async () => {
+    const { fake, member } = await run({ channels: { '#alpha': 'not_found' } });
+    fake.deps.chatFor = async () => null;
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    expect(status.teamNotices).toEqual([]);
+  });
+
+  test('a failing check leaves setup working without channel notices', async () => {
+    const { fake, member } = await run();
+    fake.deps.chatFor = async () =>
+      ({
+        checkChannel: async () => {
+          throw new Error('slack down');
+        },
+      }) as never;
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+    expect(status.teamNotices).toEqual([]);
+    expect(status.owner).toBe('acme');
+  });
+
+  test('a hanging check gives up after about 3 seconds', async () => {
+    const { fake, member } = await run();
+    fake.deps.chatFor = async () => ({ checkChannel: () => new Promise(() => {}) }) as never;
+    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const started = Date.now();
+    const status = await getSetupStatus(fake.deps, createMembershipCheck(fake.deps), member, INST);
+    spy.mockRestore();
     expect(status.teamNotices).toEqual([]);
     expect(Date.now() - started).toBeLessThan(4500);
   }, 10000);

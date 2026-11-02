@@ -138,6 +138,47 @@ describe('buildDigest', () => {
     expect(json).toContain('{"link":{"text":"plain ref","url":"https://x.test/2"}}');
   });
 
+  test('github and linear refs get a short label instead of the title', () => {
+    const e = entry('bob', 'U2', {
+      yesterday: [
+        {
+          text: 'merged the rename',
+          ref: {
+            kind: 'pull_request',
+            url: 'https://github.com/acme/api/pull/30',
+            title: 'refactor: rename',
+          },
+        },
+        {
+          text: 'opened an issue',
+          ref: { kind: 'issue', url: 'https://github.com/acme/api/issues/7', title: 'Bug' },
+        },
+        {
+          text: 'released',
+          ref: {
+            kind: 'commit',
+            url: 'https://github.com/acme/api/commit/20fc434cc94ae11b689393006a44b96227610c89',
+            title: 'chore: release',
+          },
+        },
+        {
+          text: 'finished the card',
+          ref: { kind: 'card', url: 'https://linear.app/acme/issue/fel-12/do-it', title: 'Do it' },
+        },
+      ],
+    });
+    const json = JSON.stringify(buildDigest({ ...base, entries: [e] }).blocks);
+    expect(json).toContain(
+      '{"link":{"text":"api#30","url":"https://github.com/acme/api/pull/30"}}',
+    );
+    expect(json).toContain(
+      '{"link":{"text":"api#7","url":"https://github.com/acme/api/issues/7"}}',
+    );
+    expect(json).toContain('"text":"api@20fc434"');
+    expect(json).toContain('"text":"FEL-12"');
+    expect(json).not.toContain('refactor: rename');
+  });
+
   test('fallbackText is non-empty and clean', () => {
     const msg = buildDigest({
       ...base,
